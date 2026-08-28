@@ -67,7 +67,7 @@
 		"knip": "knip",
 		"test": "vitest run",
 		"test:watch": "vitest",
-		"prepublishOnly": "pnpm run build"
+		"prepublishOnly": "npm run build"
 	},
 	"dependencies": {
 		"node-cron": "4.6.0"
