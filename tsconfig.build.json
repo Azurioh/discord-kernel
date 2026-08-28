@@ -1,0 +1,15 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"noEmit": false,
+		// A consumer resolves this package through `exports`, so every subpath has
+		// to ship its own declaration file — there is no source to fall back on.
+		"declaration": true,
+		"declarationMap": true,
+		"sourceMap": true,
+		"outDir": "dist",
+		"rootDir": "src"
+	},
+	"include": ["src"],
+	"exclude": ["dist", "node_modules", "tests"]
+}

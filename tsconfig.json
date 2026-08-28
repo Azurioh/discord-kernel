@@ -1,0 +1,28 @@
+{
+	"$schema": "https://json.schemastore.org/tsconfig",
+	// Mirrors `@bsk/tsconfig/node.json` rather than extending it. This package is
+	// published on its own, and a consumer cloning its repository cannot resolve a
+	// private workspace package — so the strictness floor is copied here, not
+	// referenced. Keep the two in step: this is the same floor, not a laxer one.
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"strict": true,
+		"noImplicitOverride": true,
+		"forceConsistentCasingInFileNames": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"resolveJsonModule": true,
+		"noEmit": true,
+		"paths": {
+			"@/*": ["./src/*"]
+		},
+		// Above the shared floor, as the bot is: this is the code that indexes
+		// Discord collections, where an undefined element is a real failure mode.
+		// Relaxing it here would relax it for every consumer.
+		"noUncheckedIndexedAccess": true
+	},
+	"include": ["src", "tests"],
+	"exclude": ["dist", "node_modules"]
+}

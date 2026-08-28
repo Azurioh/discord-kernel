@@ -1,0 +1,89 @@
+{
+	"name": "@azurioh/discord-kernel",
+	"version": "0.1.0",
+	"description": "Framework kernel for Discord bots: command DSL, guards, interaction routing, composed components, i18n, ports (Presenter, Logger, DatabaseConnection, Authorizer, Scheduler).",
+	"keywords": [
+		"discord",
+		"discord.js",
+		"discord-bot",
+		"framework",
+		"clean-architecture",
+		"hexagonal",
+		"typescript",
+		"i18n"
+	],
+	"license": "MIT",
+	"author": "Alan Cunin (https://github.com/Azurioh)",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Azurioh/discord-kernel.git"
+	},
+	"bugs": {
+		"url": "https://github.com/Azurioh/discord-kernel/issues"
+	},
+	"homepage": "https://github.com/Azurioh/discord-kernel#readme",
+	"engines": {
+		"node": ">=22.12.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"exports": {
+		"./package.json": "./package.json",
+		"./errors": {
+			"types": "./dist/errors/index.d.ts",
+			"default": "./dist/errors/index.js"
+		},
+		"./i18n": {
+			"types": "./dist/i18n/index.d.ts",
+			"default": "./dist/i18n/index.js"
+		},
+		"./discord/components/interactive-message": {
+			"types": "./dist/discord/components/interactive-message/index.d.ts",
+			"default": "./dist/discord/components/interactive-message/index.js"
+		},
+		"./discord/components/paginator": {
+			"types": "./dist/discord/components/paginator/index.d.ts",
+			"default": "./dist/discord/components/paginator/index.js"
+		},
+		"./discord/components/settings-editor": {
+			"types": "./dist/discord/components/settings-editor/index.d.ts",
+			"default": "./dist/discord/components/settings-editor/index.js"
+		},
+		"./*": {
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		}
+	},
+	"files": [
+		"dist",
+		"src"
+	],
+	"scripts": {
+		"build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
+		"typecheck": "tsc -p tsconfig.json",
+		"lint": "biome ci",
+		"format": "biome check --write",
+		"knip": "knip",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"prepublishOnly": "pnpm run build"
+	},
+	"dependencies": {
+		"node-cron": "4.6.0"
+	},
+	"peerDependencies": {
+		"discord.js": "^14.27.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.7",
+		"@types/node": "24.13.3",
+		"discord.js": "14.27.0",
+		"knip": "^6.15.0",
+		"tsc-alias": "^1.8.16",
+		"typescript": "^5.9.3",
+		"vite-tsconfig-paths": "^6.1.1",
+		"vitest": "^4.1.8"
+	},
+	"packageManager": "pnpm@11.20.0"
+}

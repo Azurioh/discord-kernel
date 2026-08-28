@@ -1,0 +1,4 @@
+# Every text file is stored LF in the index. Without this, a Windows clone with
+# core.autocrlf=true — Git for Windows' default — checks the working copy out as
+# CRLF, and `pnpm lint` then reports the entire repository as unformatted.
+* text=auto eol=lf
