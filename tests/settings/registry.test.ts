@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TranslationRegistry } from "@/i18n";
+import { TranslationRegistry } from "@/i18n/catalog";
 import { defineSettings } from "@/settings/define-settings";
 import { field } from "@/settings/fields";
 import { createSettingsRegistry } from "@/settings/registry";
