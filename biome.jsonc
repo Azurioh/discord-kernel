@@ -20,7 +20,9 @@
 							"@/i18n": "Entry point for consumers only: import the source module instead.",
 							"@/discord/components/interactive-message": "Entry point for consumers only: import the source module instead.",
 							"@/discord/components/paginator": "Entry point for consumers only: import the source module instead.",
-							"@/discord/components/settings-editor": "Entry point for consumers only: import the source module instead."
+							"@/discord/components/settings-editor": "Entry point for consumers only: import the source module instead.",
+							"@/settings": "Entry point for consumers only: import the source module instead.",
+							"@/settings/testing": "Entry point for consumers only: import the source module instead."
 						},
 						"patterns": [
 							{
