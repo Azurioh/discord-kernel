@@ -35,6 +35,11 @@ export class TranslationRegistry {
 		}
 	}
 
+	/** Whether `key` was registered by some catalog (and so has an English source). */
+	has(key: string): boolean {
+		return this.entries.has(key);
+	}
+
 	get(key: string): CatalogEntry | undefined {
 		return this.entries.get(key);
 	}
