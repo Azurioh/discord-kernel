@@ -16,19 +16,31 @@ export function createInMemorySettingsStore(): SettingsStore {
 		},
 
 		async write(record, { expectedRevision }) {
-			const modules = guilds.get(record.guildId) ?? new Map<string, StoredSettings>();
-			const currentRevision = modules.get(record.moduleId)?.revision ?? null;
+			const current = guilds.get(record.guildId)?.get(record.moduleId);
+			// The port speaks `null` for "no record yet", so an absent record compares as `null`.
+			const currentRevision = current === undefined ? null : current.revision;
 			if (currentRevision !== expectedRevision) {
 				throw new ConflictError(
 					`Settings of module "${record.moduleId}" in guild ${record.guildId} changed concurrently (expected revision ${expectedRevision}, found ${currentRevision})`,
 				);
 			}
+			let modules = guilds.get(record.guildId);
+			if (modules === undefined) {
+				modules = new Map<string, StoredSettings>();
+				guilds.set(record.guildId, modules);
+			}
 			modules.set(record.moduleId, structuredClone(record));
-			guilds.set(record.guildId, modules);
 		},
 
 		async delete(guildId, moduleId) {
-			guilds.get(guildId)?.delete(moduleId);
+			const modules = guilds.get(guildId);
+			if (modules === undefined) {
+				return;
+			}
+			modules.delete(moduleId);
+			if (modules.size === 0) {
+				guilds.delete(guildId);
+			}
 		},
 	};
 }
