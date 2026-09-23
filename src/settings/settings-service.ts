@@ -1,6 +1,6 @@
 import type { Clock } from "@/clock";
 import { ConflictError, ValidationError } from "@/errors/business-error";
-import type { Translator } from "@/i18n";
+import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 import type { SettingsDeclaration } from "@/settings/define-settings";
 import { parseFieldValue, pruneStoredValue } from "@/settings/fields";

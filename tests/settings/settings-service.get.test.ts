@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { fixedClock } from "@/clock";
-import type { Translator } from "@/i18n";
+import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 import { createInMemoryGuildDirectory } from "@/settings/in-memory/in-memory-guild-directory";
 import { createInMemorySettingsStore } from "@/settings/in-memory/in-memory-settings-store";
