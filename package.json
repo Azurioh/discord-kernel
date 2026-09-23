@@ -83,7 +83,6 @@
 		"knip": "^6.15.0",
 		"tsc-alias": "^1.8.16",
 		"typescript": "^5.9.3",
-		"vite-tsconfig-paths": "^6.1.1",
 		"vitest": "^4.1.8"
 	},
 	"packageManager": "pnpm@11.20.0"
