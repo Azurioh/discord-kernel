@@ -1,7 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, expectTypeOf, it } from "vitest";
-import type { Choice as CommandChoice } from "@/discord/command/options";
 import type { Choice } from "@/settings/choice";
 
 const SETTINGS_DIR = join(__dirname, "..", "..", "src", "settings");
@@ -35,8 +34,7 @@ describe("settings core stays vendor-free", () => {
 });
 
 describe("Choice", () => {
-	it("is the same type as the one re-exported by the command options", () => {
-		expectTypeOf<CommandChoice>().toEqualTypeOf<Choice>();
+	it("has the shape Discord expects for a choice", () => {
 		expectTypeOf<Choice>().toEqualTypeOf<{
 			readonly name: string;
 			readonly value: string | number;

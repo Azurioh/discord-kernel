@@ -22,8 +22,6 @@ import { isValidWallClock } from "@/datetime";
 import { OptionValidationError } from "@/discord/command/errors";
 import type { Choice } from "@/settings/choice";
 
-export type { Choice } from "@/settings/choice";
-
 /**
  * Translated name/description for a single option, keyed by Discord locale
  * (e.g. `{ nameLocalizations: { "en-US": "channel", "en-GB": "channel" } }`).

@@ -1,6 +1,7 @@
 import type { AutocompleteInteraction } from "discord.js";
 import { type CompiledSubcommand, routeKey } from "@/discord/command/create-command";
-import type { Choice, Options } from "@/discord/command/options";
+import type { Options } from "@/discord/command/options";
+import type { Choice } from "@/settings/choice";
 
 /**
  * Serving option autocomplete. Kept beside the DSL because resolving *which*
