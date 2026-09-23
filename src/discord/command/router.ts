@@ -7,7 +7,7 @@ import type {
 } from "@/discord/command/types";
 import type { InteractionDispatcher } from "@/discord/interaction/interaction-router";
 import type { Presenter } from "@/discord/presenter";
-import type { Translator } from "@/i18n";
+import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 
 export interface CommandRouterDeps {

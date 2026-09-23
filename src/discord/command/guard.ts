@@ -1,5 +1,5 @@
 import type { CommandInteraction } from "discord.js";
-import type { LocalizedText } from "@/i18n";
+import type { LocalizedText } from "@/i18n/translator";
 
 export type GuardResult = { ok: true } | { ok: false; message: LocalizedText };
 

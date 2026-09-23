@@ -1,6 +1,6 @@
 import type { ChannelType } from "discord.js";
 import type { TextFieldStyleName } from "@/discord/interaction/modal";
-import type { TranslationParams } from "@/i18n";
+import type { TranslationParams } from "@/i18n/translator";
 
 /**
  * How a field is entered.

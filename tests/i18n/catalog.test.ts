@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TranslationRegistry } from "@/i18n";
+import { TranslationRegistry } from "@/i18n/catalog";
 
 describe("TranslationRegistry.has", () => {
 	it("returns true for a registered key", () => {

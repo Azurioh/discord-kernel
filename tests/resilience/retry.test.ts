@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { ValidationError } from "@/errors";
+import { ValidationError } from "@/errors/business-error";
 import { withRetry } from "@/resilience/retry";
 
 /** Records the requested delays instead of waiting, so the suite never sleeps. */

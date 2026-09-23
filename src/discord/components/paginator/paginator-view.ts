@@ -2,7 +2,7 @@ import type { ActionRowBuilder, ButtonBuilder, EmbedBuilder } from "discord.js";
 import type {
 	InteractiveMessagePayload,
 	InteractiveView,
-} from "@/discord/components/interactive-message";
+} from "@/discord/components/interactive-message/interactive-message-collector";
 import { type PageState, selectPageItems } from "@/discord/components/paginator/page-state";
 import { type Button, createActionRow } from "@/discord/interaction/button";
 

@@ -4,7 +4,7 @@ import {
 	createStateStore,
 	mountInteractiveMessageCollector,
 	toMessageEditOptions,
-} from "@/discord/components/interactive-message";
+} from "@/discord/components/interactive-message/interactive-message-collector";
 import { createPageState, pageCount } from "@/discord/components/paginator/page-state";
 import {
 	createPaginatorButtons,

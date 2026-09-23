@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ValidationError, WarningError } from "@/errors";
+import { ValidationError, WarningError } from "@/errors/business-error";
 import { type SettingsIssue, SettingsValidationError } from "@/settings/settings-validation-error";
 
 const requiredIssue: SettingsIssue = {

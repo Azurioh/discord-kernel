@@ -8,7 +8,7 @@ import {
 	requiresPermissions,
 } from "@/discord/components/component-router";
 import type { Presenter } from "@/discord/presenter";
-import type { Translator } from "@/i18n";
+import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 
 function makeLogger(): Logger {

@@ -1,5 +1,5 @@
 import type { EmbedBuilder } from "discord.js";
-import type { Locale } from "@/i18n";
+import type { Locale } from "@/i18n/locale";
 
 /**
  * Port that renders framework-level responses (errors, denials, confirmations)

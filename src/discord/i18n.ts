@@ -1,4 +1,4 @@
-import type { Catalog } from "@/i18n";
+import type { Catalog } from "@/i18n/catalog";
 
 /** Catalog keys for the framework's own feedback, under the `core.` namespace. */
 export const CORE_MESSAGES = {

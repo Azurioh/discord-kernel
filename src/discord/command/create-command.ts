@@ -13,8 +13,10 @@ import type { Options, Values } from "@/discord/command/options";
 import type { CommandRuntime, SlashCommand } from "@/discord/command/types";
 import { CORE_MESSAGES } from "@/discord/i18n";
 import { type PermissionBit, resolvePermissions } from "@/discord/permissions";
-import { BusinessError, createIncidentRef } from "@/errors";
-import { type Locale, type LocalizedText, resolveLocale } from "@/i18n";
+import { BusinessError } from "@/errors/business-error";
+import { createIncidentRef } from "@/errors/incident-ref";
+import { type Locale, resolveLocale } from "@/i18n/locale";
+import type { LocalizedText } from "@/i18n/translator";
 
 export interface SubcommandDef<O extends Options> {
 	description: string;

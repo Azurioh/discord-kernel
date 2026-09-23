@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TranslationRegistry } from "@/i18n";
+import { TranslationRegistry } from "@/i18n/catalog";
 import { SETTINGS_CATALOG, SETTINGS_ISSUE_MESSAGES, SETTINGS_MESSAGES } from "@/settings/messages";
 
 const PLACEHOLDER = /\{(\w+)\}/g;

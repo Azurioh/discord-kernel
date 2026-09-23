@@ -1,4 +1,4 @@
-import type { BusinessError } from "@/errors";
+import type { BusinessError } from "@/errors/business-error";
 import type { Locale } from "@/i18n/locale";
 import type { Translator } from "@/i18n/translator";
 

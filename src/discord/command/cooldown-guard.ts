@@ -2,7 +2,7 @@ import type { CommandInteraction } from "discord.js";
 import { type Clock, systemClock } from "@/clock";
 import type { Guard, GuardResult } from "@/discord/command/guard";
 import { CORE_MESSAGES } from "@/discord/i18n";
-import type { LocalizedText } from "@/i18n";
+import type { LocalizedText } from "@/i18n/translator";
 
 const ALLOW: GuardResult = { ok: true };
 const MILLISECONDS_PER_SECOND = 1000;

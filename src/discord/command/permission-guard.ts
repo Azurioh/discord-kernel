@@ -2,7 +2,7 @@ import type { CommandInteraction } from "discord.js";
 import type { Guard, GuardResult } from "@/discord/command/guard";
 import { CORE_MESSAGES } from "@/discord/i18n";
 import { formatPermissions, missingPermissions, type PermissionBit } from "@/discord/permissions";
-import type { LocalizedText } from "@/i18n";
+import type { LocalizedText } from "@/i18n/translator";
 
 /**
  * Generic, reusable guards. They complement — never replace —

@@ -14,8 +14,10 @@ import type { Guard } from "@/discord/command/guard";
 import type { CommandRuntime, ContextMenuCommand } from "@/discord/command/types";
 import { CORE_MESSAGES } from "@/discord/i18n";
 import { type PermissionBit, resolvePermissions } from "@/discord/permissions";
-import { BusinessError, createIncidentRef } from "@/errors";
-import { type Locale, type LocalizedText, resolveLocale, type TranslationParams } from "@/i18n";
+import { BusinessError } from "@/errors/business-error";
+import { createIncidentRef } from "@/errors/incident-ref";
+import { type Locale, resolveLocale } from "@/i18n/locale";
+import type { LocalizedText, TranslationParams } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 
 /**

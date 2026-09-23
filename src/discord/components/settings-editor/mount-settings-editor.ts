@@ -8,10 +8,10 @@ import {
 	type InteractiveMessageHandle,
 	type InteractiveSelect,
 	type InteractiveView,
-	mountInteractiveMessage,
 	type StateStore,
 	toMessageEditOptions,
-} from "@/discord/components/interactive-message";
+} from "@/discord/components/interactive-message/interactive-message-collector";
+import { mountInteractiveMessage } from "@/discord/components/interactive-message/mount-interactive-message";
 import {
 	popLevel,
 	pushLevel,
@@ -50,8 +50,11 @@ import {
 } from "@/discord/components/settings-editor/settings-editor-fields";
 import { SETTINGS_EDITOR_MESSAGES } from "@/discord/i18n";
 import { type Button, type ComponentContext, createButton } from "@/discord/interaction/button";
-import { BusinessError, describeError } from "@/errors";
-import { type Locale, resolveBusinessMessage, type Translator } from "@/i18n";
+import { BusinessError } from "@/errors/business-error";
+import { describeError } from "@/errors/describe-error";
+import { resolveBusinessMessage } from "@/i18n/business-message";
+import type { Locale } from "@/i18n/locale";
+import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 
 /**

@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { createContextMenuCommand } from "@/discord/command/create-context-menu-command";
 import type { CommandRuntime } from "@/discord/command/types";
 import type { Presenter } from "@/discord/presenter";
-import { ValidationError } from "@/errors";
-import type { Translator } from "@/i18n";
+import { ValidationError } from "@/errors/business-error";
+import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 
 /** Embeds are opaque here: the tests assert which presenter path was taken. */

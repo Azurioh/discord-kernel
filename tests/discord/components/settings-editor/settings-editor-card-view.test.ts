@@ -6,7 +6,7 @@ import type {
 import { ComponentType } from "discord.js";
 import { describe, expect, it, vi } from "vitest";
 import { fixedClock } from "@/clock";
-import type { InteractiveMessagePayload } from "@/discord/components/interactive-message";
+import type { InteractiveMessagePayload } from "@/discord/components/interactive-message/interactive-message-collector";
 import type { SettingsEditorLevel } from "@/discord/components/settings-editor/navigation";
 import { ROOT_LEVEL_KEY } from "@/discord/components/settings-editor/navigation";
 import {
@@ -22,7 +22,8 @@ import {
 } from "@/discord/components/settings-editor/settings-editor-card.view";
 import type { SettingsEditorField } from "@/discord/components/settings-editor/settings-editor-fields";
 import { type Button, createButton } from "@/discord/interaction/button";
-import type { Locale, Translator } from "@/i18n";
+import type { Locale } from "@/i18n/locale";
+import type { Translator } from "@/i18n/translator";
 
 const IDS = editorComponentIds("test");
 const LOCALE: Locale = "en";

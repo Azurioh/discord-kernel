@@ -1,18 +1,19 @@
 import { Collection, ComponentType, EmbedBuilder } from "discord.js";
 import { describe, expect, it, vi } from "vitest";
 import { fixedClock } from "@/clock";
+import { mountSettingsEditor } from "@/discord/components/settings-editor/mount-settings-editor";
 import {
 	editorComponentIds,
-	mountSettingsEditor,
 	type SettingsEditorCardChrome,
 	type SettingsEditorEmbedsChrome,
-} from "@/discord/components/settings-editor";
+} from "@/discord/components/settings-editor/settings-editor.view";
 import {
 	type SettingsEditorField,
 	textFieldValue,
 } from "@/discord/components/settings-editor/settings-editor-fields";
-import { ValidationError } from "@/errors";
-import type { Locale, Translator } from "@/i18n";
+import { ValidationError } from "@/errors/business-error";
+import type { Locale } from "@/i18n/locale";
+import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 
 const OWNER = "admin-1";

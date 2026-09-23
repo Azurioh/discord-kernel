@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CORE_CATALOG } from "@/discord/i18n";
-import type { Catalog } from "@/i18n";
+import type { Catalog } from "@/i18n/catalog";
 import { SETTINGS_CATALOG } from "@/settings/messages";
 
 /** Second-person singular pronouns and possessives, as whole words or elided (`t'`). */

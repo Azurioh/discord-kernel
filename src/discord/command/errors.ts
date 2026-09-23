@@ -1,4 +1,4 @@
-import { ValidationError } from "@/errors";
+import { ValidationError } from "@/errors/business-error";
 
 /**
  * Raised when a slash command option is declared or read in a way discord.js

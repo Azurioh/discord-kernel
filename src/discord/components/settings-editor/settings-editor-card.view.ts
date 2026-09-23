@@ -1,4 +1,4 @@
-import type { InteractiveView } from "@/discord/components/interactive-message";
+import type { InteractiveView } from "@/discord/components/interactive-message/interactive-message-collector";
 import {
 	canReturn,
 	currentLevelKey,
@@ -20,7 +20,8 @@ import { SETTINGS_EDITOR_MESSAGES } from "@/discord/i18n";
 import { type Button, createActionRow } from "@/discord/interaction/button";
 import { type CardBlock, type CardDef, createCard } from "@/discord/ui/card";
 import { EMBED_COLORS } from "@/discord/ui/colors";
-import type { Locale, Translator } from "@/i18n";
+import type { Locale } from "@/i18n/locale";
+import type { Translator } from "@/i18n/translator";
 
 /**
  * Discord refuses a card carrying more than {@link import("@/discord/ui/card").MAX_CARD_COMPONENTS}

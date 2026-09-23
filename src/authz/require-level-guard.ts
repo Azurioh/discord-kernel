@@ -1,7 +1,7 @@
 import type { BaseInteraction, CommandInteraction } from "discord.js";
 import type { Authorizer, PermissionLevel } from "@/authz/authorizer";
 import type { Guard } from "@/discord/command/guard";
-import type { LocalizedText } from "@/i18n";
+import type { LocalizedText } from "@/i18n/translator";
 
 /**
  * Role IDs held by the interacting member, resolved without a network call:
