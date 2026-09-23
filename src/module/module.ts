@@ -3,6 +3,7 @@ import type { ComponentHandler } from "@/discord/components/component-router";
 import type { DiscordEvent } from "@/discord/events/types";
 import type { Catalog } from "@/i18n/catalog";
 import type { ScheduledJob } from "@/scheduler/scheduler";
+import type { SettingsDeclaration } from "@/settings/define-settings";
 
 /**
  * A self-contained vertical feature slice. A module bundles everything it
@@ -30,6 +31,13 @@ export interface BotModule {
 	 * duplicate key across modules fails the boot, never a runtime lookup.
 	 */
 	readonly translations?: Catalog;
+	/**
+	 * The module's settings declarations. The composition root collects them into
+	 * the settings registry at boot, the same way it collects `translations`.
+	 */
+	readonly settings?: readonly SettingsDeclaration[];
+	/** Whether the module starts enabled in a guild that never toggled it. Defaults to `true`. */
+	readonly defaultEnabled?: boolean;
 	/** One-off initialisation run once at boot, after the client is ready. */
 	setup?(): Promise<void> | void;
 	/**
