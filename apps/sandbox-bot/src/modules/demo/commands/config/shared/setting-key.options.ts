@@ -4,8 +4,8 @@ import {
 	createSettingKeyAutocomplete,
 	type ExtraSettingKeyChoices,
 } from "@/modules/demo/commands/config/shared/setting-key.autocomplete";
-import { DEMO_CATALOG } from "@/modules/demo/i18n/demo-catalog";
-import type { DEMO_MESSAGES } from "@/modules/demo/i18n/demo-messages";
+import { DEMO_CATALOG } from "@/modules/demo/i18n/demo.catalog";
+import type { DEMO_MESSAGES } from "@/modules/demo/i18n/demo.messages";
 import { localizedDescription } from "@/shared/discord/localized-description";
 import type { MessageKey } from "@/shared/i18n/module-catalog";
 

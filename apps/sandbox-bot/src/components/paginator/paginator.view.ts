@@ -1,7 +1,7 @@
 import type { PaginatorRender } from "@azurioh/discord-kernel/discord/components/paginator";
 import { EMBED_COLORS } from "@azurioh/discord-kernel/discord/ui/colors";
 import { buildEmbed } from "@azurioh/discord-kernel/discord/ui/embed";
-import { PAGINATOR_MESSAGES } from "@/components/paginator/i18n/paginator-messages";
+import { PAGINATOR_MESSAGES } from "@/components/paginator/i18n/paginator.messages";
 import type { Translate } from "@/shared/i18n/translate";
 
 /**

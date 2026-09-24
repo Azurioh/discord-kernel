@@ -1,4 +1,4 @@
-import { DEMO_MESSAGES, DEMO_SETTINGS_MESSAGES } from "@/modules/demo/i18n/demo-messages";
+import { DEMO_MESSAGES, DEMO_SETTINGS_MESSAGES } from "@/modules/demo/i18n/demo.messages";
 import type { MessageKey, ModuleCatalog } from "@/shared/i18n/module-catalog";
 
 /** The demo module's wording in English and French, keyed by its `*_MESSAGES` constants. */

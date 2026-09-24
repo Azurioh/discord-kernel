@@ -3,14 +3,14 @@ import type { Options } from "@azurioh/discord-kernel/discord/command/options";
 import { EMBED_COLORS } from "@azurioh/discord-kernel/discord/ui/colors";
 import { appendBoundedFields, buildEmbed } from "@azurioh/discord-kernel/discord/ui/embed";
 import type { SettingsService } from "@azurioh/discord-kernel/settings";
-import { requestContext } from "@/modules/demo/commands/config/shared/request-context";
+import { requestContext } from "@/modules/demo/commands/config/shared/request-context.helper";
 import {
 	DEMO_FIELD_ENTRIES,
 	keyedLabelOf,
-} from "@/modules/demo/commands/config/shared/setting-keys";
-import { formatSettingValue } from "@/modules/demo/commands/config/show/format-setting-value";
-import { DEMO_MESSAGES } from "@/modules/demo/i18n/demo-messages";
-import { demoSettings } from "@/modules/demo/settings/demo-settings";
+} from "@/modules/demo/commands/config/shared/setting-keys.helper";
+import { formatSettingValue } from "@/modules/demo/commands/config/show/format-setting-value.helper";
+import { DEMO_MESSAGES } from "@/modules/demo/i18n/demo.messages";
+import { demoSettings } from "@/modules/demo/settings/demo.settings";
 
 /**
  * `/config show`: every demo setting in one embed, secrets shown as set or not.

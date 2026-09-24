@@ -1,5 +1,5 @@
 import { defineSettings, field } from "@azurioh/discord-kernel/settings";
-import { DEMO_SETTINGS_MESSAGES } from "@/modules/demo/i18n/demo-messages";
+import { DEMO_SETTINGS_MESSAGES } from "@/modules/demo/i18n/demo.messages";
 
 /** One field of most kinds, to try each validation rule from `/config set`. */
 export const demoSettings = defineSettings({

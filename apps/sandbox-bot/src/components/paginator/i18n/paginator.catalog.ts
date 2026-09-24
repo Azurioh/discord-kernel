@@ -1,4 +1,4 @@
-import { PAGINATOR_MESSAGES } from "@/components/paginator/i18n/paginator-messages";
+import { PAGINATOR_MESSAGES } from "@/components/paginator/i18n/paginator.messages";
 import type { MessageKey, ModuleCatalog } from "@/shared/i18n/module-catalog";
 
 /** The paginator's wording in English and French, keyed by {@link PAGINATOR_MESSAGES}. */

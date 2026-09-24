@@ -1,4 +1,4 @@
-import { BASICS_MESSAGES } from "@/modules/basics/i18n/basics-messages";
+import { BASICS_MESSAGES } from "@/modules/basics/i18n/basics.messages";
 import type { MessageKey, ModuleCatalog } from "@/shared/i18n/module-catalog";
 
 /** The basics module's wording in English and French, keyed by `BASICS_MESSAGES`. */

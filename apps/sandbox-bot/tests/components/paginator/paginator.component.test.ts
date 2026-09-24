@@ -8,7 +8,7 @@ import type {
 	EmbedBuilder,
 } from "discord.js";
 import { describe, expect, it, vi } from "vitest";
-import { PAGINATOR_CATALOG } from "@/components/paginator/i18n/paginator-catalog";
+import { PAGINATOR_CATALOG } from "@/components/paginator/i18n/paginator.catalog";
 import { showPaginator } from "@/components/paginator/paginator.component";
 import { createPinoLogger } from "@/shared/logging/pino-logger";
 

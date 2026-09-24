@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseValueInput } from "@/modules/demo/commands/config/set/parse-value-input";
+import { parseValueInput } from "@/modules/demo/commands/config/set/parse-value-input.helper";
 
 describe("parseValueInput", () => {
 	it.each([

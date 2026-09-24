@@ -1,5 +1,5 @@
 import type { FieldSpec, SecretState } from "@azurioh/discord-kernel/settings";
-import { DEMO_MESSAGES } from "@/modules/demo/i18n/demo-messages";
+import { DEMO_MESSAGES } from "@/modules/demo/i18n/demo.messages";
 import type { Translate } from "@/shared/i18n/translate";
 
 /**

@@ -6,8 +6,8 @@ import type { Translator } from "@azurioh/discord-kernel/i18n/translator";
 import type { SettingsService } from "@azurioh/discord-kernel/settings";
 import { createResetHandler } from "@/modules/demo/commands/config/reset/reset.handler";
 import { createResetOptions } from "@/modules/demo/commands/config/reset/reset.options";
-import { DEMO_CATALOG } from "@/modules/demo/i18n/demo-catalog";
-import { DEMO_MESSAGES } from "@/modules/demo/i18n/demo-messages";
+import { DEMO_CATALOG } from "@/modules/demo/i18n/demo.catalog";
+import { DEMO_MESSAGES } from "@/modules/demo/i18n/demo.messages";
 import { localizedDescription } from "@/shared/discord/localized-description";
 
 /**

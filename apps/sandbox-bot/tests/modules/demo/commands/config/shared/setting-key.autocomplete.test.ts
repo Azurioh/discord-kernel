@@ -3,8 +3,8 @@ import { createTranslator } from "@azurioh/discord-kernel/i18n/translator";
 import type { AutocompleteInteraction } from "discord.js";
 import { describe, expect, it } from "vitest";
 import { createSettingKeyAutocomplete } from "@/modules/demo/commands/config/shared/setting-key.autocomplete";
-import { DEMO_CATALOG } from "@/modules/demo/i18n/demo-catalog";
-import { DEMO_MESSAGES } from "@/modules/demo/i18n/demo-messages";
+import { DEMO_CATALOG } from "@/modules/demo/i18n/demo.catalog";
+import { DEMO_MESSAGES } from "@/modules/demo/i18n/demo.messages";
 import { createPinoLogger } from "@/shared/logging/pino-logger";
 
 function createDemoTranslator() {

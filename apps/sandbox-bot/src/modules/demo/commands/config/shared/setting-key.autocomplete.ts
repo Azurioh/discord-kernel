@@ -4,7 +4,7 @@ import type { Translator } from "@azurioh/discord-kernel/i18n/translator";
 import {
 	DEMO_FIELD_ENTRIES,
 	keyedLabelOf,
-} from "@/modules/demo/commands/config/shared/setting-keys";
+} from "@/modules/demo/commands/config/shared/setting-keys.helper";
 import type { Translate } from "@/shared/i18n/translate";
 
 /** One autocomplete suggestion for a setting key. */

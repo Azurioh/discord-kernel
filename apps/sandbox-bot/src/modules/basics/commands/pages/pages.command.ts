@@ -2,8 +2,8 @@ import { createCommand } from "@azurioh/discord-kernel/discord/command/create-co
 import type { SlashCommand } from "@azurioh/discord-kernel/discord/command/types";
 import type { Logger } from "@azurioh/discord-kernel/logger";
 import { createPagesHandler } from "@/modules/basics/commands/pages/pages.handler";
-import { BASICS_CATALOG } from "@/modules/basics/i18n/basics-catalog";
-import { BASICS_MESSAGES } from "@/modules/basics/i18n/basics-messages";
+import { BASICS_CATALOG } from "@/modules/basics/i18n/basics.catalog";
+import { BASICS_MESSAGES } from "@/modules/basics/i18n/basics.messages";
 import { localizedDescription } from "@/shared/discord/localized-description";
 
 /** `/pages`: the collector-backed paginator, deferred while it mounts. */

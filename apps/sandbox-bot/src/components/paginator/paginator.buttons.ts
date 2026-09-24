@@ -1,5 +1,5 @@
 import type { PaginatorLabels } from "@azurioh/discord-kernel/discord/components/paginator";
-import { PAGINATOR_MESSAGES } from "@/components/paginator/i18n/paginator-messages";
+import { PAGINATOR_MESSAGES } from "@/components/paginator/i18n/paginator.messages";
 import type { Translate } from "@/shared/i18n/translate";
 
 /**

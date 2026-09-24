@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { formatSettingValue } from "@/modules/demo/commands/config/show/format-setting-value";
-import { DEMO_MESSAGES } from "@/modules/demo/i18n/demo-messages";
-import { demoSettings } from "@/modules/demo/settings/demo-settings";
+import { formatSettingValue } from "@/modules/demo/commands/config/show/format-setting-value.helper";
+import { DEMO_MESSAGES } from "@/modules/demo/i18n/demo.messages";
+import { demoSettings } from "@/modules/demo/settings/demo.settings";
 
 /** Echo the key, so an assertion names the catalog entry a value renders with. */
 const t = (key: string) => key;

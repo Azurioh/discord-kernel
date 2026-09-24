@@ -3,8 +3,8 @@ import { createCommand } from "@azurioh/discord-kernel/discord/command/create-co
 import type { SlashCommand } from "@azurioh/discord-kernel/discord/command/types";
 import { rollHandler } from "@/modules/basics/commands/roll/roll.handler";
 import { createRollOptions } from "@/modules/basics/commands/roll/roll.options";
-import { BASICS_CATALOG } from "@/modules/basics/i18n/basics-catalog";
-import { BASICS_MESSAGES } from "@/modules/basics/i18n/basics-messages";
+import { BASICS_CATALOG } from "@/modules/basics/i18n/basics.catalog";
+import { BASICS_MESSAGES } from "@/modules/basics/i18n/basics.messages";
 import { localizedDescription } from "@/shared/discord/localized-description";
 
 const COOLDOWN_MS = 10_000;

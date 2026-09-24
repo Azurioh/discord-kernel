@@ -18,10 +18,10 @@ import {
 	SETTINGS_CATALOG,
 } from "@azurioh/discord-kernel/settings";
 import { Client, GatewayIntentBits } from "discord.js";
-import { PAGINATOR_CATALOG } from "@/components/paginator/i18n/paginator-catalog";
+import { PAGINATOR_CATALOG } from "@/components/paginator/i18n/paginator.catalog";
 import type { SandboxConfig } from "@/config";
-import { createBasicsModule } from "@/modules/basics/basics-module";
-import { createDemoModule } from "@/modules/demo/demo-module";
+import { createBasicsModule } from "@/modules/basics/basics.module";
+import { createDemoModule } from "@/modules/demo/demo.module";
 import { createEmbedPresenter } from "@/shared/discord/embed-presenter";
 import { createJsonFileSettingsStore } from "@/shared/settings/json-file-settings-store";
 

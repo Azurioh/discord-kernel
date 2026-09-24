@@ -1,8 +1,8 @@
 import { createCommand } from "@azurioh/discord-kernel/discord/command/create-command";
 import type { SlashCommand } from "@azurioh/discord-kernel/discord/command/types";
 import { pingHandler } from "@/modules/basics/commands/ping/ping.handler";
-import { BASICS_CATALOG } from "@/modules/basics/i18n/basics-catalog";
-import { BASICS_MESSAGES } from "@/modules/basics/i18n/basics-messages";
+import { BASICS_CATALOG } from "@/modules/basics/i18n/basics.catalog";
+import { BASICS_MESSAGES } from "@/modules/basics/i18n/basics.messages";
 import { localizedDescription } from "@/shared/discord/localized-description";
 
 /** `/ping`: the smallest flat command, replying through the presenter. */

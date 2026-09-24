@@ -1,7 +1,7 @@
 import type { Context } from "@azurioh/discord-kernel/discord/command/context";
 import type { Options } from "@azurioh/discord-kernel/discord/command/options";
 import { SettingsValidationError } from "@azurioh/discord-kernel/settings";
-import { DEMO_MESSAGES } from "@/modules/demo/i18n/demo-messages";
+import { DEMO_MESSAGES } from "@/modules/demo/i18n/demo.messages";
 
 /** Show a rejected submission: every issue, each in the administrator's language. */
 async function replyWithIssues<O extends Options>(

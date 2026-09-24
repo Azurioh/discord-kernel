@@ -1,4 +1,4 @@
-import { demoSettings } from "@/modules/demo/settings/demo-settings";
+import { demoSettings } from "@/modules/demo/settings/demo.settings";
 import type { Translate } from "@/shared/i18n/translate";
 
 /** Every declared field of the demo settings, in declaration order. */

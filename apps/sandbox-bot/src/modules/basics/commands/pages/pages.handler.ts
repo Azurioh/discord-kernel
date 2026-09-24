@@ -2,7 +2,7 @@ import type { Context } from "@azurioh/discord-kernel/discord/command/context";
 import type { Options } from "@azurioh/discord-kernel/discord/command/options";
 import type { Logger } from "@azurioh/discord-kernel/logger";
 import { showPaginator } from "@/components/paginator/paginator.component";
-import { BASICS_MESSAGES } from "@/modules/basics/i18n/basics-messages";
+import { BASICS_MESSAGES } from "@/modules/basics/i18n/basics.messages";
 
 const ITEM_COUNT = 42;
 

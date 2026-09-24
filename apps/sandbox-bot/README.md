@@ -56,11 +56,11 @@ src/components/<component>/   # app-owned UI building blocks, see below
   i18n/                       # its own *_MESSAGES and catalog
 src/shared/                   # what the whole app uses: logging, i18n helpers, presenter
 src/modules/<module>/
-  <module>-module.ts          # the BotModule: commands, events, catalog, settings
+  <module>.module.ts          # the BotModule: commands, events, catalog, settings
   i18n/
-    <module>-messages.ts      # *_MESSAGES: the catalog keys, the only way code names them
-    <module>-catalog.ts       # the English/French wording, typed over those keys
-  settings/<module>-settings.ts   # defineSettings(...), when the module has settings
+    <module>.messages.ts      # *_MESSAGES: the catalog keys, the only way code names them
+    <module>.catalog.ts       # the English/French wording, typed over those keys
+  settings/<module>.settings.ts   # defineSettings(...), when the module has settings
   commands/
     <name>/                   # a command without subcommands
       <name>.command.ts
@@ -93,7 +93,11 @@ src/modules/<module>/
 | `.view.ts` | How a component lays out one state |
 | `.buttons.ts` | A component's controls |
 | `.event.ts` | `createEvent(...)`: the gateway event name and `once`, wired to its handler |
-| `-messages.ts` / `-catalog.ts` | The catalog keys, and their wording |
+| `.helper.ts` | A function a command, subcommand or component needs that is not one of the roles above (formatting, parsing, building a context) |
+| `.constant.ts` | A named value a command, subcommand or component needs |
+| `.module.ts` | The `BotModule`: commands, events, catalog, settings |
+| `.messages.ts` / `.catalog.ts` | The catalog keys, and their wording |
+| `.settings.ts` | The module's `defineSettings(...)` declaration |
 
 Only the files a command needs exist: `/ping` has no options file, `/config
 show` no options nor autocomplete. Tests mirror this tree under `tests/`.
@@ -112,7 +116,7 @@ once, in the `shared/` folder of the smallest level that holds both users:
 
 | Used by | Lives in |
 | ------- | -------- |
-| one subcommand | that subcommand's folder (`set/parse-value-input.ts`) |
+| one subcommand | that subcommand's folder (`set/parse-value-input.helper.ts`) |
 | two or more subcommands of one command | `commands/<cmd>/shared/` (`config/shared/setting-key.options.ts`, used by `set` and `reset`) |
 | two or more commands of one module | `modules/<module>/shared/` |
 | two or more modules | `src/shared/` |

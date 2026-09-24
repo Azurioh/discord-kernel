@@ -5,7 +5,7 @@ import { createPingCommand } from "@/modules/basics/commands/ping/ping.command";
 import { createRollCommand } from "@/modules/basics/commands/roll/roll.command";
 import { createGuildCreateEvent } from "@/modules/basics/events/lifecycle/guild-create/guild-create.event";
 import { createReadyEvent } from "@/modules/basics/events/lifecycle/ready/ready.event";
-import { BASICS_CATALOG } from "@/modules/basics/i18n/basics-catalog";
+import { BASICS_CATALOG } from "@/modules/basics/i18n/basics.catalog";
 
 export interface BasicsModuleDeps {
 	readonly guildIds: readonly string[];
