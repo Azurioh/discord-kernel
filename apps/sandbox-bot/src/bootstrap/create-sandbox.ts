@@ -22,14 +22,12 @@ import type { SandboxConfig } from "@/config";
 import { createBasicsModule } from "@/modules/basics/basics-module";
 import { createDemoModule } from "@/modules/demo/demo-module";
 import { createEmbedPresenter } from "@/shared/discord/embed-presenter";
-import { createConsoleLogger } from "@/shared/logging/console-logger";
 import { createJsonFileSettingsStore } from "@/shared/settings/json-file-settings-store";
 
 /** The wired bot: a client with every listener bound, and the commands to deploy. */
 export interface Sandbox {
 	readonly client: Client;
 	readonly commands: CommandRouter;
-	readonly logger: Logger;
 }
 
 /**
@@ -37,12 +35,12 @@ export interface Sandbox {
  * catalogs, settings, commands and events, and bind them to one client.
  *
  * @param config - the environment-derived configuration.
+ * @param logger - the application logger, shared with the kernel's services.
  * @returns the wired sandbox; nothing is connected until `client.login`.
  * @throws DuplicateTranslationKeyError or SettingsDeclarationError when the
  * modules' catalogs or declarations are inconsistent.
  */
-export function createSandbox(config: SandboxConfig): Sandbox {
-	const logger = createConsoleLogger({ app: "sandbox-bot" });
+export function createSandbox(config: SandboxConfig, logger: Logger): Sandbox {
 	const translations = new TranslationRegistry();
 	translations.register(CORE_CATALOG);
 	translations.register(SETTINGS_CATALOG);
@@ -102,5 +100,5 @@ export function createSandbox(config: SandboxConfig): Sandbox {
 		)
 		.bind(client);
 
-	return { client, commands, logger };
+	return { client, commands };
 }

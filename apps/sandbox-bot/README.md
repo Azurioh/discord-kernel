@@ -34,6 +34,12 @@ app changes; after a kernel change, stop it and run `dev` again (or run
 `pnpm --filter @azurioh/discord-kernel build` in another terminal). Re-run
 `register` whenever a command's name, options or descriptions change.
 
+Logs are JSON lines from [pino](https://getpino.io), one per record. The
+`dev`, `dev:watch` and `register` scripts pipe them through `pino-pretty` for
+a readable terminal; run `tsx src/main.ts` directly (or pipe it elsewhere) to
+get the raw JSON. With the pipe, the script's exit code is `pino-pretty`'s, so
+read the last log line rather than `$?` when a start fails.
+
 Settings are written to `apps/sandbox-bot/.data/settings.json` (gitignored);
 set `SETTINGS_FILE` to use another path.
 
