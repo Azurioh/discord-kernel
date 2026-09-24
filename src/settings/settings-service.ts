@@ -3,7 +3,7 @@ import { ConflictError, ValidationError } from "@/errors/business-error";
 import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 import type { SettingsDeclaration } from "@/settings/define-settings";
-import { parseFieldValue, pruneStoredValue } from "@/settings/fields";
+import { parseFieldValue, pruneStoredValue } from "@/settings/fields/zod-schema";
 import { SETTINGS_ISSUE_MESSAGES } from "@/settings/messages";
 import type { GuildDirectory } from "@/settings/ports/guild-directory";
 import type { SettingsChangedNotifier } from "@/settings/ports/settings-changed-notifier";

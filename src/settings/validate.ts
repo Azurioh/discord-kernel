@@ -1,6 +1,7 @@
 import { ValidationError } from "@/errors/business-error";
 import type { SettingsDeclaration } from "@/settings/define-settings";
-import { type FieldSpec, type FieldValueIssue, parseFieldValue } from "@/settings/fields";
+import { type FieldSpec, unhandledFieldKind } from "@/settings/fields/field";
+import { type FieldValueIssue, parseFieldValue } from "@/settings/fields/zod-schema";
 import { SETTINGS_ISSUE_MESSAGES } from "@/settings/messages";
 import type { GuildDirectory } from "@/settings/ports/guild-directory";
 import type { SettingsIssue, SettingsIssueCode } from "@/settings/settings-validation-error";
@@ -155,8 +156,19 @@ async function checkEntity(params: {
 			return (await guilds.role(guildId, value)) === null ? "notFound" : undefined;
 		case "user":
 			return (await guilds.member(guildId, value)) === null ? "notFound" : undefined;
-		default:
+		case "color":
+		case "duration":
+		case "enum":
+		case "integer":
+		case "number":
+		case "text":
+		case "boolean":
+		case "secret":
+		case "list":
+		case "toggles":
 			return undefined;
+		default:
+			return unhandledFieldKind(spec);
 	}
 }
 

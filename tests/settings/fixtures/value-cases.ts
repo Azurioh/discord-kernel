@@ -1,5 +1,6 @@
 import { defineSettings } from "@/settings/define-settings";
-import { type FieldKind, field } from "@/settings/fields";
+import { field } from "@/settings/fields/builders";
+import type { FieldKind } from "@/settings/fields/field";
 import type { GuildDirectorySeed } from "@/settings/in-memory/in-memory-guild-directory";
 import type { SettingsIssueCode } from "@/settings/settings-validation-error";
 import { sampleSettings } from "./sample-declaration";
