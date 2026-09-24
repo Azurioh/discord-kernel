@@ -1,0 +1,29 @@
+{
+	"name": "sandbox-bot",
+	"version": "0.0.0",
+	"private": true,
+	"description": "A private bot to exercise @azurioh/discord-kernel by hand on a test guild. Never published.",
+	"license": "MIT",
+	"type": "module",
+	"engines": {
+		"node": ">=22.12.0"
+	},
+	"scripts": {
+		"build:kernel": "pnpm --filter @azurioh/discord-kernel build",
+		"dev": "pnpm run build:kernel && tsx --env-file-if-exists=.env src/main.ts",
+		"dev:watch": "pnpm run build:kernel && tsx watch --env-file-if-exists=.env src/main.ts",
+		"register": "pnpm run build:kernel && tsx --env-file-if-exists=.env src/register.ts",
+		"typecheck": "pnpm run build:kernel && tsc -p tsconfig.json",
+		"test": "pnpm run build:kernel && vitest run"
+	},
+	"dependencies": {
+		"@azurioh/discord-kernel": "workspace:*",
+		"discord.js": "14.27.0"
+	},
+	"devDependencies": {
+		"@types/node": "24.13.3",
+		"tsx": "4.23.15",
+		"typescript": "5.9.3",
+		"vitest": "4.1.11"
+	}
+}
