@@ -1,6 +1,7 @@
 import type { AutocompleteInteraction } from "discord.js";
-import { type CompiledSubcommand, routeKey } from "@/discord/command/create-command";
+import type { CompiledSubcommand } from "@/discord/command/create-command";
 import type { Options } from "@/discord/command/options";
+import { routeKey } from "@/discord/command/route-key";
 import type { Choice } from "@/settings/choice";
 
 /**

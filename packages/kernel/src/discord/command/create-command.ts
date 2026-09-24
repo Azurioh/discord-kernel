@@ -10,6 +10,7 @@ import { resolveRouteOptions, respondWithSuggestions } from "@/discord/command/a
 import { type Context, createContext, sendEmbed } from "@/discord/command/context";
 import type { Guard } from "@/discord/command/guard";
 import type { Options, Values } from "@/discord/command/options";
+import { routeKey } from "@/discord/command/route-key";
 import type { CommandRuntime, SlashCommand } from "@/discord/command/types";
 import { CORE_MESSAGES } from "@/discord/i18n";
 import { type PermissionBit, resolvePermissions } from "@/discord/permissions";
@@ -128,16 +129,6 @@ function interactionLocale(
 		[interaction.locale, interaction.guildLocale],
 		runtime.translator.defaultLocale,
 	);
-}
-
-/**
- * The key a subcommand is stored and looked up under. Exported because dispatch
- * and autocomplete must agree on it: if they ever built it differently, an
- * autocomplete inside a group would silently resolve to no options instead of
- * failing loudly.
- */
-export function routeKey(group: string | null, name: string): string {
-	return group ? `${group}/${name}` : name;
 }
 
 /**

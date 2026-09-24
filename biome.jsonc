@@ -10,7 +10,10 @@
 			"preset": "recommended",
 			"suspicious": {
 				// Logs go through the `Logger` port (pino in the sandbox), never the console.
-				"noConsole": "error"
+				"noConsole": "error",
+				// A cycle makes module initialisation order-dependent and blurs which
+				// file owns what: shared code moves down to a `shared/` folder instead.
+				"noImportCycles": "error"
 			},
 			"style": {
 				// Each `index.ts` is a package entry point (a `package.json` `exports`
