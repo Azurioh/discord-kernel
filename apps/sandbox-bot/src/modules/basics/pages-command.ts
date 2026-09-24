@@ -1,11 +1,11 @@
 import { createCommand } from "@azurioh/discord-kernel/discord/command/create-command";
-import { frenchLocalization } from "@azurioh/discord-kernel/discord/command/localization";
 import type { SlashCommand } from "@azurioh/discord-kernel/discord/command/types";
 import { mountPaginator } from "@azurioh/discord-kernel/discord/components/paginator";
 import { EMBED_COLORS } from "@azurioh/discord-kernel/discord/ui/colors";
 import { buildEmbed } from "@azurioh/discord-kernel/discord/ui/embed";
 import type { Logger } from "@azurioh/discord-kernel/logger";
-import { BASICS_MESSAGES } from "@/modules/basics/basics-catalog";
+import { BASICS_CATALOG, BASICS_MESSAGES } from "@/modules/basics/basics-catalog";
+import { localizedDescription } from "@/shared/discord/localized-description";
 
 const ITEM_COUNT = 42;
 const PAGE_SIZE = 5;
@@ -14,8 +14,7 @@ const PAGE_SIZE = 5;
 export function createPagesCommand(guildIds: readonly string[], logger: Logger): SlashCommand {
 	return createCommand({
 		name: "pages",
-		description: "Browse a paginated list",
-		descriptionLocalizations: frenchLocalization("Parcourir une liste paginée"),
+		...localizedDescription(BASICS_CATALOG, BASICS_MESSAGES.pagesDescription),
 		guildIds,
 		defer: true,
 		handler: async (ctx) => {

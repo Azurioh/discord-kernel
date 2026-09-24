@@ -1,51 +1,52 @@
 import { defineSettings, field } from "@azurioh/discord-kernel/settings";
+import { DEMO_SETTINGS_MESSAGES } from "@/modules/demo/demo-catalog";
 
 /** One field of most kinds, to try each validation rule from `/config set`. */
 export const demoSettings = defineSettings({
 	id: "demo",
 	version: 1,
-	labels: { title: "demo.settings.title", description: "demo.settings.description" },
+	labels: { title: DEMO_SETTINGS_MESSAGES.title, description: DEMO_SETTINGS_MESSAGES.description },
 	fields: {
 		logChannel: field.channel({
-			label: "demo.settings.log-channel",
-			description: "demo.settings.log-channel.description",
+			label: DEMO_SETTINGS_MESSAGES.logChannel,
+			description: DEMO_SETTINGS_MESSAGES.logChannelDescription,
 			types: ["text", "announcement"],
 			required: true,
 		}),
-		staffRole: field.role({ label: "demo.settings.staff-role" }),
-		accent: field.color({ label: "demo.settings.accent", default: "#5865f2" }),
+		staffRole: field.role({ label: DEMO_SETTINGS_MESSAGES.staffRole }),
+		accent: field.color({ label: DEMO_SETTINGS_MESSAGES.accent, default: "#5865f2" }),
 		cooldown: field.duration({
-			label: "demo.settings.cooldown",
+			label: DEMO_SETTINGS_MESSAGES.cooldown,
 			min: 5,
 			max: 3600,
 			default: 30,
 		}),
 		mode: field.enum({
-			label: "demo.settings.mode",
+			label: DEMO_SETTINGS_MESSAGES.mode,
 			choices: [
-				{ value: "relaxed", label: "demo.settings.mode.relaxed" },
-				{ value: "strict", label: "demo.settings.mode.strict" },
+				{ value: "relaxed", label: DEMO_SETTINGS_MESSAGES.modeRelaxed },
+				{ value: "strict", label: DEMO_SETTINGS_MESSAGES.modeStrict },
 			],
 			default: "relaxed",
 		}),
 		maxWarnings: field.integer({
-			label: "demo.settings.max-warnings",
+			label: DEMO_SETTINGS_MESSAGES.maxWarnings,
 			min: 1,
 			max: 10,
 			default: 3,
 		}),
 		features: field.toggles({
-			label: "demo.settings.features",
+			label: DEMO_SETTINGS_MESSAGES.features,
 			keys: ["welcome", "logs"],
 			keyLabels: {
-				welcome: "demo.settings.features.welcome",
-				logs: "demo.settings.features.logs",
+				welcome: DEMO_SETTINGS_MESSAGES.featuresWelcome,
+				logs: DEMO_SETTINGS_MESSAGES.featuresLogs,
 			},
 			default: { welcome: true },
 		}),
-		apiKey: field.secret({ label: "demo.settings.api-key" }),
+		apiKey: field.secret({ label: DEMO_SETTINGS_MESSAGES.apiKey }),
 		pingRoles: field.list(field.role(), {
-			label: "demo.settings.ping-roles",
+			label: DEMO_SETTINGS_MESSAGES.pingRoles,
 			maxItems: 5,
 			default: [],
 		}),

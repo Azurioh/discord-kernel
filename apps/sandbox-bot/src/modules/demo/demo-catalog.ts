@@ -1,6 +1,14 @@
-import type { Catalog } from "@azurioh/discord-kernel/i18n/catalog";
+import type { MessageKey, ModuleCatalog } from "@/shared/i18n/module-catalog";
 
+/** The `/config` command's wording: descriptions and replies. */
 export const DEMO_MESSAGES = {
+	configDescription: "demo.config.description",
+	showDescription: "demo.config.show.description",
+	setDescription: "demo.config.set.description",
+	setKeyDescription: "demo.config.set.key-description",
+	setValueDescription: "demo.config.set.value-description",
+	resetDescription: "demo.config.reset.description",
+	resetKeyDescription: "demo.config.reset.key-description",
 	hiddenFields: "demo.config.hidden-fields",
 	notSet: "demo.config.not-set",
 	secretSet: "demo.config.secret-set",
@@ -14,8 +22,57 @@ export const DEMO_MESSAGES = {
 	allFields: "demo.config.all-fields",
 } as const;
 
-/** The `/config` wording, then the settings' own labels (keys used by `demoSettings`). */
-export const DEMO_CATALOG: Catalog = {
+/** The labels, hints and choice names `demoSettings` declares. */
+export const DEMO_SETTINGS_MESSAGES = {
+	title: "demo.settings.title",
+	description: "demo.settings.description",
+	logChannel: "demo.settings.log-channel",
+	logChannelDescription: "demo.settings.log-channel.description",
+	staffRole: "demo.settings.staff-role",
+	accent: "demo.settings.accent",
+	cooldown: "demo.settings.cooldown",
+	mode: "demo.settings.mode",
+	modeRelaxed: "demo.settings.mode.relaxed",
+	modeStrict: "demo.settings.mode.strict",
+	maxWarnings: "demo.settings.max-warnings",
+	features: "demo.settings.features",
+	featuresWelcome: "demo.settings.features.welcome",
+	featuresLogs: "demo.settings.features.logs",
+	apiKey: "demo.settings.api-key",
+	pingRoles: "demo.settings.ping-roles",
+} as const;
+
+export const DEMO_CATALOG: ModuleCatalog<
+	MessageKey<typeof DEMO_MESSAGES> | MessageKey<typeof DEMO_SETTINGS_MESSAGES>
+> = {
+	[DEMO_MESSAGES.configDescription]: {
+		en: "Read and change the demo settings",
+		fr: "Lire et modifier les paramètres de la démo",
+	},
+	[DEMO_MESSAGES.showDescription]: {
+		en: "Show every demo setting",
+		fr: "Afficher tous les paramètres de la démo",
+	},
+	[DEMO_MESSAGES.setDescription]: {
+		en: "Change one demo setting",
+		fr: "Modifier un paramètre de la démo",
+	},
+	[DEMO_MESSAGES.setKeyDescription]: {
+		en: "The setting to change",
+		fr: "Le paramètre à modifier",
+	},
+	[DEMO_MESSAGES.setValueDescription]: {
+		en: "The new value: JSON, or plain text",
+		fr: "La nouvelle valeur : du JSON, ou du texte brut",
+	},
+	[DEMO_MESSAGES.resetDescription]: {
+		en: "Put one demo setting, or all of them, back to the default",
+		fr: "Remettre un paramètre de la démo, ou tous, à la valeur par défaut",
+	},
+	[DEMO_MESSAGES.resetKeyDescription]: {
+		en: "The setting to reset, or all",
+		fr: "Le paramètre à réinitialiser, ou tous",
+	},
 	[DEMO_MESSAGES.hiddenFields]: {
 		en: "{count} more settings not shown.",
 		fr: "{count} autres paramètres non affichés.",
@@ -43,26 +100,29 @@ export const DEMO_CATALOG: Catalog = {
 	},
 	[DEMO_MESSAGES.allFields]: { en: "All settings", fr: "Tous les paramètres" },
 
-	"demo.settings.title": { en: "Demo", fr: "Démo" },
-	"demo.settings.description": {
+	[DEMO_SETTINGS_MESSAGES.title]: { en: "Demo", fr: "Démo" },
+	[DEMO_SETTINGS_MESSAGES.description]: {
 		en: "Settings of the sandbox demo module.",
 		fr: "Paramètres du module de démonstration.",
 	},
-	"demo.settings.log-channel": { en: "Log channel", fr: "Salon de journalisation" },
-	"demo.settings.log-channel.description": {
+	[DEMO_SETTINGS_MESSAGES.logChannel]: { en: "Log channel", fr: "Salon de journalisation" },
+	[DEMO_SETTINGS_MESSAGES.logChannelDescription]: {
 		en: "A text or announcement channel.",
 		fr: "Un salon textuel ou d'annonces.",
 	},
-	"demo.settings.staff-role": { en: "Staff role", fr: "Rôle du staff" },
-	"demo.settings.accent": { en: "Accent colour", fr: "Couleur d'accent" },
-	"demo.settings.cooldown": { en: "Cooldown (seconds)", fr: "Délai (secondes)" },
-	"demo.settings.mode": { en: "Mode", fr: "Mode" },
-	"demo.settings.mode.relaxed": { en: "Relaxed", fr: "Souple" },
-	"demo.settings.mode.strict": { en: "Strict", fr: "Strict" },
-	"demo.settings.max-warnings": { en: "Maximum warnings", fr: "Avertissements maximum" },
-	"demo.settings.features": { en: "Features", fr: "Fonctionnalités" },
-	"demo.settings.features.welcome": { en: "Welcome message", fr: "Message de bienvenue" },
-	"demo.settings.features.logs": { en: "Logs", fr: "Journaux" },
-	"demo.settings.api-key": { en: "API key", fr: "Clé d'API" },
-	"demo.settings.ping-roles": { en: "Roles to ping", fr: "Rôles à mentionner" },
+	[DEMO_SETTINGS_MESSAGES.staffRole]: { en: "Staff role", fr: "Rôle du staff" },
+	[DEMO_SETTINGS_MESSAGES.accent]: { en: "Accent colour", fr: "Couleur d'accent" },
+	[DEMO_SETTINGS_MESSAGES.cooldown]: { en: "Cooldown (seconds)", fr: "Délai (secondes)" },
+	[DEMO_SETTINGS_MESSAGES.mode]: { en: "Mode", fr: "Mode" },
+	[DEMO_SETTINGS_MESSAGES.modeRelaxed]: { en: "Relaxed", fr: "Souple" },
+	[DEMO_SETTINGS_MESSAGES.modeStrict]: { en: "Strict", fr: "Strict" },
+	[DEMO_SETTINGS_MESSAGES.maxWarnings]: { en: "Maximum warnings", fr: "Avertissements maximum" },
+	[DEMO_SETTINGS_MESSAGES.features]: { en: "Features", fr: "Fonctionnalités" },
+	[DEMO_SETTINGS_MESSAGES.featuresWelcome]: {
+		en: "Welcome message",
+		fr: "Message de bienvenue",
+	},
+	[DEMO_SETTINGS_MESSAGES.featuresLogs]: { en: "Logs", fr: "Journaux" },
+	[DEMO_SETTINGS_MESSAGES.apiKey]: { en: "API key", fr: "Clé d'API" },
+	[DEMO_SETTINGS_MESSAGES.pingRoles]: { en: "Roles to ping", fr: "Rôles à mentionner" },
 };

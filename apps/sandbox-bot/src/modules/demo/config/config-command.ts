@@ -3,7 +3,6 @@ import {
 	createSubCommand,
 } from "@azurioh/discord-kernel/discord/command/create-command";
 import { allOf } from "@azurioh/discord-kernel/discord/command/guard";
-import { frenchLocalization } from "@azurioh/discord-kernel/discord/command/localization";
 import { createStringOption } from "@azurioh/discord-kernel/discord/command/options";
 import {
 	createPermissionGuard,
@@ -17,6 +16,8 @@ import { createKeyAutocomplete } from "@/modules/demo/config/key-autocomplete";
 import { createResetHandler } from "@/modules/demo/config/reset-handler";
 import { createSetHandler } from "@/modules/demo/config/set-handler";
 import { createShowHandler } from "@/modules/demo/config/show-handler";
+import { DEMO_CATALOG, DEMO_MESSAGES } from "@/modules/demo/demo-catalog";
+import { localizedDescription } from "@/shared/discord/localized-description";
 
 export interface ConfigCommandDeps {
 	readonly guildIds: readonly string[];
@@ -35,56 +36,36 @@ export function createConfigCommand(deps: ConfigCommandDeps): SlashCommand {
 	const set = createSetHandler(deps.settings);
 	const reset = createResetHandler(deps.settings);
 
+	const setKey = localizedDescription(DEMO_CATALOG, DEMO_MESSAGES.setKeyDescription);
+	const setValue = localizedDescription(DEMO_CATALOG, DEMO_MESSAGES.setValueDescription);
+	const resetKey = localizedDescription(DEMO_CATALOG, DEMO_MESSAGES.resetKeyDescription);
+
 	return createCommand({
 		name: "config",
-		description: "Read and change the demo settings",
-		descriptionLocalizations: frenchLocalization("Lire et modifier les paramètres de la démo"),
+		...localizedDescription(DEMO_CATALOG, DEMO_MESSAGES.configDescription),
 		guildIds: deps.guildIds,
 		guildOnly: true,
 		defaultMemberPermissions: [PermissionFlagsBits.ManageGuild],
 		guard: allOf(guildOnlyGuard, createPermissionGuard([PermissionFlagsBits.ManageGuild])),
 		subcommands: {
 			show: createSubCommand({
-				description: "Show every demo setting",
-				descriptionLocalizations: frenchLocalization("Afficher tous les paramètres de la démo"),
+				...localizedDescription(DEMO_CATALOG, DEMO_MESSAGES.showDescription),
 				handler: show,
 			}),
 			set: createSubCommand({
-				description: "Change one demo setting",
-				descriptionLocalizations: frenchLocalization("Modifier un paramètre de la démo"),
+				...localizedDescription(DEMO_CATALOG, DEMO_MESSAGES.setDescription),
 				options: {
-					key: createStringOption(
-						"The setting to change",
-						{},
-						{ descriptionLocalizations: frenchLocalization("Le paramètre à modifier") },
-					)
+					key: createStringOption(setKey.description, {}, setKey)
 						.required()
 						.withAutocomplete(createKeyAutocomplete(deps.translator, false)),
-					value: createStringOption(
-						"The new value: JSON, or plain text",
-						{},
-						{
-							descriptionLocalizations: frenchLocalization(
-								"La nouvelle valeur : du JSON, ou du texte brut",
-							),
-						},
-					).required(),
+					value: createStringOption(setValue.description, {}, setValue).required(),
 				},
 				handler: (ctx) => set(ctx, ctx.options),
 			}),
 			reset: createSubCommand({
-				description: "Put one demo setting, or all of them, back to the default",
-				descriptionLocalizations: frenchLocalization(
-					"Remettre un paramètre de la démo, ou tous, à la valeur par défaut",
-				),
+				...localizedDescription(DEMO_CATALOG, DEMO_MESSAGES.resetDescription),
 				options: {
-					key: createStringOption(
-						"The setting to reset, or all",
-						{},
-						{
-							descriptionLocalizations: frenchLocalization("Le paramètre à réinitialiser, ou tous"),
-						},
-					)
+					key: createStringOption(resetKey.description, {}, resetKey)
 						.required()
 						.withAutocomplete(createKeyAutocomplete(deps.translator, true)),
 				},
