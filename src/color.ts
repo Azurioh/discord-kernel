@@ -13,6 +13,13 @@ const PINK = "#ffc0cb";
 const WHITE = "#ffffff";
 
 /**
+ * Discord's own brand colour. Kept with the base names rather than in the
+ * Discord ring so a `blurple` setting means the same colour on every surface,
+ * and so embeds fall back to it when a bot declares no palette.
+ */
+export const DISCORD_BLURPLE = "#5865f2";
+
+/**
  * Not `#000000`: Discord reads a zero colour as "no colour set" and renders the
  * default grey bar instead, so pure black is the one value an administrator
  * could ask for and never see. One step off zero reads as black.
@@ -75,6 +82,7 @@ export const BASE_COLOR_NAMES: Readonly<Record<string, string>> = {
 	magenta: MAGENTA,
 	navy: NAVY,
 	marine: NAVY,
+	blurple: DISCORD_BLURPLE,
 };
 
 /**

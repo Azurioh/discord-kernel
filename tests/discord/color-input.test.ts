@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DISCORD_BLURPLE } from "@/color";
 import {
 	COLOR_ALIASES,
 	MAX_COLOR_INPUT_LENGTH,
@@ -6,7 +7,6 @@ import {
 	registerColorAliases,
 } from "@/discord/ui/color-input";
 import { ColorAliasTooLongError } from "@/discord/ui/color-input-errors";
-import { DISCORD_BLURPLE } from "@/discord/ui/colors";
 
 const HEX_PATTERN = /^#[0-9a-f]{6}$/;
 

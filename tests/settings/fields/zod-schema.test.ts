@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DISCORD_BLURPLE } from "@/color";
 import { registerColorAliases } from "@/discord/ui/color-input";
 import { field } from "@/settings/fields/builders";
 import { parseFieldValue } from "@/settings/fields/zod-schema";
@@ -12,6 +13,13 @@ describe("parseFieldValue on a colour field", () => {
 		expect(parseFieldValue({ field: field.color(), value: "vert" })).toEqual({
 			ok: true,
 			value: "#008000",
+		});
+	});
+
+	it("accepts Discord's brand colour by name", () => {
+		expect(parseFieldValue({ field: field.color(), value: "blurple" })).toEqual({
+			ok: true,
+			value: DISCORD_BLURPLE,
 		});
 	});
 

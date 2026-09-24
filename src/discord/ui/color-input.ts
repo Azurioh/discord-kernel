@@ -1,10 +1,8 @@
 import { BASE_COLOR_NAMES, normalizeColorName, parseHexColor } from "@/color";
 import { ColorAliasTooLongError } from "@/discord/ui/color-input-errors";
-import { DISCORD_BLURPLE } from "@/discord/ui/colors";
 
 /**
- * The names the kernel ships: the vendor-neutral base colours, plus Discord's
- * own brand colour, which only means something on a Discord surface.
+ * The names the kernel ships: the vendor-neutral base colours, `blurple` included.
  *
  * A bot adds its own — the colour it calls by its brand's name — through
  * {@link registerColorAliases}, which is also why this table is not the one
@@ -12,7 +10,6 @@ import { DISCORD_BLURPLE } from "@/discord/ui/colors";
  */
 const BUILT_IN_COLOR_ALIASES: Readonly<Record<string, string>> = {
 	...BASE_COLOR_NAMES,
-	blurple: DISCORD_BLURPLE,
 };
 
 /**
