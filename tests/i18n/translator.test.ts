@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { createTranslator, DuplicateTranslationKeyError, TranslationRegistry } from "@/i18n";
+import { TranslationRegistry } from "@/i18n/catalog";
+import { DuplicateTranslationKeyError } from "@/i18n/errors";
+import { createTranslator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 
 function makeLogger(): Logger {

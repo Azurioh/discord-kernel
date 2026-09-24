@@ -9,7 +9,8 @@ import { CORE_MESSAGES } from "@/discord/i18n";
 import type { InteractionDispatcher } from "@/discord/interaction/interaction-router";
 import { formatPermissions, missingPermissions, type PermissionBit } from "@/discord/permissions";
 import type { Presenter } from "@/discord/presenter";
-import { type Locale, resolveLocale, type Translator } from "@/i18n";
+import { type Locale, resolveLocale } from "@/i18n/locale";
+import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 
 /**

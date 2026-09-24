@@ -7,7 +7,7 @@ import {
 	type InteractiveView,
 	mountInteractiveMessageCollector,
 	type SelectComponentContext,
-} from "@/discord/components/interactive-message";
+} from "@/discord/components/interactive-message/interactive-message-collector";
 import { type Button, createButton } from "@/discord/interaction/button";
 import type { Logger } from "@/logger";
 

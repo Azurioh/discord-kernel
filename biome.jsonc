@@ -4,6 +4,34 @@
 	"files": { "includes": ["**", "!**/dist", "!.specify"] },
 	"formatter": { "enabled": true, "lineWidth": 100, "indentStyle": "tab" },
 	"javascript": { "formatter": { "quoteStyle": "double" } },
-	"linter": { "enabled": true, "rules": { "preset": "recommended" } },
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"preset": "recommended",
+			"style": {
+				// Each `index.ts` is a package entry point (a `package.json` `exports`
+				// target) and exists for consumers only. Code inside the package imports
+				// the module that declares a symbol, never an entry point.
+				"noRestrictedImports": {
+					"level": "error",
+					"options": {
+						"paths": {
+							"@/errors": "Entry point for consumers only: import the source module instead.",
+							"@/i18n": "Entry point for consumers only: import the source module instead.",
+							"@/discord/components/interactive-message": "Entry point for consumers only: import the source module instead.",
+							"@/discord/components/paginator": "Entry point for consumers only: import the source module instead.",
+							"@/discord/components/settings-editor": "Entry point for consumers only: import the source module instead."
+						},
+						"patterns": [
+							{
+								"group": ["**/index", "**/index.js", "**/index.ts"],
+								"message": "Entry point for consumers only: import the source module instead."
+							}
+						]
+					}
+				}
+			}
+		}
+	},
 	"assist": { "enabled": true, "actions": { "source": { "organizeImports": "on" } } }
 }

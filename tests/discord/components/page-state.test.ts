@@ -8,7 +8,7 @@ import {
 	pageCount,
 	previousPage,
 	selectPageItems,
-} from "@/discord/components/paginator";
+} from "@/discord/components/paginator/page-state";
 
 describe("pageCount", () => {
 	it("rounds partial pages up", () => {

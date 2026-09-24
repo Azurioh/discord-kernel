@@ -8,7 +8,7 @@ import type { Clock } from "@/clock";
 import type {
 	InteractiveMessagePayload,
 	InteractiveView,
-} from "@/discord/components/interactive-message";
+} from "@/discord/components/interactive-message/interactive-message-collector";
 import {
 	canReturn,
 	currentLevelKey,
@@ -33,7 +33,8 @@ import { createSelectRow, createStringSelect } from "@/discord/interaction/selec
 import type { CardBlock } from "@/discord/ui/card";
 import { EMBED_COLORS } from "@/discord/ui/colors";
 import type { MessageFile } from "@/discord/ui/message-attachments";
-import type { Locale, Translator } from "@/i18n";
+import type { Locale } from "@/i18n/locale";
+import type { Translator } from "@/i18n/translator";
 
 /**
  * The row type this file's own rendering builds — and, since the card layout

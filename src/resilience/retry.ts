@@ -1,4 +1,4 @@
-import { BusinessError } from "@/errors";
+import { BusinessError } from "@/errors/business-error";
 
 const MIN_ATTEMPTS = 1;
 const DEFAULT_ATTEMPTS = 3;

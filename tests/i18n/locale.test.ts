@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeLocale, resolveLocale } from "@/i18n";
+import { normalizeLocale, resolveLocale } from "@/i18n/locale";
 
 describe("normalizeLocale", () => {
 	it("collapses regional English variants to en", () => {

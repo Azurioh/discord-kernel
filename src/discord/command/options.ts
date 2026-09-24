@@ -20,6 +20,7 @@ import type {
 } from "discord.js";
 import { isValidWallClock } from "@/datetime";
 import { OptionValidationError } from "@/discord/command/errors";
+import type { Choice } from "@/settings/choice";
 
 /**
  * Translated name/description for a single option, keyed by Discord locale
@@ -73,12 +74,6 @@ export interface OptionContainer {
 	addAttachmentOption(
 		input: (option: SlashCommandAttachmentOption) => SlashCommandAttachmentOption,
 	): unknown;
-}
-
-/** A single suggestion returned to Discord while the user types. */
-export interface Choice {
-	readonly name: string;
-	readonly value: string | number;
 }
 
 /**

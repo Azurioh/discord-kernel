@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { createContext } from "@/discord/command/context";
 import type { Presenter } from "@/discord/presenter";
-import { createTranslator, TranslationRegistry, type Translator } from "@/i18n";
+import { TranslationRegistry } from "@/i18n/catalog";
+import { createTranslator, type Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 
 function makeLogger(): Logger {

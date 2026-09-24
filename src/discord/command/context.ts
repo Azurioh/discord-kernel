@@ -1,7 +1,8 @@
 import { type ChatInputCommandInteraction, type EmbedBuilder, MessageFlags } from "discord.js";
 import type { Options, Values } from "@/discord/command/options";
 import type { Presenter } from "@/discord/presenter";
-import { type Locale, resolveLocale, type TranslationParams, type Translator } from "@/i18n";
+import { type Locale, resolveLocale } from "@/i18n/locale";
+import type { TranslationParams, Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 
 /**

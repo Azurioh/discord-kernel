@@ -1,0 +1,111 @@
+import type { Catalog } from "@/i18n/catalog";
+import type { SettingsIssueCode } from "@/settings/settings-validation-error";
+
+/**
+ * Catalog key of each validation issue. Typed over every {@link SettingsIssueCode}
+ * so adding a code without its wording fails to compile.
+ *
+ * Placeholders: `min` / `minLength` / `minItems` take `{min}`, `max` /
+ * `maxLength` / `maxItems` take `{max}`; the others take none.
+ */
+export const SETTINGS_ISSUE_MESSAGES: Readonly<Record<SettingsIssueCode, string>> = {
+	required: "core.settings.issue.required",
+	type: "core.settings.issue.type",
+	min: "core.settings.issue.min",
+	max: "core.settings.issue.max",
+	minLength: "core.settings.issue.min-length",
+	maxLength: "core.settings.issue.max-length",
+	minItems: "core.settings.issue.min-items",
+	maxItems: "core.settings.issue.max-items",
+	duplicate: "core.settings.issue.duplicate",
+	channelType: "core.settings.issue.channel-type",
+	notFound: "core.settings.issue.not-found",
+	unknownChoice: "core.settings.issue.unknown-choice",
+	unknownField: "core.settings.issue.unknown-field",
+};
+
+/** Catalog keys for the settings feature's own wording outside validation. */
+export const SETTINGS_MESSAGES = {
+	/** Shown instead of a secret's value, which no surface ever reads back. */
+	secretSet: "core.settings.secret.set",
+	secretNotSet: "core.settings.secret.not-set",
+	/** Reply when a module disabled on the guild is used there. */
+	moduleDisabled: "core.settings.module.disabled",
+	/** Reply when a module still lacks a required setting. */
+	moduleNotConfigured: "core.settings.module.not-configured",
+	/** The missing settings, listed only to members who can fix them. */
+	moduleNotConfiguredMissing: "core.settings.module.not-configured-missing",
+} as const;
+
+/**
+ * The settings feature's strings, registered by the composition root alongside
+ * the core catalog.
+ */
+export const SETTINGS_CATALOG: Catalog = {
+	[SETTINGS_ISSUE_MESSAGES.required]: {
+		en: "This setting is required.",
+		fr: "Ce paramètre est obligatoire.",
+	},
+	[SETTINGS_ISSUE_MESSAGES.type]: {
+		en: "This value is not of the expected kind.",
+		fr: "Cette valeur n'est pas du type attendu.",
+	},
+	[SETTINGS_ISSUE_MESSAGES.min]: {
+		en: "Must be at least {min}.",
+		fr: "Doit être au moins {min}.",
+	},
+	[SETTINGS_ISSUE_MESSAGES.max]: {
+		en: "Must be at most {max}.",
+		fr: "Doit être au plus {max}.",
+	},
+	[SETTINGS_ISSUE_MESSAGES.minLength]: {
+		en: "Must be at least {min} characters long.",
+		fr: "Doit contenir au moins {min} caractères.",
+	},
+	[SETTINGS_ISSUE_MESSAGES.maxLength]: {
+		en: "Must be at most {max} characters long.",
+		fr: "Doit contenir au plus {max} caractères.",
+	},
+	[SETTINGS_ISSUE_MESSAGES.minItems]: {
+		en: "Pick at least {min} items.",
+		fr: "Choisissez au moins {min} éléments.",
+	},
+	[SETTINGS_ISSUE_MESSAGES.maxItems]: {
+		en: "Pick at most {max} items.",
+		fr: "Choisissez au plus {max} éléments.",
+	},
+	[SETTINGS_ISSUE_MESSAGES.duplicate]: {
+		en: "The same value is listed more than once.",
+		fr: "La même valeur apparaît plusieurs fois.",
+	},
+	[SETTINGS_ISSUE_MESSAGES.channelType]: {
+		en: "This type of channel is not allowed here.",
+		fr: "Ce type de salon n'est pas autorisé ici.",
+	},
+	[SETTINGS_ISSUE_MESSAGES.notFound]: {
+		en: "This no longer exists on this server.",
+		fr: "Cet élément n'existe plus sur ce serveur.",
+	},
+	[SETTINGS_ISSUE_MESSAGES.unknownChoice]: {
+		en: "This value is not one of the allowed choices.",
+		fr: "Cette valeur ne fait pas partie des choix autorisés.",
+	},
+	[SETTINGS_ISSUE_MESSAGES.unknownField]: {
+		en: "This setting does not exist.",
+		fr: "Ce paramètre n'existe pas.",
+	},
+	[SETTINGS_MESSAGES.secretSet]: { en: "Set", fr: "Défini" },
+	[SETTINGS_MESSAGES.secretNotSet]: { en: "Not set", fr: "Non défini" },
+	[SETTINGS_MESSAGES.moduleDisabled]: {
+		en: "This feature is disabled on this server.",
+		fr: "Cette fonctionnalité est désactivée sur ce serveur.",
+	},
+	[SETTINGS_MESSAGES.moduleNotConfigured]: {
+		en: "This feature is not configured on this server yet.",
+		fr: "Cette fonctionnalité n'est pas encore configurée sur ce serveur.",
+	},
+	[SETTINGS_MESSAGES.moduleNotConfiguredMissing]: {
+		en: "Missing settings: {fields}.",
+		fr: "Paramètres manquants : {fields}.",
+	},
+};

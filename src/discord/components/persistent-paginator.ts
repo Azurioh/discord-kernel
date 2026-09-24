@@ -6,7 +6,7 @@ import {
 	openToAnyone,
 	type RoutableInteraction,
 } from "@/discord/components/component-router";
-import { toMessageEditOptions } from "@/discord/components/interactive-message";
+import { toMessageEditOptions } from "@/discord/components/interactive-message/interactive-message-collector";
 import {
 	clampPage,
 	isFirstPage,

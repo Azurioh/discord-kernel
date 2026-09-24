@@ -1,7 +1,7 @@
 import type { ContextMenuCommand, SlashCommand } from "@/discord/command/types";
 import type { ComponentHandler } from "@/discord/components/component-router";
 import type { DiscordEvent } from "@/discord/events/types";
-import type { Catalog } from "@/i18n";
+import type { Catalog } from "@/i18n/catalog";
 import type { ScheduledJob } from "@/scheduler/scheduler";
 
 /**

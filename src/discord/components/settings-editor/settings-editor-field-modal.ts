@@ -22,7 +22,8 @@ import {
 	type TextFieldDef,
 	type UserFieldDef,
 } from "@/discord/interaction/modal";
-import type { Locale, Translator } from "@/i18n";
+import type { Locale } from "@/i18n/locale";
+import type { Translator } from "@/i18n/translator";
 
 const EDITOR_FIELD_MODAL_ID = "settings-editor:field-value";
 const EDITOR_GROUP_MODAL_ID = "settings-editor:group-value";

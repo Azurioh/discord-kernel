@@ -14,7 +14,7 @@ import type {
 import type { Button, ComponentContext } from "@/discord/interaction/button";
 import type { Card } from "@/discord/ui/card";
 import { type MessageFile, planMessageAttachments } from "@/discord/ui/message-attachments";
-import { describeError } from "@/errors";
+import { describeError } from "@/errors/describe-error";
 import type { Logger } from "@/logger";
 
 /** How long an interactive message stays live without a click. */

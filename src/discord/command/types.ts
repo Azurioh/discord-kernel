@@ -4,7 +4,7 @@ import type {
 	ContextMenuCommandInteraction,
 } from "discord.js";
 import type { Presenter } from "@/discord/presenter";
-import type { Translator } from "@/i18n";
+import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 
 /**

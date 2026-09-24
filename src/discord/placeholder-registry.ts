@@ -1,5 +1,5 @@
 import { DuplicatePlaceholderTokenError } from "@/discord/placeholder-registry-errors";
-import type { Locale } from "@/i18n";
+import type { Locale } from "@/i18n/locale";
 
 /**
  * A token a module offers to text another module's administrator writes,

@@ -1,4 +1,4 @@
-import type { Catalog } from "@/i18n";
+import type { Catalog } from "@/i18n/catalog";
 
 /** Catalog keys for the framework's own feedback, under the `core.` namespace. */
 export const CORE_MESSAGES = {
@@ -96,7 +96,7 @@ export const CORE_CATALOG: Catalog = {
 	},
 	[SETTINGS_EDITOR_MESSAGES.modalHelper]: {
 		en: "Leave empty to clear your customisation and go back to the default.",
-		fr: "Laisse vide pour effacer ta personnalisation et revenir à la valeur par défaut.",
+		fr: "Laissez vide pour effacer votre personnalisation et revenir à la valeur par défaut.",
 	},
 	[SETTINGS_EDITOR_MESSAGES.modalUploadLabel]: {
 		en: "Upload an image",
@@ -112,11 +112,11 @@ export const CORE_CATALOG: Catalog = {
 	},
 	[SETTINGS_EDITOR_MESSAGES.modalImageHelper]: {
 		en: "An http(s) address. Leave both empty to restore the default.",
-		fr: "Une adresse http(s). Laisse les deux vides pour revenir au défaut.",
+		fr: "Une adresse http(s). Laissez les deux vides pour revenir au défaut.",
 	},
 	[SETTINGS_EDITOR_MESSAGES.modalImageHelperUploaded]: {
 		en: "An image is uploaded; it cannot be shown here. Empty both to restore the default.",
-		fr: "Une image est envoyée ; impossible de la réafficher. Vide les deux pour le défaut.",
+		fr: "Une image est envoyée ; impossible de la réafficher. Videz les deux pour le défaut.",
 	},
 	[SETTINGS_EDITOR_MESSAGES.fieldSaved]: {
 		en: "✅ {field} updated.",
@@ -128,7 +128,7 @@ export const CORE_CATALOG: Catalog = {
 	},
 	[SETTINGS_EDITOR_MESSAGES.fieldUploaded]: {
 		en: "✅ {field} updated with your upload.",
-		fr: "✅ {field} mis à jour avec ton envoi.",
+		fr: "✅ {field} mis à jour avec votre envoi.",
 	},
 	[SETTINGS_EDITOR_MESSAGES.resetButton]: {
 		en: "Reset everything",
@@ -140,7 +140,7 @@ export const CORE_CATALOG: Catalog = {
 	},
 	[SETTINGS_EDITOR_MESSAGES.resetConfirmDescription]: {
 		en: "Every field goes back to its default. An uploaded image is not merely unset — its file is deleted for good and cannot be recovered. The preview below is what you are about to lose.",
-		fr: "Chaque champ revient à sa valeur par défaut. Une image envoyée n'est pas simplement retirée : le fichier est supprimé définitivement et ne pourra pas être récupéré. L'aperçu ci-dessous est ce que tu es sur le point de perdre.",
+		fr: "Chaque champ revient à sa valeur par défaut. Une image envoyée n'est pas simplement retirée : le fichier est supprimé définitivement et ne pourra pas être récupéré. L'aperçu ci-dessous est ce que vous êtes sur le point de perdre.",
 	},
 	[SETTINGS_EDITOR_MESSAGES.resetConfirmButton]: {
 		en: "Reset for good",
@@ -156,7 +156,7 @@ export const CORE_CATALOG: Catalog = {
 	},
 	[SETTINGS_EDITOR_MESSAGES.resetCancelled]: {
 		en: "Nothing was reset. Your customisation is untouched.",
-		fr: "Rien n'a été réinitialisé. Ta personnalisation est intacte.",
+		fr: "Rien n'a été réinitialisé. Votre personnalisation est intacte.",
 	},
 	[SETTINGS_EDITOR_MESSAGES.backButton]: {
 		en: "Back",

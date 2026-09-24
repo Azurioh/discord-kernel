@@ -1,6 +1,6 @@
 import { ComponentType } from "discord.js";
 import { describe, expect, it } from "vitest";
-import type { InteractiveMessagePayload } from "@/discord/components/interactive-message";
+import type { InteractiveMessagePayload } from "@/discord/components/interactive-message/interactive-message-collector";
 import { createButton } from "@/discord/interaction/button";
 import { createStringSelect } from "@/discord/interaction/select-menu";
 import {

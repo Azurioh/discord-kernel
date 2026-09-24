@@ -10,7 +10,8 @@ import {
 	type SettingsEditorValueField,
 	textFieldValue,
 } from "@/discord/components/settings-editor/settings-editor-fields";
-import type { Locale, Translator } from "@/i18n";
+import type { Locale } from "@/i18n/locale";
+import type { Translator } from "@/i18n/translator";
 
 const LOCALE: Locale = "en";
 

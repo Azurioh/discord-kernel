@@ -1,7 +1,7 @@
 import { EmbedBuilder } from "discord.js";
 import { describe, expect, it, vi } from "vitest";
 import { fixedClock } from "@/clock";
-import type { InteractiveMessagePayload } from "@/discord/components/interactive-message";
+import type { InteractiveMessagePayload } from "@/discord/components/interactive-message/interactive-message-collector";
 import { ROOT_LEVEL_KEY } from "@/discord/components/settings-editor/navigation";
 import {
 	createEditorButtons,
@@ -13,7 +13,8 @@ import {
 } from "@/discord/components/settings-editor/settings-editor.view";
 import type { SettingsEditorField } from "@/discord/components/settings-editor/settings-editor-fields";
 import { EMBED_COLORS } from "@/discord/ui/colors";
-import type { Locale, Translator } from "@/i18n";
+import type { Locale } from "@/i18n/locale";
+import type { Translator } from "@/i18n/translator";
 
 const IDS = editorComponentIds("test");
 const LOCALE: Locale = "en";
