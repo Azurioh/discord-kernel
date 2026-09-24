@@ -271,6 +271,10 @@
 			"types": "./dist/discord/presenter.d.ts",
 			"default": "./dist/discord/presenter.js"
 		},
+		"./discord/settings/discord-guild-directory": {
+			"types": "./dist/discord/settings/discord-guild-directory.d.ts",
+			"default": "./dist/discord/settings/discord-guild-directory.js"
+		},
 		"./discord/ui/card": {
 			"types": "./dist/discord/ui/card.d.ts",
 			"default": "./dist/discord/ui/card.js"
