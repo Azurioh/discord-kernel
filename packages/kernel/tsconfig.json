@@ -15,6 +15,9 @@
 		"skipLibCheck": true,
 		"resolveJsonModule": true,
 		"noEmit": true,
+		// Never emitted from here (`noEmit`). Knip reads it to map the `exports` targets under
+		// `dist/` back to their sources in `src/`.
+		"outDir": "dist",
 		"paths": {
 			"@/*": ["./src/*"]
 		},

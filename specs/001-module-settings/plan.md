@@ -26,7 +26,7 @@ dependencies: `ajv` (meta-schema validation in tests), `@changesets/cli`.
 **Storage**: `SettingsStore` port; in-memory implementation shipped; consumers implement it on
 any database.
 
-**Testing**: Vitest (`tests/**/*.test.ts`, mirrors `src/`), `expectTypeOf` for type-level tests.
+**Testing**: Vitest (`packages/kernel/tests/**/*.test.ts`, mirrors `packages/kernel/src/`), `expectTypeOf` for type-level tests.
 
 **Target Platform**: Node.js library consumed by Discord bots (single process or sharded + API
 process).
@@ -47,7 +47,7 @@ per card, 4000 characters per text input. Guild-scoped data only.
 | Principle | Status | Evidence |
 |---|---|---|
 | I. Vendor-free core (2.0.0) | PASS | Only `zod` added — listed as an allowed pure library — and absent from public types (R1, R2). discord.js used only in the `discord/` ring. Pre-existing `node-cron` dependency noted in R13, out of scope. |
-| II. Clean Architecture | PASS | `src/settings/` has no discord.js import; guild data via `GuildDirectory` port (R3); adapter lives in `src/discord/`. |
+| II. Clean Architecture | PASS | `packages/kernel/src/settings/` has no discord.js import; guild data via `GuildDirectory` port (R3); adapter lives in `packages/kernel/src/discord/`. |
 | III. Declare once, render everywhere | PASS | One compiled descriptor feeds validator, schema and adapter (R1). |
 | IV. Multi-tenant by default | PASS | `guildId` in every call; optimistic concurrency (R4); lazy per-guild migration (R6); notifier port (R5). |
 | V. Localised by construction | PASS | All texts are catalog keys; boot check (R8). Known limitation: `Locale` union is `en`/`fr`. |
@@ -77,7 +77,7 @@ specs/001-module-settings/
 ### Source Code (repository root)
 
 ```text
-src/
+packages/kernel/src/
 ├── settings/                         # new — no discord.js import
 │   ├── index.ts                      # public exports (subpath ./settings)
 │   ├── define-settings.ts            # defineSettings + declaration-time checks
@@ -122,15 +122,15 @@ src/
 ├── i18n/catalog.ts                   # + TranslationRegistry.has(key)
 └── module/module.ts                  # + BotModule.settings?
 
-tests/
-├── settings/                         # mirrors src/settings
+packages/kernel/tests/
+├── settings/                         # mirrors packages/kernel/src/settings
 └── discord/components/settings-editor/from-declaration.test.ts
 ```
 
-`package.json` exports gain `./settings` and `./settings/testing`. `.changeset/` is added.
+`packages/kernel/package.json` exports gain `./settings` and `./settings/testing`. `.changeset/` is added.
 
 **Structure Decision**: single library project, following the kernel's existing domain-folder
-layout (`src/<domain>/`, kebab-case files, tests mirrored under `tests/`). The settings domain is
+layout (`packages/kernel/src/<domain>/`, kebab-case files, tests mirrored under `packages/kernel/tests/`). The settings domain is
 vendor-free; the two Discord-specific pieces sit in the existing `discord/` ring. Zod stays
 behind `settings/fields/zod-schema.ts`: no other module imports it and no exported signature
 names a Zod type.
