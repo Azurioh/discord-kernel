@@ -76,7 +76,7 @@ src/modules/<module>/
         <sub>.autocomplete.ts
       shared/                 # only what two or more subcommands use
   shared/                     # only what two or more commands of the module use
-  events/<group>/
+  events/<group>/<event>/
     <event>.event.ts
     <event>.handler.ts
   components/<component>/     # UI only this module uses, same split as src/components/
