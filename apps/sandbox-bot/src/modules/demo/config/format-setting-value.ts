@@ -1,30 +1,6 @@
 import type { FieldSpec, SecretState } from "@azurioh/discord-kernel/settings";
 import { DEMO_MESSAGES } from "@/modules/demo/demo-catalog";
-
-/** Translate a catalog key; bound to the interaction's locale by the caller. */
-type Translate = (key: string) => string;
-
-/**
- * Turn what an administrator typed into a settings value: JSON when it parses
- * (`42`, `true`, `["1","2"]`, `{"logs":true}`), the raw text otherwise. A number
- * JSON cannot hold exactly — a snowflake typed without quotes — stays text, so
- * an id never loses its last digits.
- *
- * @param input - the raw option text.
- * @returns the value to submit to the settings service.
- */
-export function parseValueInput(input: string): unknown {
-	let parsed: unknown;
-	try {
-		parsed = JSON.parse(input);
-	} catch {
-		return input;
-	}
-	if (typeof parsed === "number" && Number.isInteger(parsed) && !Number.isSafeInteger(parsed)) {
-		return input;
-	}
-	return parsed;
-}
+import type { Translate } from "@/shared/i18n/translate";
 
 /**
  * Render one surface value of a field for an embed, mentions included.

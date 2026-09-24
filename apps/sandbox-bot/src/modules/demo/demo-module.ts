@@ -1,7 +1,7 @@
 import type { Translator } from "@azurioh/discord-kernel/i18n/translator";
 import type { BotModule } from "@azurioh/discord-kernel/module/module";
 import type { SettingsService } from "@azurioh/discord-kernel/settings";
-import { createConfigCommand } from "@/modules/demo/config-command";
+import { createConfigCommand } from "@/modules/demo/config/config-command";
 import { DEMO_CATALOG } from "@/modules/demo/demo-catalog";
 import { demoSettings } from "@/modules/demo/demo-settings";
 
