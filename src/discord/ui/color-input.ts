@@ -1,98 +1,16 @@
+import { BASE_COLOR_NAMES, normalizeColorName, parseHexColor } from "@/color";
 import { ColorAliasTooLongError } from "@/discord/ui/color-input-errors";
-import { DISCORD_BLURPLE } from "@/discord/ui/colors";
 
 /**
- * The generic web colours, at the value the name carries everywhere else — an
- * administrator typing `orange` gets the orange they would get in CSS, not a
- * shade this module invented.
- */
-const RED = "#ff0000";
-const BLUE = "#0000ff";
-const GREEN = "#008000";
-const YELLOW = "#ffff00";
-const ORANGE = "#ffa500";
-const PURPLE = "#800080";
-const PINK = "#ffc0cb";
-const WHITE = "#ffffff";
-
-/**
- * Not `#000000`: Discord reads a zero colour as "no colour set" and renders the
- * default grey bar instead, so pure black is the one value an administrator
- * could ask for and never see. One step off zero reads as black.
- */
-const BLACK = "#010101";
-
-const GREY = "#808080";
-const CYAN = "#00ffff";
-const BROWN = "#a52a2a";
-const SILVER = "#c0c0c0";
-const TURQUOISE = "#40e0d0";
-const MAGENTA = "#ff00ff";
-const NAVY = "#000080";
-
-/**
- * Colour names an administrator may type instead of a hex code, French and
- * English side by side.
+ * The names the kernel ships: the vendor-neutral base colours, `blurple` included.
  *
- * This table is **input vocabulary, not display text**. Nothing in it is ever
- * shown to anyone, and its keys must never be translated at runtime: a catalog
- * lookup resolves against the reply locale, which would make `rouge` stop
- * working the moment an admin's Discord is set to English — the opposite of the
- * point. Both spellings are accepted from everyone, always, which only a flat
- * table can promise.
- *
- * These are the names the kernel ships. A bot adds its own — the colour it
- * calls by its brand's name — through {@link registerColorAliases}, which is
- * also why this table is not the one lookups read: {@link COLOR_ALIASES} is.
+ * A bot adds its own — the colour it calls by its brand's name — through
+ * {@link registerColorAliases}, which is also why this table is not the one
+ * lookups read: {@link COLOR_ALIASES} is.
  */
 const BUILT_IN_COLOR_ALIASES: Readonly<Record<string, string>> = {
-	red: RED,
-	rouge: RED,
-	blue: BLUE,
-	bleu: BLUE,
-	green: GREEN,
-	vert: GREEN,
-	yellow: YELLOW,
-	jaune: YELLOW,
-	orange: ORANGE,
-	purple: PURPLE,
-	// French for purple, not the CSS `violet` (a pale pink): an admin typing it
-	// here is asking for the colour the word means in their own language.
-	violet: PURPLE,
-	pink: PINK,
-	rose: PINK,
-	white: WHITE,
-	blanc: WHITE,
-	black: BLACK,
-	noir: BLACK,
-	grey: GREY,
-	gray: GREY,
-	gris: GREY,
-	cyan: CYAN,
-	brown: BROWN,
-	marron: BROWN,
-	silver: SILVER,
-	argent: SILVER,
-	argenté: SILVER,
-	turquoise: TURQUOISE,
-	magenta: MAGENTA,
-	navy: NAVY,
-	marine: NAVY,
-	blurple: DISCORD_BLURPLE,
+	...BASE_COLOR_NAMES,
 };
-
-/**
- * Accents must not be a trap: `dore` and `doré` are the same request, and an
- * administrator has no way of knowing which one this file happened to spell.
- * Case and surrounding whitespace are folded for the same reason.
- */
-function normalizeColorName(raw: string): string {
-	return raw
-		.trim()
-		.toLowerCase()
-		.normalize("NFD")
-		.replace(/\p{Diacritic}/gu, "");
-}
 
 /**
  * Every name a lookup answers to: the kernel's own, plus whatever the bot
@@ -153,9 +71,6 @@ export function registerColorAliases(aliases: Readonly<Record<string, string>>):
 	}
 }
 
-/** Discord accepts `#RGB` and `#RRGGBB`, with or without the leading hash. */
-const HEX_COLOR_PATTERN = /^#?(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
-
 /**
  * Normalize a colour input to `#RRGGBB`, from a hexadecimal code or from one of
  * the names in {@link COLOR_ALIASES} — an administrator picking a colour should
@@ -164,16 +79,5 @@ const HEX_COLOR_PATTERN = /^#?(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
  * reports that it could not read the value and leaves the wording to the caller.
  */
 export function parseColorInput(raw: string): string | null {
-	const value = raw.trim();
-	const named = resolveNamedColor(value);
-	if (named !== null) {
-		return named;
-	}
-	if (!HEX_COLOR_PATTERN.test(value)) {
-		return null;
-	}
-	const digits = value.replace("#", "").toLowerCase();
-	const expanded =
-		digits.length === 3 ? [...digits].map((digit) => `${digit}${digit}`).join("") : digits;
-	return `#${expanded}`;
+	return resolveNamedColor(raw) ?? parseHexColor(raw);
 }

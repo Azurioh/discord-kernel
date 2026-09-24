@@ -1,3 +1,5 @@
+import { DISCORD_BLURPLE } from "@/color";
+
 /**
  * The five roles an embed colour can play. A bot restyles by supplying its own
  * values for these, never by adding a sixth: a role the kernel does not know is
@@ -17,9 +19,6 @@ export interface EmbedColors {
 export function toDiscordColor(hex: string): number {
 	return Number.parseInt(hex.slice(1), 16);
 }
-
-/** Discord's own brand colour, the fallback for a bot that declares no palette. */
-export const DISCORD_BLURPLE = "#5865f2";
 
 /**
  * What every embed renders as until the composition root says otherwise. Kept
