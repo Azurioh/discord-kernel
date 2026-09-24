@@ -4,7 +4,10 @@ import { EMBED_COLORS } from "@azurioh/discord-kernel/discord/ui/colors";
 import { appendBoundedFields, buildEmbed } from "@azurioh/discord-kernel/discord/ui/embed";
 import type { SettingsService } from "@azurioh/discord-kernel/settings";
 import { requestContext } from "@/modules/demo/commands/config/shared/request-context";
-import { DEMO_FIELD_ENTRIES, labelOf } from "@/modules/demo/commands/config/shared/setting-keys";
+import {
+	DEMO_FIELD_ENTRIES,
+	keyedLabelOf,
+} from "@/modules/demo/commands/config/shared/setting-keys";
 import { formatSettingValue } from "@/modules/demo/commands/config/show/format-setting-value";
 import { DEMO_MESSAGES } from "@/modules/demo/i18n/demo-messages";
 import { demoSettings } from "@/modules/demo/settings/demo-settings";
@@ -30,7 +33,7 @@ export function createShowHandler(
 		appendBoundedFields(
 			embed,
 			DEMO_FIELD_ENTRIES.map(([key, declared]) => ({
-				name: `${labelOf(key, ctx.t)} (${key})`,
+				name: keyedLabelOf(key, ctx.t),
 				value: formatSettingValue({ spec: declared.spec, value: values[key], t: ctx.t }),
 			})),
 			(count) => ctx.t(DEMO_MESSAGES.hiddenFields, { count }),

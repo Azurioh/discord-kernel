@@ -49,6 +49,7 @@ Every piece of a module has one predictable place, so a real bot built on the
 kernel can follow the same map:
 
 ```
+src/shared/                   # what the whole app uses: logging, i18n helpers, presenter
 src/modules/<module>/
   <module>-module.ts          # the BotModule: commands, events, catalog, settings
   i18n/
@@ -69,6 +70,7 @@ src/modules/<module>/
         <sub>.handler.ts
         <sub>.autocomplete.ts
       shared/                 # only what two or more subcommands use
+  shared/                     # only what two or more commands of the module use
   events/<group>/
     <event>.event.ts
     <event>.handler.ts
@@ -86,9 +88,22 @@ src/modules/<module>/
 | `-messages.ts` / `-catalog.ts` | The catalog keys, and their wording |
 
 Only the files a command needs exist: `/ping` has no options file, `/config
-show` no options nor autocomplete. A helper used by one subcommand sits in that
-subcommand's folder (`set/parse-value-input.ts`); it moves to `shared/` once a
-second one needs it. Tests mirror this tree under `tests/`.
+show` no options nor autocomplete. Tests mirror this tree under `tests/`.
+
+Anything two users need — an autocomplete, an option, a type, a helper — exists
+once, in the `shared/` folder of the smallest level that holds both users:
+
+| Used by | Lives in |
+| ------- | -------- |
+| one subcommand | that subcommand's folder (`set/parse-value-input.ts`) |
+| two or more subcommands of one command | `commands/<cmd>/shared/` (`config/shared/setting-key.options.ts`, used by `set` and `reset`) |
+| two or more commands of one module | `modules/<module>/shared/` |
+| two or more modules | `src/shared/` |
+
+A shared file keeps the suffix of its role (`setting-key.autocomplete.ts`), and
+moves to the wider level as soon as a second user appears, never earlier. Imports
+never form a cycle (`noImportCycles` in `biome.jsonc`): when two files need each
+other, what they share moves into a third.
 
 ## Commands
 

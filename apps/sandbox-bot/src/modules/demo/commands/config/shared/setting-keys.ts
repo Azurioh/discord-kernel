@@ -14,3 +14,8 @@ export function labelOf(key: string, t: Translate): string {
 	const label = LABEL_BY_KEY.get(key);
 	return label === undefined ? key : t(label);
 }
+
+/** A declared key as a member reads it in a list: its translated label, then the key. */
+export function keyedLabelOf(key: string, t: Translate): string {
+	return `${labelOf(key, t)} (${key})`;
+}
