@@ -43,6 +43,53 @@ read the last log line rather than `$?` when a start fails.
 Settings are written to `apps/sandbox-bot/.data/settings.json` (gitignored);
 set `SETTINGS_FILE` to use another path.
 
+## Project layout
+
+Every piece of a module has one predictable place, so a real bot built on the
+kernel can follow the same map:
+
+```
+src/modules/<module>/
+  <module>-module.ts          # the BotModule: commands, events, catalog, settings
+  i18n/
+    <module>-messages.ts      # *_MESSAGES: the catalog keys, the only way code names them
+    <module>-catalog.ts       # the English/French wording, typed over those keys
+  settings/<module>-settings.ts   # defineSettings(...), when the module has settings
+  commands/
+    <name>/                   # a command without subcommands
+      <name>.command.ts
+      <name>.options.ts
+      <name>.handler.ts
+      <name>.autocomplete.ts
+    <name>/                   # a command with subcommands
+      <name>.command.ts
+      <sub>/
+        <sub>.definition.ts
+        <sub>.options.ts
+        <sub>.handler.ts
+        <sub>.autocomplete.ts
+      shared/                 # only what two or more subcommands use
+  events/<group>/
+    <event>.event.ts
+    <event>.handler.ts
+  components/                 # buttons, menus and modals, when the module has any
+```
+
+| Suffix | Holds |
+| ------ | ----- |
+| `.command.ts` | `createCommand(...)`: name, description, guards, deployment; wires the options and handler, or lists the subcommands |
+| `.definition.ts` | `createSubCommand(...)`: one subcommand's description, wired to its options and handler |
+| `.options.ts` | The option schema, and its `*Options` type the handler reads |
+| `.handler.ts` | What runs once the guards passed |
+| `.autocomplete.ts` | The `AutocompleteResolver` of an option |
+| `.event.ts` | `createEvent(...)`: the gateway event name and `once`, wired to its handler |
+| `-messages.ts` / `-catalog.ts` | The catalog keys, and their wording |
+
+Only the files a command needs exist: `/ping` has no options file, `/config
+show` no options nor autocomplete. A helper used by one subcommand sits in that
+subcommand's folder (`set/parse-value-input.ts`); it moves to `shared/` once a
+second one needs it. Tests mirror this tree under `tests/`.
+
 ## Commands
 
 | Command | What it exercises |

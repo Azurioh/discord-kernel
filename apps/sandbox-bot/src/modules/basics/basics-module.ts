@@ -1,10 +1,11 @@
 import type { Logger } from "@azurioh/discord-kernel/logger";
 import type { BotModule } from "@azurioh/discord-kernel/module/module";
-import { BASICS_CATALOG } from "@/modules/basics/basics-catalog";
-import { createLifecycleEvents } from "@/modules/basics/lifecycle-events";
-import { createPagesCommand } from "@/modules/basics/pages-command";
-import { createPingCommand } from "@/modules/basics/ping-command";
-import { createRollCommand } from "@/modules/basics/roll-command";
+import { createPagesCommand } from "@/modules/basics/commands/pages/pages.command";
+import { createPingCommand } from "@/modules/basics/commands/ping/ping.command";
+import { createRollCommand } from "@/modules/basics/commands/roll/roll.command";
+import { createGuildCreateEvent } from "@/modules/basics/events/lifecycle/guild-create.event";
+import { createReadyEvent } from "@/modules/basics/events/lifecycle/ready.event";
+import { BASICS_CATALOG } from "@/modules/basics/i18n/basics-catalog";
 
 export interface BasicsModuleDeps {
 	readonly guildIds: readonly string[];
@@ -20,7 +21,7 @@ export function createBasicsModule(deps: BasicsModuleDeps): BotModule {
 			createRollCommand(deps.guildIds),
 			createPagesCommand(deps.guildIds, deps.logger),
 		],
-		events: createLifecycleEvents(deps.logger),
+		events: [createReadyEvent(deps.logger), createGuildCreateEvent(deps.logger)],
 		translations: BASICS_CATALOG,
 	};
 }

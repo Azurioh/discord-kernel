@@ -1,0 +1,41 @@
+/** The `/config` command's wording: descriptions and replies. */
+export const DEMO_MESSAGES = {
+	configDescription: "demo.config.description",
+	showDescription: "demo.config.show.description",
+	setDescription: "demo.config.set.description",
+	setKeyDescription: "demo.config.set.key-description",
+	setValueDescription: "demo.config.set.value-description",
+	resetDescription: "demo.config.reset.description",
+	resetKeyDescription: "demo.config.reset.key-description",
+	hiddenFields: "demo.config.hidden-fields",
+	notSet: "demo.config.not-set",
+	secretSet: "demo.config.secret-set",
+	secretNotSet: "demo.config.secret-not-set",
+	on: "demo.config.on",
+	off: "demo.config.off",
+	saved: "demo.config.saved",
+	rejected: "demo.config.rejected",
+	resetOne: "demo.config.reset-one",
+	resetAll: "demo.config.reset-all",
+	allFields: "demo.config.all-fields",
+} as const;
+
+/** The labels, hints and choice names `demoSettings` declares. */
+export const DEMO_SETTINGS_MESSAGES = {
+	title: "demo.settings.title",
+	description: "demo.settings.description",
+	logChannel: "demo.settings.log-channel",
+	logChannelDescription: "demo.settings.log-channel.description",
+	staffRole: "demo.settings.staff-role",
+	accent: "demo.settings.accent",
+	cooldown: "demo.settings.cooldown",
+	mode: "demo.settings.mode",
+	modeRelaxed: "demo.settings.mode.relaxed",
+	modeStrict: "demo.settings.mode.strict",
+	maxWarnings: "demo.settings.max-warnings",
+	features: "demo.settings.features",
+	featuresWelcome: "demo.settings.features.welcome",
+	featuresLogs: "demo.settings.features.logs",
+	apiKey: "demo.settings.api-key",
+	pingRoles: "demo.settings.ping-roles",
+} as const;
