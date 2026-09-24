@@ -2,3 +2,9 @@ node_modules/
 dist/
 *.tsbuildinfo
 .DS_Store
+
+# Local secrets and sandbox data
+.env
+.env.*
+!.env.example
+.data/

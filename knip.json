@@ -5,6 +5,10 @@
 		"packages/kernel": {
 			"entry": ["tests/**/*.test.ts"],
 			"project": ["src/**/*.ts", "tests/**/*.ts"]
+		},
+		"apps/sandbox-bot": {
+			"entry": ["tests/**/*.test.ts"],
+			"project": ["src/**/*.ts", "tests/**/*.ts"]
 		}
 	}
 }

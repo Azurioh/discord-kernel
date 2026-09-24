@@ -147,6 +147,10 @@
 			"types": "./dist/discord/command/permission-guard.d.ts",
 			"default": "./dist/discord/command/permission-guard.js"
 		},
+		"./discord/command/route-key": {
+			"types": "./dist/discord/command/route-key.d.ts",
+			"default": "./dist/discord/command/route-key.js"
+		},
 		"./discord/command/router": {
 			"types": "./dist/discord/command/router.d.ts",
 			"default": "./dist/discord/command/router.js"

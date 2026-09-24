@@ -5,6 +5,7 @@ pnpm workspace of the discord-kernel libraries, versioned with changesets.
 | Package | Path |
 |---|---|
 | [`@azurioh/discord-kernel`](packages/kernel/README.md) | `packages/kernel` |
+| [`sandbox-bot`](apps/sandbox-bot/README.md) (private, never published) | `apps/sandbox-bot` |
 
 - Architecture, planned packages and feature specs: [`docs/roadmap.md`](docs/roadmap.md).
 - Principles every package follows: [`.specify/memory/constitution.md`](.specify/memory/constitution.md).
