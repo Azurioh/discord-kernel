@@ -1,10 +1,10 @@
 import type { Context } from "@azurioh/discord-kernel/discord/command/context";
 import type { SettingsService } from "@azurioh/discord-kernel/settings";
-import { parseValueInput } from "@/modules/demo/commands/config/set/parse-value-input.helper";
+import { parseValueInput } from "@/modules/demo/commands/config/set/set.helper";
 import type { SetOptions } from "@/modules/demo/commands/config/set/set.options";
 import { confirmOrReportIssues } from "@/modules/demo/commands/config/shared/confirm-or-report-issues.helper";
 import { requestContext } from "@/modules/demo/commands/config/shared/request-context.helper";
-import { labelOf } from "@/modules/demo/commands/config/shared/setting-keys.helper";
+import { labelOf } from "@/modules/demo/commands/config/shared/setting-key/setting-key.helper";
 import { DEMO_MESSAGES } from "@/modules/demo/i18n/demo.messages";
 import { demoSettings } from "@/modules/demo/settings/demo.settings";
 

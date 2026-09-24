@@ -3,7 +3,7 @@ import type { Translator } from "@azurioh/discord-kernel/i18n/translator";
 import {
 	createSettingKeyAutocomplete,
 	type ExtraSettingKeyChoices,
-} from "@/modules/demo/commands/config/shared/setting-key.autocomplete";
+} from "@/modules/demo/commands/config/shared/setting-key/setting-key.autocomplete";
 import { DEMO_CATALOG } from "@/modules/demo/i18n/demo.catalog";
 import type { DEMO_MESSAGES } from "@/modules/demo/i18n/demo.messages";
 import { localizedDescription } from "@/shared/discord/localized-description";

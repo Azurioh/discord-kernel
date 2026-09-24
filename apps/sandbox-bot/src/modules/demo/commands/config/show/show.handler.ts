@@ -7,8 +7,8 @@ import { requestContext } from "@/modules/demo/commands/config/shared/request-co
 import {
 	DEMO_FIELD_ENTRIES,
 	keyedLabelOf,
-} from "@/modules/demo/commands/config/shared/setting-keys.helper";
-import { formatSettingValue } from "@/modules/demo/commands/config/show/format-setting-value.helper";
+} from "@/modules/demo/commands/config/shared/setting-key/setting-key.helper";
+import { formatSettingValue } from "@/modules/demo/commands/config/show/show.helper";
 import { DEMO_MESSAGES } from "@/modules/demo/i18n/demo.messages";
 import { demoSettings } from "@/modules/demo/settings/demo.settings";
 

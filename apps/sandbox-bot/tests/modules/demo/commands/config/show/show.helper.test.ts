@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatSettingValue } from "@/modules/demo/commands/config/show/format-setting-value.helper";
+import { formatSettingValue } from "@/modules/demo/commands/config/show/show.helper";
 import { DEMO_MESSAGES } from "@/modules/demo/i18n/demo.messages";
 import { demoSettings } from "@/modules/demo/settings/demo.settings";
 

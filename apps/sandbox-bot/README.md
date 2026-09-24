@@ -67,6 +67,7 @@ src/modules/<module>/
       <name>.options.ts
       <name>.handler.ts
       <name>.autocomplete.ts
+      <name>.helper.ts
     <name>/                   # a command with subcommands
       <name>.command.ts
       <sub>/
@@ -74,7 +75,14 @@ src/modules/<module>/
         <sub>.options.ts
         <sub>.handler.ts
         <sub>.autocomplete.ts
+        <sub>.helper.ts       # its helpers, named after the subcommand
+        <sub>.constant.ts
       shared/                 # only what two or more subcommands use
+        <topic>.helper.ts     # a topic with a single file sits here directly
+        <topic>/              # a topic with several files gets a folder, no index.ts
+          <topic>.options.ts
+          <topic>.autocomplete.ts
+          <topic>.helper.ts
   shared/                     # only what two or more commands of the module use
   events/<group>/<event>/
     <event>.event.ts
@@ -116,12 +124,18 @@ once, in the `shared/` folder of the smallest level that holds both users:
 
 | Used by | Lives in |
 | ------- | -------- |
-| one subcommand | that subcommand's folder (`set/parse-value-input.helper.ts`) |
-| two or more subcommands of one command | `commands/<cmd>/shared/` (`config/shared/setting-key.options.ts`, used by `set` and `reset`) |
+| one subcommand | that subcommand's folder (`set/set.helper.ts`) |
+| two or more subcommands of one command | `commands/<cmd>/shared/` (`config/shared/setting-key/setting-key.options.ts`, used by `set` and `reset`) |
 | two or more commands of one module | `modules/<module>/shared/` |
 | two or more modules | `src/shared/` |
 
-A shared file keeps the suffix of its role (`setting-key.autocomplete.ts`), and
+Inside a command, a helper or constant is named after its folder (`set/set.helper.ts`,
+`reset/reset.constant.ts`). In `shared/`, a topic with a single file sits there directly
+(`shared/request-context.helper.ts`); a topic with several files gets its own folder whose
+files all carry the topic name and their role (`shared/setting-key/setting-key.autocomplete.ts`,
+`setting-key.options.ts`, `setting-key.helper.ts`). There is no `index.ts`: files are
+imported directly, `index.ts` being reserved for package entry points. A shared file
+keeps the suffix of its role, and
 moves to the wider level as soon as a second user appears, never earlier. Imports
 never form a cycle (`noImportCycles` in `biome.jsonc`): when two files need each
 other, what they share moves into a third.

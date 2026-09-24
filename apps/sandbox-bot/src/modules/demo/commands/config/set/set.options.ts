@@ -1,6 +1,6 @@
 import { createStringOption } from "@azurioh/discord-kernel/discord/command/options";
 import type { Translator } from "@azurioh/discord-kernel/i18n/translator";
-import { createSettingKeyOption } from "@/modules/demo/commands/config/shared/setting-key.options";
+import { createSettingKeyOption } from "@/modules/demo/commands/config/shared/setting-key/setting-key.options";
 import { DEMO_CATALOG } from "@/modules/demo/i18n/demo.catalog";
 import { DEMO_MESSAGES } from "@/modules/demo/i18n/demo.messages";
 import { localizedDescription } from "@/shared/discord/localized-description";
