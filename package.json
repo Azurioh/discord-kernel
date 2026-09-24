@@ -50,9 +50,313 @@
 			"types": "./dist/discord/components/settings-editor/index.d.ts",
 			"default": "./dist/discord/components/settings-editor/index.js"
 		},
-		"./*": {
-			"types": "./dist/*.d.ts",
-			"default": "./dist/*.js"
+		"./settings": {
+			"types": "./dist/settings/index.d.ts",
+			"default": "./dist/settings/index.js"
+		},
+		"./settings/testing": {
+			"types": "./dist/settings/testing/index.d.ts",
+			"default": "./dist/settings/testing/index.js"
+		},
+		"./authz/authorizer": {
+			"types": "./dist/authz/authorizer.d.ts",
+			"default": "./dist/authz/authorizer.js"
+		},
+		"./authz/require-level-guard": {
+			"types": "./dist/authz/require-level-guard.d.ts",
+			"default": "./dist/authz/require-level-guard.js"
+		},
+		"./clock": {
+			"types": "./dist/clock.d.ts",
+			"default": "./dist/clock.js"
+		},
+		"./color": {
+			"types": "./dist/color.d.ts",
+			"default": "./dist/color.js"
+		},
+		"./concurrency/keyed-queue": {
+			"types": "./dist/concurrency/keyed-queue.d.ts",
+			"default": "./dist/concurrency/keyed-queue.js"
+		},
+		"./concurrency/run-with-concurrency": {
+			"types": "./dist/concurrency/run-with-concurrency.d.ts",
+			"default": "./dist/concurrency/run-with-concurrency.js"
+		},
+		"./config/env": {
+			"types": "./dist/config/env.d.ts",
+			"default": "./dist/config/env.js"
+		},
+		"./config/errors": {
+			"types": "./dist/config/errors.d.ts",
+			"default": "./dist/config/errors.js"
+		},
+		"./datetime": {
+			"types": "./dist/datetime.d.ts",
+			"default": "./dist/datetime.js"
+		},
+		"./discord/api-errors": {
+			"types": "./dist/discord/api-errors.d.ts",
+			"default": "./dist/discord/api-errors.js"
+		},
+		"./discord/channel-exporter": {
+			"types": "./dist/discord/channel-exporter.d.ts",
+			"default": "./dist/discord/channel-exporter.js"
+		},
+		"./discord/command/autocomplete-dispatcher": {
+			"types": "./dist/discord/command/autocomplete-dispatcher.d.ts",
+			"default": "./dist/discord/command/autocomplete-dispatcher.js"
+		},
+		"./discord/command/autocomplete": {
+			"types": "./dist/discord/command/autocomplete.d.ts",
+			"default": "./dist/discord/command/autocomplete.js"
+		},
+		"./discord/command/context": {
+			"types": "./dist/discord/command/context.d.ts",
+			"default": "./dist/discord/command/context.js"
+		},
+		"./discord/command/cooldown-guard": {
+			"types": "./dist/discord/command/cooldown-guard.d.ts",
+			"default": "./dist/discord/command/cooldown-guard.js"
+		},
+		"./discord/command/create-command": {
+			"types": "./dist/discord/command/create-command.d.ts",
+			"default": "./dist/discord/command/create-command.js"
+		},
+		"./discord/command/create-context-menu-command": {
+			"types": "./dist/discord/command/create-context-menu-command.d.ts",
+			"default": "./dist/discord/command/create-context-menu-command.js"
+		},
+		"./discord/command/errors": {
+			"types": "./dist/discord/command/errors.d.ts",
+			"default": "./dist/discord/command/errors.js"
+		},
+		"./discord/command/guard": {
+			"types": "./dist/discord/command/guard.d.ts",
+			"default": "./dist/discord/command/guard.js"
+		},
+		"./discord/command/localization": {
+			"types": "./dist/discord/command/localization.d.ts",
+			"default": "./dist/discord/command/localization.js"
+		},
+		"./discord/command/options": {
+			"types": "./dist/discord/command/options.d.ts",
+			"default": "./dist/discord/command/options.js"
+		},
+		"./discord/command/permission-guard": {
+			"types": "./dist/discord/command/permission-guard.d.ts",
+			"default": "./dist/discord/command/permission-guard.js"
+		},
+		"./discord/command/router": {
+			"types": "./dist/discord/command/router.d.ts",
+			"default": "./dist/discord/command/router.js"
+		},
+		"./discord/command/types": {
+			"types": "./dist/discord/command/types.d.ts",
+			"default": "./dist/discord/command/types.js"
+		},
+		"./discord/components/component-router": {
+			"types": "./dist/discord/components/component-router.d.ts",
+			"default": "./dist/discord/components/component-router.js"
+		},
+		"./discord/components/interactive-message/index": {
+			"types": "./dist/discord/components/interactive-message/index.d.ts",
+			"default": "./dist/discord/components/interactive-message/index.js"
+		},
+		"./discord/components/interactive-message/interactive-message-collector": {
+			"types": "./dist/discord/components/interactive-message/interactive-message-collector.d.ts",
+			"default": "./dist/discord/components/interactive-message/interactive-message-collector.js"
+		},
+		"./discord/components/interactive-message/mount-interactive-message": {
+			"types": "./dist/discord/components/interactive-message/mount-interactive-message.d.ts",
+			"default": "./dist/discord/components/interactive-message/mount-interactive-message.js"
+		},
+		"./discord/components/paginator/index": {
+			"types": "./dist/discord/components/paginator/index.d.ts",
+			"default": "./dist/discord/components/paginator/index.js"
+		},
+		"./discord/components/paginator/mount-paginator": {
+			"types": "./dist/discord/components/paginator/mount-paginator.d.ts",
+			"default": "./dist/discord/components/paginator/mount-paginator.js"
+		},
+		"./discord/components/paginator/page-state": {
+			"types": "./dist/discord/components/paginator/page-state.d.ts",
+			"default": "./dist/discord/components/paginator/page-state.js"
+		},
+		"./discord/components/paginator/paginator-buttons": {
+			"types": "./dist/discord/components/paginator/paginator-buttons.d.ts",
+			"default": "./dist/discord/components/paginator/paginator-buttons.js"
+		},
+		"./discord/components/paginator/paginator-view": {
+			"types": "./dist/discord/components/paginator/paginator-view.d.ts",
+			"default": "./dist/discord/components/paginator/paginator-view.js"
+		},
+		"./discord/components/persistent-paginator": {
+			"types": "./dist/discord/components/persistent-paginator.d.ts",
+			"default": "./dist/discord/components/persistent-paginator.js"
+		},
+		"./discord/components/settings-editor/index": {
+			"types": "./dist/discord/components/settings-editor/index.d.ts",
+			"default": "./dist/discord/components/settings-editor/index.js"
+		},
+		"./discord/components/settings-editor/mount-settings-editor": {
+			"types": "./dist/discord/components/settings-editor/mount-settings-editor.d.ts",
+			"default": "./dist/discord/components/settings-editor/mount-settings-editor.js"
+		},
+		"./discord/components/settings-editor/navigation": {
+			"types": "./dist/discord/components/settings-editor/navigation.d.ts",
+			"default": "./dist/discord/components/settings-editor/navigation.js"
+		},
+		"./discord/components/settings-editor/settings-editor-card.view": {
+			"types": "./dist/discord/components/settings-editor/settings-editor-card.view.d.ts",
+			"default": "./dist/discord/components/settings-editor/settings-editor-card.view.js"
+		},
+		"./discord/components/settings-editor/settings-editor-field-modal": {
+			"types": "./dist/discord/components/settings-editor/settings-editor-field-modal.d.ts",
+			"default": "./dist/discord/components/settings-editor/settings-editor-field-modal.js"
+		},
+		"./discord/components/settings-editor/settings-editor-fields": {
+			"types": "./dist/discord/components/settings-editor/settings-editor-fields.d.ts",
+			"default": "./dist/discord/components/settings-editor/settings-editor-fields.js"
+		},
+		"./discord/components/settings-editor/settings-editor.view": {
+			"types": "./dist/discord/components/settings-editor/settings-editor.view.d.ts",
+			"default": "./dist/discord/components/settings-editor/settings-editor.view.js"
+		},
+		"./discord/events/create-event": {
+			"types": "./dist/discord/events/create-event.d.ts",
+			"default": "./dist/discord/events/create-event.js"
+		},
+		"./discord/events/event-router": {
+			"types": "./dist/discord/events/event-router.d.ts",
+			"default": "./dist/discord/events/event-router.js"
+		},
+		"./discord/events/types": {
+			"types": "./dist/discord/events/types.d.ts",
+			"default": "./dist/discord/events/types.js"
+		},
+		"./discord/i18n": {
+			"types": "./dist/discord/i18n.d.ts",
+			"default": "./dist/discord/i18n.js"
+		},
+		"./discord/interaction/button": {
+			"types": "./dist/discord/interaction/button.d.ts",
+			"default": "./dist/discord/interaction/button.js"
+		},
+		"./discord/interaction/interaction-router": {
+			"types": "./dist/discord/interaction/interaction-router.d.ts",
+			"default": "./dist/discord/interaction/interaction-router.js"
+		},
+		"./discord/interaction/modal": {
+			"types": "./dist/discord/interaction/modal.d.ts",
+			"default": "./dist/discord/interaction/modal.js"
+		},
+		"./discord/interaction/select-menu": {
+			"types": "./dist/discord/interaction/select-menu.d.ts",
+			"default": "./dist/discord/interaction/select-menu.js"
+		},
+		"./discord/permissions": {
+			"types": "./dist/discord/permissions.d.ts",
+			"default": "./dist/discord/permissions.js"
+		},
+		"./discord/placeholder-registry-errors": {
+			"types": "./dist/discord/placeholder-registry-errors.d.ts",
+			"default": "./dist/discord/placeholder-registry-errors.js"
+		},
+		"./discord/placeholder-registry": {
+			"types": "./dist/discord/placeholder-registry.d.ts",
+			"default": "./dist/discord/placeholder-registry.js"
+		},
+		"./discord/presenter": {
+			"types": "./dist/discord/presenter.d.ts",
+			"default": "./dist/discord/presenter.js"
+		},
+		"./discord/ui/card": {
+			"types": "./dist/discord/ui/card.d.ts",
+			"default": "./dist/discord/ui/card.js"
+		},
+		"./discord/ui/color-input-errors": {
+			"types": "./dist/discord/ui/color-input-errors.d.ts",
+			"default": "./dist/discord/ui/color-input-errors.js"
+		},
+		"./discord/ui/color-input": {
+			"types": "./dist/discord/ui/color-input.d.ts",
+			"default": "./dist/discord/ui/color-input.js"
+		},
+		"./discord/ui/colors": {
+			"types": "./dist/discord/ui/colors.d.ts",
+			"default": "./dist/discord/ui/colors.js"
+		},
+		"./discord/ui/embed": {
+			"types": "./dist/discord/ui/embed.d.ts",
+			"default": "./dist/discord/ui/embed.js"
+		},
+		"./discord/ui/message-attachments": {
+			"types": "./dist/discord/ui/message-attachments.d.ts",
+			"default": "./dist/discord/ui/message-attachments.js"
+		},
+		"./errors/business-error": {
+			"types": "./dist/errors/business-error.d.ts",
+			"default": "./dist/errors/business-error.js"
+		},
+		"./errors/describe-error": {
+			"types": "./dist/errors/describe-error.d.ts",
+			"default": "./dist/errors/describe-error.js"
+		},
+		"./errors/incident-ref": {
+			"types": "./dist/errors/incident-ref.d.ts",
+			"default": "./dist/errors/incident-ref.js"
+		},
+		"./errors/index": {
+			"types": "./dist/errors/index.d.ts",
+			"default": "./dist/errors/index.js"
+		},
+		"./i18n/business-message": {
+			"types": "./dist/i18n/business-message.d.ts",
+			"default": "./dist/i18n/business-message.js"
+		},
+		"./i18n/catalog": {
+			"types": "./dist/i18n/catalog.d.ts",
+			"default": "./dist/i18n/catalog.js"
+		},
+		"./i18n/errors": {
+			"types": "./dist/i18n/errors.d.ts",
+			"default": "./dist/i18n/errors.js"
+		},
+		"./i18n/index": {
+			"types": "./dist/i18n/index.d.ts",
+			"default": "./dist/i18n/index.js"
+		},
+		"./i18n/locale": {
+			"types": "./dist/i18n/locale.d.ts",
+			"default": "./dist/i18n/locale.js"
+		},
+		"./i18n/translator": {
+			"types": "./dist/i18n/translator.d.ts",
+			"default": "./dist/i18n/translator.js"
+		},
+		"./logger": {
+			"types": "./dist/logger.d.ts",
+			"default": "./dist/logger.js"
+		},
+		"./module/module": {
+			"types": "./dist/module/module.d.ts",
+			"default": "./dist/module/module.js"
+		},
+		"./persistence/database": {
+			"types": "./dist/persistence/database.d.ts",
+			"default": "./dist/persistence/database.js"
+		},
+		"./resilience/retry": {
+			"types": "./dist/resilience/retry.d.ts",
+			"default": "./dist/resilience/retry.js"
+		},
+		"./scheduler/errors": {
+			"types": "./dist/scheduler/errors.d.ts",
+			"default": "./dist/scheduler/errors.js"
+		},
+		"./scheduler/scheduler": {
+			"types": "./dist/scheduler/scheduler.d.ts",
+			"default": "./dist/scheduler/scheduler.js"
 		}
 	},
 	"files": [
@@ -64,7 +368,7 @@
 		"typecheck": "tsc -p tsconfig.json",
 		"lint": "biome ci",
 		"format": "biome check --write",
-		"knip": "knip",
+		"knip": "knip --tsConfig tsconfig.build.json",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"prepublishOnly": "npm run build"
