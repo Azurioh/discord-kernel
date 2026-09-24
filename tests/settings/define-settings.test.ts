@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { defineSettings } from "@/settings/define-settings";
-import { type AnyField, field, parseFieldValue } from "@/settings/fields";
+import { field } from "@/settings/fields/builders";
+import type { AnyField } from "@/settings/fields/field";
+import { parseFieldValue } from "@/settings/fields/zod-schema";
 import { SettingsDeclarationError } from "@/settings/settings-declaration-error";
 import {
 	SAMPLE_FIELD_ACCESS,

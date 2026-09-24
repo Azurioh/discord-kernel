@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { TranslationRegistry } from "@/i18n/catalog";
 import { defineSettings } from "@/settings/define-settings";
-import { field } from "@/settings/fields";
+import { field } from "@/settings/fields/builders";
 import { createSettingsRegistry } from "@/settings/registry";
 import { SettingsDeclarationError } from "@/settings/settings-declaration-error";
 import { sampleSettings } from "./fixtures/sample-declaration";

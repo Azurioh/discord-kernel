@@ -37,7 +37,7 @@ Kinds and stored value types:
 | `channel` | snowflake string | `types?`: allowed channel types |
 | `role` | snowflake string | |
 | `user` | snowflake string | |
-| `color` | `"#RRGGBB"` string | Input accepts hex and registered aliases (existing parser) |
+| `color` | `"#RRGGBB"` string | Input accepts hex (`#RGB`/`#RRGGBB`, hash optional) and the base colour names of `src/color.ts` (French and English, case and accents folded). Aliases a bot registers through `registerColorAliases` (and `blurple`) belong to the Discord input surface only and are rejected, so a stored value means the same colour in every bot |
 | `duration` | integer seconds | `min?`, `max?` in seconds |
 | `enum` | one of declared literal values | 1–25 choices, each with a label key |
 | `integer` | integer | `min?`, `max?` |

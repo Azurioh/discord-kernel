@@ -1,5 +1,5 @@
 import { defineSettings } from "@/settings/define-settings";
-import { field } from "@/settings/fields";
+import { field } from "@/settings/fields/builders";
 
 /** Opaque access values: stored on the declaration, never enforced by the settings feature. */
 export const SAMPLE_MODULE_ACCESS = { permission: "sample.settings.manage" };

@@ -2,7 +2,7 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 import type { BotModule } from "@/module/module";
 import type { SettingsDeclaration } from "@/settings/define-settings";
 import { defineSettings } from "@/settings/define-settings";
-import { field } from "@/settings/fields";
+import { field } from "@/settings/fields/builders";
 import { sampleSettings } from "../settings/fixtures/sample-declaration";
 
 const otherSettings = defineSettings({

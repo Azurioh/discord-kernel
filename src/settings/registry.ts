@@ -1,6 +1,12 @@
 import type { TranslationRegistry } from "@/i18n/catalog";
 import type { SettingsDeclaration } from "@/settings/define-settings";
-import type { AnyField, FieldChoice, FieldSpec, Suggestions } from "@/settings/fields";
+import {
+	type AnyField,
+	type FieldChoice,
+	type FieldSpec,
+	type Suggestions,
+	unhandledFieldKind,
+} from "@/settings/fields/field";
 import { SettingsDeclarationError } from "@/settings/settings-declaration-error";
 
 /** Every settings declaration of the bot, checked at boot. */
@@ -86,8 +92,17 @@ function* specKeys(spec: FieldSpec): Generator<string> {
 		case "toggles":
 			yield* defined(Object.values(spec.keyLabels ?? {}));
 			return;
-		default:
+		case "channel":
+		case "role":
+		case "user":
+		case "color":
+		case "duration":
+		case "number":
+		case "boolean":
+		case "secret":
 			return;
+		default:
+			unhandledFieldKind(spec);
 	}
 }
 

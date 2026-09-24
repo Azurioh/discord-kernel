@@ -1,4 +1,4 @@
-import type { Field, FieldPresence } from "@/settings/fields";
+import type { Field, FieldPresence } from "@/settings/fields/field";
 
 /** The fields of a declaration, by key. */
 type FieldsOf<D> = D extends { readonly fields: infer F } ? F : never;

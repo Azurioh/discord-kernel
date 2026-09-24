@@ -81,7 +81,10 @@ src/
 ├── settings/                         # new — no discord.js import
 │   ├── index.ts                      # public exports (subpath ./settings)
 │   ├── define-settings.ts            # defineSettings + declaration-time checks
-│   ├── fields.ts                     # field builders + descriptors
+│   ├── fields/
+│   │   ├── field.ts                  # field model: Field, FieldSpec, options, limits (no Zod)
+│   │   ├── builders.ts               # the `field` builders
+│   │   └── zod-schema.ts             # the only Zod importer: schemas, issue mapping, parseFieldValue
 │   ├── types.ts                      # SettingsValues, SurfaceValues, inference helpers
 │   ├── duration.ts                   # duration parser (R11)
 │   ├── validate.ts                   # shared validator → SettingsIssue[]
@@ -115,6 +118,7 @@ src/
 │   ├── command/ components/ events/            # routers accept an optional ModuleGate (R14)
 │   └── components/settings-editor/
 │       └── from-declaration.ts                 # settingsEditorFromDeclaration (R10)
+├── color.ts                          # vendor-neutral colour parser: hex + base names
 ├── i18n/catalog.ts                   # + TranslationRegistry.has(key)
 └── module/module.ts                  # + BotModule.settings?
 
@@ -127,7 +131,9 @@ tests/
 
 **Structure Decision**: single library project, following the kernel's existing domain-folder
 layout (`src/<domain>/`, kebab-case files, tests mirrored under `tests/`). The settings domain is
-vendor-free; the two Discord-specific pieces sit in the existing `discord/` ring.
+vendor-free; the two Discord-specific pieces sit in the existing `discord/` ring. Zod stays
+behind `settings/fields/zod-schema.ts`: no other module imports it and no exported signature
+names a Zod type.
 
 ## Delivery order (maps to user stories)
 

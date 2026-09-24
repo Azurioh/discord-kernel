@@ -3,9 +3,10 @@ import {
 	FIELD_LIMITS,
 	type FieldSpec,
 	LIST_ITEM_KINDS,
-	parseFieldValue,
 	type Suggestions,
-} from "@/settings/fields";
+	unhandledFieldKind,
+} from "@/settings/fields/field";
+import { parseFieldValue } from "@/settings/fields/zod-schema";
 import { SettingsDeclarationError } from "@/settings/settings-declaration-error";
 
 /** A group of fields. Texts are catalog keys. */
@@ -156,8 +157,17 @@ function checkSpec(params: { at: FieldLocation; spec: FieldSpec }): void {
 		case "toggles":
 			checkToggles({ at, spec });
 			return;
-		default:
+		case "channel":
+		case "role":
+		case "user":
+		case "color":
+		case "duration":
+		case "number":
+		case "boolean":
+		case "secret":
 			return;
+		default:
+			unhandledFieldKind(spec);
 	}
 }
 
