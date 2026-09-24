@@ -3,10 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runSettingsStoreContract } from "@azurioh/discord-kernel/settings/testing";
 import { afterAll, describe, expect, it } from "vitest";
-import {
-	CorruptSettingsFileError,
-	createJsonFileSettingsStore,
-} from "@/shared/settings/json-file-settings-store";
+import { createJsonFileSettingsStore } from "@/shared/settings/json-file-settings-store";
+import { CorruptSettingsFileError } from "@/shared/settings/json-file-settings-store-errors";
 
 const directories: string[] = [];
 
