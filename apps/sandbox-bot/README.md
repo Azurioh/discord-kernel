@@ -17,8 +17,8 @@ package's public subpaths, resolved to its built `dist/`.
    cp apps/sandbox-bot/.env.example apps/sandbox-bot/.env
    ```
 
-   `DISCORD_TOKEN`, `DISCORD_CLIENT_ID` (the application ID) and
-   `DISCORD_DEV_GUILD_ID` (right-click the server → *Copy Server ID*, developer
+   `DISCORD_TOKEN_DEV`, `DISCORD_CLIENT_ID_DEV` (the application ID) and
+   `DISCORD_GUILD_ID_DEV` (right-click the server → *Copy Server ID*, developer
    mode on). `.env` is gitignored.
 4. Register the commands on the test guild (instant, no global propagation), then
    start the bot:

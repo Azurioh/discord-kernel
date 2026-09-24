@@ -19,9 +19,9 @@ export interface SandboxConfig {
  */
 export function loadConfig(): SandboxConfig {
 	return {
-		token: requireEnv("DISCORD_TOKEN"),
-		clientId: requireEnv("DISCORD_CLIENT_ID"),
-		devGuildId: requireEnv("DISCORD_DEV_GUILD_ID"),
+		token: requireEnv("DISCORD_TOKEN_DEV"),
+		clientId: requireEnv("DISCORD_CLIENT_ID_DEV"),
+		devGuildId: requireEnv("DISCORD_GUILD_ID_DEV"),
 		settingsFile: optionalEnv("SETTINGS_FILE") ?? DEFAULT_SETTINGS_FILE,
 	};
 }
