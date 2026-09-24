@@ -8,7 +8,4 @@ export const BASICS_MESSAGES = {
 	pagesDescription: "basics.pages.description",
 	pagesTitle: "basics.pages.title",
 	pagesItem: "basics.pages.item",
-	pagesFooter: "basics.pages.footer",
-	pagesPrevious: "basics.pages.previous",
-	pagesNext: "basics.pages.next",
 } as const;

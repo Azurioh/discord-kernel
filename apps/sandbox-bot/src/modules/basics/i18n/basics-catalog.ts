@@ -29,10 +29,4 @@ export const BASICS_CATALOG: ModuleCatalog<MessageKey<typeof BASICS_MESSAGES>> =
 	},
 	[BASICS_MESSAGES.pagesTitle]: { en: "Paginator demo", fr: "Démo de pagination" },
 	[BASICS_MESSAGES.pagesItem]: { en: "Item #{index}", fr: "Élément n°{index}" },
-	[BASICS_MESSAGES.pagesFooter]: {
-		en: "Page {page}/{count} · {total} items",
-		fr: "Page {page}/{count} · {total} éléments",
-	},
-	[BASICS_MESSAGES.pagesPrevious]: { en: "Previous", fr: "Précédent" },
-	[BASICS_MESSAGES.pagesNext]: { en: "Next", fr: "Suivant" },
 };

@@ -49,6 +49,11 @@ Every piece of a module has one predictable place, so a real bot built on the
 kernel can follow the same map:
 
 ```
+src/components/<component>/   # app-owned UI building blocks, see below
+  <component>.component.ts    # the entry a command calls
+  <component>.view.ts         # how a state is laid out
+  <component>.buttons.ts      # its controls: labels, emojis, styles
+  i18n/                       # its own *_MESSAGES and catalog
 src/shared/                   # what the whole app uses: logging, i18n helpers, presenter
 src/modules/<module>/
   <module>-module.ts          # the BotModule: commands, events, catalog, settings
@@ -74,7 +79,7 @@ src/modules/<module>/
   events/<group>/
     <event>.event.ts
     <event>.handler.ts
-  components/                 # buttons, menus and modals, when the module has any
+  components/<component>/     # UI only this module uses, same split as src/components/
 ```
 
 | Suffix | Holds |
@@ -84,11 +89,23 @@ src/modules/<module>/
 | `.options.ts` | The option schema, and its `*Options` type the handler reads |
 | `.handler.ts` | What runs once the guards passed |
 | `.autocomplete.ts` | The `AutocompleteResolver` of an option |
+| `.component.ts` | A component's entry: wires the kernel primitives to the app's view and controls |
+| `.view.ts` | How a component lays out one state |
+| `.buttons.ts` | A component's controls |
 | `.event.ts` | `createEvent(...)`: the gateway event name and `once`, wired to its handler |
 | `-messages.ts` / `-catalog.ts` | The catalog keys, and their wording |
 
 Only the files a command needs exist: `/ping` has no options file, `/config
 show` no options nor autocomplete. Tests mirror this tree under `tests/`.
+
+`src/components/` works like shadcn/ui's `components/ui`: the kernel ships the
+primitives (page state, buttons, collector, `mountPaginator`), and the app owns
+a component built on them, free to change its labels, layout, styling and
+defaults. Commands call the app's component (`showPaginator`), never the
+kernel primitive directly, so the whole bot looks and behaves the same. A
+component only one module needs sits in that module's `components/` instead.
+A component's wording is registered by the composition root, beside the
+kernel's own catalogs.
 
 Anything two users need — an autocomplete, an option, a type, a helper — exists
 once, in the `shared/` folder of the smallest level that holds both users:
@@ -111,7 +128,7 @@ other, what they share moves into a third.
 | ------- | ----------------- |
 | `/ping` | A flat command replying through the presenter |
 | `/roll [sides]` | A typed integer option behind a per-user cooldown guard (10 s) |
-| `/pages` | The collector-backed paginator (42 items, 5 per page) |
+| `/pages` | The app's paginator component over the kernel's collector-backed one (42 items, 5 per page) |
 | `/config show` | `getForSurface`: every demo setting, secrets shown as set or not set |
 | `/config set key value` | `set`: `key` autocompletes from the declaration; `value` is JSON when it parses, text otherwise; issues are shown translated |
 | `/config reset key` | `reset` of one key, or `all` |

@@ -33,7 +33,7 @@ export function createSettingKeyAutocomplete(
 			[interaction.locale, interaction.guildLocale],
 			translator.defaultLocale,
 		);
-		const t: Translate = (key) => translator.translate(locale, key);
+		const t: Translate = (key, params) => translator.translate(locale, key, params);
 		const typed = interaction.options.getFocused().toLowerCase();
 		const choices: readonly SettingKeyChoice[] = [
 			...DEMO_FIELD_ENTRIES.map(([key]) => ({ name: keyedLabelOf(key, t), value: key })),

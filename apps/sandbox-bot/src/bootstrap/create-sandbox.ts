@@ -18,6 +18,7 @@ import {
 	SETTINGS_CATALOG,
 } from "@azurioh/discord-kernel/settings";
 import { Client, GatewayIntentBits } from "discord.js";
+import { PAGINATOR_CATALOG } from "@/components/paginator/i18n/paginator-catalog";
 import type { SandboxConfig } from "@/config";
 import { createBasicsModule } from "@/modules/basics/basics-module";
 import { createDemoModule } from "@/modules/demo/demo-module";
@@ -44,6 +45,8 @@ export function createSandbox(config: SandboxConfig, logger: Logger): Sandbox {
 	const translations = new TranslationRegistry();
 	translations.register(CORE_CATALOG);
 	translations.register(SETTINGS_CATALOG);
+	// The app-owned components carry their own wording.
+	translations.register(PAGINATOR_CATALOG);
 	const translator = createTranslator(translations, { defaultLocale: "en", logger });
 	const presenter = createEmbedPresenter(translator);
 	// Guilds only: no privileged intent to enable in the developer portal.
