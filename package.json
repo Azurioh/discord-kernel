@@ -70,6 +70,10 @@
 			"types": "./dist/clock.d.ts",
 			"default": "./dist/clock.js"
 		},
+		"./color": {
+			"types": "./dist/color.d.ts",
+			"default": "./dist/color.js"
+		},
 		"./concurrency/keyed-queue": {
 			"types": "./dist/concurrency/keyed-queue.d.ts",
 			"default": "./dist/concurrency/keyed-queue.js"
