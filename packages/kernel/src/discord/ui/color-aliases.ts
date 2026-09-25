@@ -1,4 +1,4 @@
-import { BASE_COLOR_NAMES, normalizeColorName } from "@/color";
+import { BASE_COLOR_NAMES, indexColorNames, normalizeColorName } from "@/color";
 import { ColorAliasTooLongError } from "@/discord/ui/color-input-errors";
 
 /**
@@ -22,9 +22,7 @@ export const COLOR_ALIASES: Readonly<Record<string, string>> = {
 	...BUILT_IN_COLOR_ALIASES,
 };
 
-const COLORS_BY_NORMALIZED_NAME = new Map(
-	Object.entries(COLOR_ALIASES).map(([name, hex]) => [normalizeColorName(name), hex]),
-);
+const COLORS_BY_NORMALIZED_NAME = indexColorNames(COLOR_ALIASES);
 
 /** The `#rrggbb` a recognised colour name stands for, `null` for anything else. */
 export function resolveNamedColor(raw: string): string | null {
