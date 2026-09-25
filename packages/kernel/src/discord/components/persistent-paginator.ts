@@ -1,11 +1,11 @@
 import type { ActionRowBuilder, ButtonBuilder, EmbedBuilder } from "discord.js";
-import {
-	type ComponentHandler,
-	type ComponentRuntime,
-	createComponentHandler,
-	openToAnyone,
-	type RoutableInteraction,
+import { openToAnyone } from "@/discord/components/component-access";
+import type {
+	ComponentHandler,
+	ComponentRuntime,
+	RoutableInteraction,
 } from "@/discord/components/component-router";
+import { createComponentHandler } from "@/discord/components/create-component-handler";
 import { toMessageEditOptions } from "@/discord/components/interactive-message/interactive-message-collector";
 import {
 	clampPage,
