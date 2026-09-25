@@ -54,6 +54,13 @@ export {
 	type SettingsIssueCode,
 	SettingsValidationError,
 } from "@/settings/settings-validation-error";
+export {
+	KERNEL_SETTINGS_ID,
+	type KernelSettings,
+	kernelSettings,
+	type ModuleEnablement,
+} from "@/settings/system/kernel-settings";
+export { createModuleGate, type ModuleGate } from "@/settings/system/module-gate";
 export type {
 	FieldValue,
 	SecretState,

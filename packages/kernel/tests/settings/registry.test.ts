@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { TranslationRegistry } from "@/i18n/catalog";
 import { defineSettings } from "@/settings/define-settings";
 import { field } from "@/settings/fields/builders";
+import { SETTINGS_CATALOG } from "@/settings/messages";
 import { createSettingsRegistry } from "@/settings/registry";
 import { SettingsDeclarationError } from "@/settings/settings-declaration-error";
 import { SAMPLE_KEYS, sampleSettings } from "./fixtures/sample-declaration";
@@ -43,8 +44,10 @@ const nestedSettings = defineSettings({
 	},
 });
 
+/** The given keys, plus the settings catalog the kernel's own declaration always needs. */
 function translationsFor(keys: readonly string[]): TranslationRegistry {
 	const translations = new TranslationRegistry();
+	translations.register(SETTINGS_CATALOG);
 	translations.register(Object.fromEntries(keys.map((key) => [key, { en: key }])));
 	return translations;
 }
@@ -60,7 +63,7 @@ describe("createSettingsRegistry", () => {
 			translations: translationsFor([...SAMPLE_KEYS, ...NESTED_KEYS]),
 		});
 
-		expect(registry.declarations).toEqual([sampleSettings, nestedSettings]);
+		expect(registry.declarations).toEqual([registry.kernel, sampleSettings, nestedSettings]);
 		expect(registry.get("sample")).toBe(sampleSettings);
 		expect(registry.get("nested")).toBe(nestedSettings);
 		expect(registry.get("unknown")).toBeUndefined();

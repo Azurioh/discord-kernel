@@ -18,6 +18,12 @@ import type { SettingsDeclaration } from "@/settings/define-settings";
 export interface BotModule {
 	/** Stable identifier, used in logs. */
 	readonly name: string;
+	/**
+	 * Catalog key of the module's name as administrators read it (for example on
+	 * its enable/disable toggle). Without one, screens show {@link name} as is and
+	 * the translator logs it as an unknown key.
+	 */
+	readonly label?: string;
 	readonly commands?: readonly SlashCommand[];
 	/** Right-click entries on a member or a message (the Apps submenu). */
 	readonly contextMenuCommands?: readonly ContextMenuCommand[];

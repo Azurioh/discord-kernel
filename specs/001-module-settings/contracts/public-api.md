@@ -105,14 +105,17 @@ above 4000; a list `maxItems` above 25 or an item kind lists cannot hold (`color
 ```ts
 export function createSettingsRegistry(input: {
   declarations: readonly SettingsDeclaration[];
-  translations: TranslationRegistry; // must already contain the modules' catalogs
+  translations: TranslationRegistry; // must already contain the modules' catalogs and SETTINGS_CATALOG
+  modules?: readonly ModuleEnablement[]; // the registered modules (a BotModule fits); none by default
 }): SettingsRegistry;
 ```
 
 ```ts
 export interface SettingsRegistry {
-  /** Every declaration, in registration order. */
+  /** The kernel's own declaration first, then the modules' in registration order. */
   readonly declarations: readonly SettingsDeclaration[];
+  /** The kernel's own declaration, built from `input.modules`. */
+  readonly kernel: KernelSettings;
   get(id: string): SettingsDeclaration | undefined;
 }
 ```
@@ -123,12 +126,22 @@ field label/description/placeholder/unit, enum and static-suggestion choice labe
 included) and `toggles` `keyLabels`, each checked with `TranslationRegistry.has`.
 
 `BotModule` gains an optional `settings?: readonly SettingsDeclaration[]` and
-`defaultEnabled?: boolean` (default `true`) so the composition root can collect declarations the
+`label?: string` (catalog key of its display name, checked at boot like every declaration key) and `defaultEnabled?: boolean` (default `true`) so the composition root can collect declarations the
 same way it collects `translations`. The registry always includes the kernel's own declaration:
 
 ```ts
-export const kernelSettings: SettingsDeclaration; // id "kernel": { modules: field.toggles (keys = registered module names), locale?: Locale }
+export const KERNEL_SETTINGS_ID = "kernel";
+export interface ModuleEnablement { readonly name: string; readonly label?: string; readonly defaultEnabled?: boolean }
+/** id "kernel": { modules: field.toggles (keys = module names, keyLabels = each module's label, default = defaultEnabled ?? true), locale?: Locale } */
+export function kernelSettings(modules: readonly ModuleEnablement[]): KernelSettings;
+export type KernelSettings = ReturnType<typeof kernelSettings>;
 ```
+
+`kernelSettings` is a factory, not a constant: module names are only known at composition.
+`createSettingsRegistry` calls it with `input.modules` and registers the result first, checking
+its catalog keys (`KERNEL_SETTINGS_MESSAGES`, in `SETTINGS_CATALOG`) like any declaration. Code
+that needs the kernel declaration reads `registry.kernel`; two modules sharing a name fail the
+boot with a `SettingsDeclarationError`. A module declaration of id `kernel` is a duplicate id.
 
 ## System settings, gating and status
 
@@ -136,10 +149,38 @@ export const kernelSettings: SettingsDeclaration; // id "kernel": { modules: fie
 export interface ModuleGate {
   isEnabled(moduleName: string, guildId: string): Promise<boolean>;
 }
-export function createModuleGate(service: SettingsService): ModuleGate;
+/**
+ * Reads registry.kernel (built from the modules at composition) through the service's cache
+ * (R15). A module name the kernel declaration does not know is never gated. A failed read is
+ * logged and lets the module run: a store outage must not switch every module off.
+ */
+export function createModuleGate(deps: {
+  service: SettingsService;
+  registry: SettingsRegistry;
+  logger: Logger;
+}): ModuleGate;
 
-// Routers (command, component, event) accept an optional `gate?: ModuleGate`.
+// Routers (command, component, event) accept an optional `gate?: ModuleGate`, and learn which
+// module registered each handler through an optional trailing `moduleName` argument:
+//   new CommandRouter({ presenter, logger, translator, gate })
+//     .register(command, moduleName?) / .registerAll(commands, moduleName?)
+//     .registerContextMenu(command, moduleName?) / .registerAllContextMenus(commands, moduleName?)
+//   new ComponentRouter({ presenter, logger, translator, gate })
+//     .register(handler, moduleName?) / .registerAll(handlers, moduleName?)
+//   new EventRouter(logger, gate?)
+//     .register(event, moduleName?) / .registerAll(events, moduleName?)
+```
 
+Gating rules, the same in the three routers: nothing is gated without a gate, for a handler
+registered without a module, or outside a guild. A blocked command or component is claimed and
+answered, ephemerally, with the translated `core.settings.module.disabled` denial (checked before
+a component's permissions); a blocked event handler is skipped silently. An event's guild is
+read from its gateway arguments (a `Guild`, or the first argument with a `guildId` or a `guild`).
+The composition root passes each module's name when it registers the module's handlers, e.g.
+`commands.registerAll(module.commands ?? [], module.name)`. The change is additive: every existing
+call keeps compiling and behaving as before.
+
+```ts
 export interface SettingsService {
   // … see below, plus:
   status(declaration: SettingsDeclaration, guildId: string): Promise<{ missing: readonly string[] }>;
@@ -180,7 +221,9 @@ export interface SettingsService {
    * Module logic read: every declared field, secrets included. A field with no
    * valid stored value reads as its default (or undefined). A stored value that
    * fails its field is logged at `error` level. Never writes, except a lazy
-   * migration (T050).
+   * migration (T050). Cached in process per (guildId, moduleId) until this
+   * service writes them, the notifier reports a change of them, or 60 s pass
+   * (R15); `getForSurface` reads through the same cache.
    */
   get<D extends SettingsDeclaration>(declaration: D, guildId: string): Promise<SettingsValues<D>>;
 

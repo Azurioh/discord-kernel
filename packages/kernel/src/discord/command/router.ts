@@ -1,4 +1,5 @@
-import { type Interaction, REST, Routes } from "discord.js";
+import { type CommandInteraction, type Interaction, REST, Routes } from "discord.js";
+import { sendEmbed } from "@/discord/command/send-embed";
 import type {
 	CommandRuntime,
 	ContextMenuCommand,
@@ -7,13 +8,22 @@ import type {
 } from "@/discord/command/types";
 import type { InteractionDispatcher } from "@/discord/interaction/interaction-router";
 import type { Presenter } from "@/discord/presenter";
+import { isModuleDisabled } from "@/discord/settings/is-module-disabled";
+import { moduleDisabledEmbed } from "@/discord/settings/module-disabled-embed";
 import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
+import type { ModuleGate } from "@/settings/system/module-gate";
 
 export interface CommandRouterDeps {
 	presenter: Presenter;
 	logger: Logger;
 	translator: Translator;
+	/**
+	 * When given, a command registered with a module does not run on a guild
+	 * where that module is disabled: the member gets the translated "disabled
+	 * on this server" message instead (FR-036).
+	 */
+	gate?: ModuleGate;
 }
 
 /**
@@ -25,6 +35,8 @@ export interface CommandRouterDeps {
 export class CommandRouter implements InteractionDispatcher {
 	private readonly commands = new Map<string, SlashCommand>();
 	private readonly contextMenuCommands = new Map<string, ContextMenuCommand>();
+	/** The module each command was registered for, by command; absent means never gated. */
+	private readonly modules = new Map<DeployableCommand, string>();
 	private readonly runtime: CommandRuntime;
 
 	constructor(private readonly deps: CommandRouterDeps) {
@@ -35,16 +47,23 @@ export class CommandRouter implements InteractionDispatcher {
 		};
 	}
 
-	/** Register a command (last registration of a name wins). */
-	register(command: SlashCommand): this {
+	/**
+	 * Register a command (last registration of a name wins).
+	 *
+	 * @param moduleName - the module the command belongs to, so the gate can
+	 * skip it on guilds where that module is disabled. Omit it for a command
+	 * that always runs.
+	 */
+	register(command: SlashCommand, moduleName?: string): this {
 		this.commands.set(command.data.name, command);
+		this.remember(command, moduleName);
 		return this;
 	}
 
-	/** Register many commands at once. */
-	registerAll(commands: Iterable<SlashCommand>): this {
+	/** Register many commands at once, all of `moduleName` when given. */
+	registerAll(commands: Iterable<SlashCommand>, moduleName?: string): this {
 		for (const command of commands) {
-			this.register(command);
+			this.register(command, moduleName);
 		}
 		return this;
 	}
@@ -54,14 +73,15 @@ export class CommandRouter implements InteractionDispatcher {
 	 * slash command and a context-menu entry as distinct application command
 	 * types, and therefore lets them share a name.
 	 */
-	registerContextMenu(command: ContextMenuCommand): this {
+	registerContextMenu(command: ContextMenuCommand, moduleName?: string): this {
 		this.contextMenuCommands.set(command.data.name, command);
+		this.remember(command, moduleName);
 		return this;
 	}
 
-	registerAllContextMenus(commands: Iterable<ContextMenuCommand>): this {
+	registerAllContextMenus(commands: Iterable<ContextMenuCommand>, moduleName?: string): this {
 		for (const command of commands) {
-			this.registerContextMenu(command);
+			this.registerContextMenu(command, moduleName);
 		}
 		return this;
 	}
@@ -78,7 +98,9 @@ export class CommandRouter implements InteractionDispatcher {
 			if (!command) {
 				return false;
 			}
-			await command.dispatch(interaction, this.runtime);
+			if (await this.passesGate(interaction, command)) {
+				await command.dispatch(interaction, this.runtime);
+			}
 			return true;
 		}
 
@@ -87,11 +109,42 @@ export class CommandRouter implements InteractionDispatcher {
 			if (!command) {
 				return false;
 			}
-			await command.dispatch(interaction, this.runtime);
+			if (await this.passesGate(interaction, command)) {
+				await command.dispatch(interaction, this.runtime);
+			}
 			return true;
 		}
 
 		return false;
+	}
+
+	private remember(command: DeployableCommand, moduleName: string | undefined): void {
+		if (moduleName === undefined) {
+			this.modules.delete(command);
+		} else {
+			this.modules.set(command, moduleName);
+		}
+	}
+
+	/** Answer the member and return `false` when the command's module is disabled on the guild. */
+	private async passesGate(
+		interaction: CommandInteraction,
+		command: DeployableCommand,
+	): Promise<boolean> {
+		const disabled = await isModuleDisabled({
+			gate: this.deps.gate,
+			moduleName: this.modules.get(command),
+			guildId: interaction.guildId,
+		});
+		if (disabled) {
+			await sendEmbed(
+				interaction,
+				moduleDisabledEmbed(interaction, this.deps),
+				true,
+				this.deps.logger,
+			);
+		}
+		return !disabled;
 	}
 
 	/**

@@ -1,4 +1,4 @@
-import { EmbedBuilder, PermissionFlagsBits, PermissionsBitField } from "discord.js";
+import { EmbedBuilder, MessageFlags, PermissionFlagsBits, PermissionsBitField } from "discord.js";
 import { describe, expect, it, vi } from "vitest";
 import {
 	checkedByHandler,
@@ -6,9 +6,12 @@ import {
 	requiresPermissions,
 } from "@/discord/components/component-access";
 import { ComponentRouter } from "@/discord/components/component-router";
+import { CORE_MESSAGES } from "@/discord/i18n";
 import type { Presenter } from "@/discord/presenter";
 import type { Translator } from "@/i18n/translator";
+import { SETTINGS_MESSAGES } from "@/settings/messages";
 import { createFakeLogger } from "../../support/fake-logger";
+import { createFakeModuleGate } from "../../support/fake-module-gate";
 
 function makeDeps() {
 	const presenter = {
@@ -141,5 +144,80 @@ describe("ComponentRouter authorization", () => {
 		});
 
 		expect(await router.handle(fakeButton("something-else", null) as never)).toBe(false);
+	});
+});
+
+describe("ComponentRouter module gate (S15)", () => {
+	const GUILD_A = "100000000000000001";
+	const GUILD_B = "100000000000000002";
+
+	function gatedDeps() {
+		return { ...makeDeps(), gate: createFakeModuleGate({ [GUILD_A]: ["tickets"] }) };
+	}
+
+	function fakeGuildButton(customId: string, guildId: string | null) {
+		return { ...fakeButton(customId, null), guildId, locale: "fr", guildLocale: "fr" };
+	}
+
+	it("does not run a handler of a module disabled on the guild, and says so", async () => {
+		const deps = gatedDeps();
+		const handle = vi.fn();
+		const router = new ComponentRouter(deps).register(
+			{ customId: "ticket", authorize: openToAnyone("test double"), handle },
+			"tickets",
+		);
+		const interaction = fakeGuildButton("ticket:open", GUILD_A);
+
+		const claimed = await router.handle(interaction as never);
+
+		expect(claimed).toBe(true);
+		expect(handle).not.toHaveBeenCalled();
+		expect(deps.translator.translate).toHaveBeenCalledWith("fr", SETTINGS_MESSAGES.moduleDisabled);
+		expect(deps.presenter.denial).toHaveBeenCalledWith(SETTINGS_MESSAGES.moduleDisabled, "fr");
+		expect(interaction.reply).toHaveBeenCalledWith({
+			embeds: [expect.any(EmbedBuilder)],
+			flags: MessageFlags.Ephemeral,
+		});
+	});
+
+	it("runs the handler on another guild, outside a guild, and without a module", async () => {
+		const handle = vi.fn();
+		const unassigned = vi.fn();
+		const router = new ComponentRouter(gatedDeps())
+			.registerAll(
+				[{ customId: "ticket", authorize: openToAnyone("test double"), handle }],
+				"tickets",
+			)
+			.register({ customId: "free", authorize: openToAnyone("test double"), handle: unassigned });
+
+		await router.handle(fakeGuildButton("ticket", GUILD_B) as never);
+		await router.handle(fakeGuildButton("ticket", null) as never);
+		await router.handle(fakeGuildButton("free", GUILD_A) as never);
+
+		expect(handle).toHaveBeenCalledTimes(2);
+		expect(unassigned).toHaveBeenCalledTimes(1);
+	});
+
+	it("checks the gate before the handler's permissions", async () => {
+		const deps = gatedDeps();
+		const router = new ComponentRouter(deps).register(
+			{
+				customId: "ban",
+				authorize: requiresPermissions(PermissionFlagsBits.BanMembers),
+				handle: vi.fn(),
+			},
+			"tickets",
+		);
+		const interaction = fakeGuildButton("ban", GUILD_A);
+
+		await router.handle(interaction as never);
+
+		expect(interaction.reply).toHaveBeenCalledTimes(1);
+		expect(deps.translator.translate).toHaveBeenCalledWith("fr", SETTINGS_MESSAGES.moduleDisabled);
+		expect(deps.translator.translate).not.toHaveBeenCalledWith(
+			"fr",
+			CORE_MESSAGES.guardPermissionDenied,
+			expect.anything(),
+		);
 	});
 });

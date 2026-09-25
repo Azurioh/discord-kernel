@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { TranslationRegistry } from "@/i18n/catalog";
-import { SETTINGS_CATALOG, SETTINGS_ISSUE_MESSAGES, SETTINGS_MESSAGES } from "@/settings/messages";
+import {
+	KERNEL_SETTINGS_MESSAGES,
+	SETTINGS_CATALOG,
+	SETTINGS_ISSUE_MESSAGES,
+	SETTINGS_MESSAGES,
+} from "@/settings/messages";
 
 const PLACEHOLDER = /\{(\w+)\}/g;
 
@@ -10,7 +15,11 @@ function placeholders(template: string): string[] {
 
 describe("SETTINGS_CATALOG", () => {
 	it("has an entry for every issue code and every settings message", () => {
-		const keys = [...Object.values(SETTINGS_ISSUE_MESSAGES), ...Object.values(SETTINGS_MESSAGES)];
+		const keys = [
+			...Object.values(SETTINGS_ISSUE_MESSAGES),
+			...Object.values(SETTINGS_MESSAGES),
+			...Object.values(KERNEL_SETTINGS_MESSAGES),
+		];
 
 		expect(Object.keys(SETTINGS_CATALOG).sort()).toEqual([...keys].sort());
 	});

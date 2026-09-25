@@ -64,6 +64,13 @@ Already defined once, reuse them:
 | Reading a stored settings value on the settings screen | `@/discord/components/settings-editor/from-declaration-stored` |
 | A duration as `1h30m`, and back | `formatDuration`, `parseDuration` (`@/settings/duration`) |
 | A `Logger` double in tests | `createFakeLogger` (`tests/support/fake-logger.ts`) |
+| Whether a module is enabled on a guild (routers, scheduled jobs) | `ModuleGate`, `createModuleGate` (`@/settings/system/module-gate`) |
+| A router's "skip this handler?" check | `isModuleDisabled` (`@/discord/settings/is-module-disabled`) |
+| The "disabled on this server" reply | `moduleDisabledEmbed` (`@/discord/settings/module-disabled-embed`) |
+| The guild a gateway event concerns | `eventGuildId` (`@/discord/events/event-guild-id`) |
+| The kernel's own settings (module toggles, guild language) | `registry.kernel`, built by `kernelSettings` (`@/settings/system/kernel-settings`) |
+| Cached settings reads | `service.get` (cached via `@/settings/cache`); never read the store directly |
+| A `ModuleGate` double in tests | `createFakeModuleGate` (`tests/support/fake-module-gate.ts`) |
 
 Discord limits (component counts, text lengths, choice caps) are constants in the kernel,
 never a literal number at the call site.

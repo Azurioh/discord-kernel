@@ -8,29 +8,43 @@ import {
 	unhandledFieldKind,
 } from "@/settings/fields/field";
 import { SettingsDeclarationError } from "@/settings/settings-declaration-error";
+import {
+	type KernelSettings,
+	kernelSettings,
+	type ModuleEnablement,
+} from "@/settings/system/kernel-settings";
 
 /** Every settings declaration of the bot, checked at boot. */
 export interface SettingsRegistry {
-	/** In registration order. */
+	/** The kernel's own declaration first, then the modules' in registration order. */
 	readonly declarations: readonly SettingsDeclaration[];
+	/** The kernel's own declaration (id `kernel`), built from the registered modules. */
+	readonly kernel: KernelSettings;
 	get(id: string): SettingsDeclaration | undefined;
 }
 
 /**
- * Collect the modules' settings declarations at boot.
+ * Collect the modules' settings declarations at boot, after the kernel's own
+ * declaration ({@link kernelSettings}), which is always included.
  *
  * @param input.declarations - every module's declaration.
- * @param input.translations - must already contain the modules' catalogs.
+ * @param input.translations - must already contain the modules' catalogs and
+ * `SETTINGS_CATALOG`, which holds the kernel declaration's texts.
+ * @param input.modules - the registered modules (a `BotModule` fits), whose
+ * names and `defaultEnabled` build the kernel's module toggles. None by default.
  * @returns the registry of declarations, by id.
  * @throws SettingsDeclarationError when two declarations share an id (FR-005)
- * or a declaration references a catalog key without an English source (FR-028).
+ * or a declaration references a catalog key without an English source (FR-028),
+ * or two modules share a name.
  */
 export function createSettingsRegistry(input: {
 	declarations: readonly SettingsDeclaration[];
 	translations: TranslationRegistry;
+	modules?: readonly ModuleEnablement[];
 }): SettingsRegistry {
+	const kernel = kernelSettings(input.modules ?? []);
 	const byId = new Map<string, SettingsDeclaration>();
-	for (const declaration of input.declarations) {
+	for (const declaration of [kernel, ...input.declarations]) {
 		if (byId.has(declaration.id)) {
 			throw new SettingsDeclarationError(declaration.id, "is declared more than once");
 		}
@@ -39,6 +53,7 @@ export function createSettingsRegistry(input: {
 	}
 	return {
 		declarations: [...byId.values()],
+		kernel,
 		get: (id) => byId.get(id),
 	};
 }

@@ -46,12 +46,26 @@ export const SETTINGS_MESSAGES = {
 	moduleNotConfiguredMissing: "core.settings.module.not-configured-missing",
 } as const;
 
+/** Catalog keys of the kernel's own settings declaration (`kernelSettings`). */
+export const KERNEL_SETTINGS_MESSAGES = {
+	title: "core.settings.kernel.title",
+	description: "core.settings.kernel.description",
+	modules: "core.settings.kernel.modules",
+	modulesDescription: "core.settings.kernel.modules-description",
+	locale: "core.settings.kernel.locale",
+	localeDescription: "core.settings.kernel.locale-description",
+	localeEn: "core.settings.kernel.locale-en",
+	localeFr: "core.settings.kernel.locale-fr",
+} as const;
+
 /**
  * The settings feature's strings, registered by the composition root alongside
  * the core catalog.
  */
 export const SETTINGS_CATALOG: KeyedCatalog<
-	MessageKey<typeof SETTINGS_ISSUE_MESSAGES> | MessageKey<typeof SETTINGS_MESSAGES>
+	| MessageKey<typeof SETTINGS_ISSUE_MESSAGES>
+	| MessageKey<typeof SETTINGS_MESSAGES>
+	| MessageKey<typeof KERNEL_SETTINGS_MESSAGES>
 > = {
 	[SETTINGS_ISSUE_MESSAGES.required]: {
 		en: "This setting is required.",
@@ -127,4 +141,21 @@ export const SETTINGS_CATALOG: KeyedCatalog<
 		en: "Missing settings: {fields}.",
 		fr: "Paramètres manquants : {fields}.",
 	},
+	[KERNEL_SETTINGS_MESSAGES.title]: { en: "Server", fr: "Serveur" },
+	[KERNEL_SETTINGS_MESSAGES.description]: {
+		en: "Features enabled on this server and the bot's language.",
+		fr: "Fonctionnalités activées sur ce serveur et langue du bot.",
+	},
+	[KERNEL_SETTINGS_MESSAGES.modules]: { en: "Features", fr: "Fonctionnalités" },
+	[KERNEL_SETTINGS_MESSAGES.modulesDescription]: {
+		en: "Turn a feature off to stop its commands, buttons and events on this server.",
+		fr: "Désactivez une fonctionnalité pour arrêter ses commandes, boutons et événements sur ce serveur.",
+	},
+	[KERNEL_SETTINGS_MESSAGES.locale]: { en: "Language", fr: "Langue" },
+	[KERNEL_SETTINGS_MESSAGES.localeDescription]: {
+		en: "The bot's language on this server, when a member's own language is not supported.",
+		fr: "La langue du bot sur ce serveur, lorsque la langue d'un membre n'est pas prise en charge.",
+	},
+	[KERNEL_SETTINGS_MESSAGES.localeEn]: { en: "English", fr: "Anglais" },
+	[KERNEL_SETTINGS_MESSAGES.localeFr]: { en: "French", fr: "Français" },
 };
