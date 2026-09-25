@@ -160,8 +160,27 @@ export function createModuleGate(deps: {
   logger: Logger;
 }): ModuleGate;
 
-// Routers (command, component, event) accept an optional `gate?: ModuleGate`.
+// Routers (command, component, event) accept an optional `gate?: ModuleGate`, and learn which
+// module registered each handler through an optional trailing `moduleName` argument:
+//   new CommandRouter({ presenter, logger, translator, gate })
+//     .register(command, moduleName?) / .registerAll(commands, moduleName?)
+//     .registerContextMenu(command, moduleName?) / .registerAllContextMenus(commands, moduleName?)
+//   new ComponentRouter({ presenter, logger, translator, gate })
+//     .register(handler, moduleName?) / .registerAll(handlers, moduleName?)
+//   new EventRouter(logger, gate?)
+//     .register(event, moduleName?) / .registerAll(events, moduleName?)
+```
 
+Gating rules, the same in the three routers: nothing is gated without a gate, for a handler
+registered without a module, or outside a guild. A blocked command or component is claimed and
+answered, ephemerally, with the translated `core.settings.module.disabled` denial (checked before
+a component's permissions); a blocked event handler is skipped silently. An event's guild is
+read from its gateway arguments (a `Guild`, or the first argument with a `guildId` or a `guild`).
+The composition root passes each module's name when it registers the module's handlers, e.g.
+`commands.registerAll(module.commands ?? [], module.name)`. The change is additive: every existing
+call keeps compiling and behaving as before.
+
+```ts
 export interface SettingsService {
   // … see below, plus:
   status(declaration: SettingsDeclaration, guildId: string): Promise<{ missing: readonly string[] }>;
