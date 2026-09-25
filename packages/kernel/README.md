@@ -156,6 +156,43 @@ the routers keep the interaction's own locales, so a bot without settings is
 unaffected. A resolver that throws is logged and the interaction's own locales
 are used.
 
+## Evolving module settings
+
+Adding a field needs nothing: guilds configured before read its default.
+Removing one needs nothing either: its stored value is ignored and dropped on
+the next write. To reshape stored values (rename a key, change a unit), raise
+the declaration's `version` and give it a `migrate`:
+
+```ts
+export const warnings = defineSettings({
+  id: "warnings",
+  version: 2, // was 1: `maxWarnings` became `warnLimit`
+  migrate: (fromVersion, raw) => {
+    if (fromVersion !== 1) throw new Error(`no migration from version ${fromVersion}`);
+    const { maxWarnings, ...rest } = raw as Record<string, unknown>;
+    return maxWarnings === undefined ? rest : { ...rest, warnLimit: maxWarnings };
+  },
+  labels: { title: "warnings.title" },
+  fields: { warnLimit: field.integer({ label: "warnings.limit", min: 1, max: 10, default: 3 }) },
+});
+```
+
+Migration is lazy: the first read of a guild's older record runs `migrate`,
+validates the result like any stored value, and writes it back once under the
+new version (a concurrent reader on another shard loses the compare-and-set and
+simply reads the migrated record). `set` and `reset` migrate first too. Rules for
+`migrate`:
+
+- **Pure.** It receives a copy of the stored values and returns the new ones;
+  no I/O, no clock, no randomness.
+- **Every older version.** A guild may skip releases, so `fromVersion` can be
+  any version below the current one. Chain the steps (v1 → v2 → v3) or throw
+  for a version you no longer support.
+- **Failures are safe.** When it throws or its result fails validation, nothing
+  is written, the error is logged with the guild, module and versions, and the
+  guild reads defaults for the fields it cannot read. A record written by a
+  newer version (after a rollback) is read but never overwritten.
+
 ## Requirements
 
 Node 22.12+, discord.js 14.27+, TypeScript 5.9. The published build is
