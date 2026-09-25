@@ -142,7 +142,7 @@ command and component routers. Event handlers send no kernel reply, so no event 
 **Goal**: status + guard.
 **Independent test**: S18.
 
-- [ ] T044 [P] [US9] Write failing tests then implement `service.status(declaration, guildId)` → `{ missing }` (required, no default, unset) in `packages/kernel/tests/settings/status.test.ts` and `packages/kernel/src/settings/status.ts`
+- [X] T044 [P] [US9] Write failing tests then implement `service.status(declaration, guildId)` → `{ missing }` (required, no default, unset) in `packages/kernel/tests/settings/status.test.ts` and `packages/kernel/src/settings/status.ts`
 - [ ] T045 [US9] Write failing tests then implement `requireConfigured(declaration, service)` as a command `Guard` (from `packages/kernel/src/discord/command/guard.ts`) and the component-side check: blocked with the translated "not configured" message; missing field labels shown only to members with `ManageGuild`; passes immediately after the value is set, no restart — in `packages/kernel/tests/discord/settings/require-configured.test.ts` and `packages/kernel/src/discord/settings/require-configured.ts`
 
 ---

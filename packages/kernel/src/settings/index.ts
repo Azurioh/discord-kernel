@@ -54,6 +54,7 @@ export {
 	type SettingsIssueCode,
 	SettingsValidationError,
 } from "@/settings/settings-validation-error";
+export type { SettingsStatus } from "@/settings/status";
 export {
 	KERNEL_SETTINGS_ID,
 	type KernelSettings,
