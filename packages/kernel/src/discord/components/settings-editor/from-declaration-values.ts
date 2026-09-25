@@ -2,6 +2,11 @@ import type {
 	ControlShape,
 	DeclarationControl,
 } from "@/discord/components/settings-editor/from-declaration-controls";
+import {
+	isToggledOn,
+	secretStateKey,
+	storedIds,
+} from "@/discord/components/settings-editor/from-declaration-stored";
 import type { DeclarationSubject } from "@/discord/components/settings-editor/from-declaration-subject";
 import type { SettingsEditorGroupMemberSubmission } from "@/discord/components/settings-editor/settings-editor-field-modal";
 import {
@@ -64,18 +69,6 @@ export function controlValue(params: {
 	}
 }
 
-/** `set` for a secret the surface reads as set, `not set` otherwise. */
-export function secretStateKey(value: unknown): string {
-	const isSet = typeof value === "object" && value !== null && "isSet" in value && value.isSet;
-	return isSet === true ? SETTINGS_MESSAGES.secretSet : SETTINGS_MESSAGES.secretNotSet;
-}
-
-/** Whether `key` is on in a toggles value. */
-export function isToggledOn(params: { value: unknown; key: string }): boolean {
-	const { value, key } = params;
-	return typeof value === "object" && value !== null && Reflect.get(value, key) === true;
-}
-
 /** The picked ids the guild still has, with a notice when any stored one is gone. */
 function pickedValue(params: {
 	control: DeclarationControl;
@@ -83,18 +76,13 @@ function pickedValue(params: {
 	translate: TranslateKey;
 }): SettingsEditorFieldValue {
 	const { control, subject, translate } = params;
-	const value = subject.values[control.fieldKey];
-	const stored = Array.isArray(value) ? value.map(String) : storedSingle(value);
+	const stored = storedIds(subject.values[control.fieldKey]);
 	const missing = subject.unavailable[control.fieldKey] ?? [];
 	const picked = pickedFieldValue(stored.filter((id) => !missing.includes(id)));
 	if (missing.length === 0) {
 		return picked;
 	}
 	return { ...picked, text: translate(SETTINGS_MESSAGES.valueUnavailable) };
-}
-
-function storedSingle(value: unknown): string[] {
-	return typeof value === "string" ? [value] : [];
 }
 
 /**

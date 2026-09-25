@@ -1,10 +1,13 @@
+import { channelMention, roleMention, userMention } from "discord.js";
 import type { DeclarationControl } from "@/discord/components/settings-editor/from-declaration-controls";
-import type { DeclarationSubject } from "@/discord/components/settings-editor/from-declaration-subject";
 import {
+	choiceLabelKey,
 	isToggledOn,
 	secretStateKey,
-	type TranslateKey,
-} from "@/discord/components/settings-editor/from-declaration-values";
+	storedIds,
+} from "@/discord/components/settings-editor/from-declaration-stored";
+import type { DeclarationSubject } from "@/discord/components/settings-editor/from-declaration-subject";
+import type { TranslateKey } from "@/discord/components/settings-editor/from-declaration-values";
 import { truncateText } from "@/discord/ui/truncate-text";
 import { formatDuration } from "@/settings/duration";
 import { SETTINGS_MESSAGES } from "@/settings/messages";
@@ -78,7 +81,7 @@ function pickedDisplay(params: {
 	value: unknown;
 }): string {
 	const { control, subject, translate, value } = params;
-	const ids = Array.isArray(value) ? value.map(String) : [String(value)];
+	const ids = storedIds(value);
 	if (ids.length === 0) {
 		return translate(SETTINGS_MESSAGES.valueNotSet);
 	}
@@ -104,16 +107,13 @@ function pickedItem(params: {
 	switch (kind) {
 		case "channel":
 		case "category":
-			return `<#${id}>`;
+			return channelMention(id);
 		case "role":
-			return `<@&${id}>`;
+			return roleMention(id);
 		case "user":
-			return `<@${id}>`;
-		case "choice": {
-			const choice =
-				entry.kind === "choice" ? entry.choices.find((c) => c.value === id) : undefined;
-			return choice === undefined ? id : translate(choice.labelKey);
-		}
+			return userMention(id);
+		case "choice":
+			return translatedChoice({ control, translate, value: id });
 		case "text":
 		case "image":
 			return id;
@@ -130,14 +130,22 @@ function togglesDisplay(params: {
 	keys: readonly string[];
 }): string {
 	const { control, translate, value, keys } = params;
-	const { entry } = control;
 	const on = keys.filter((key) => isToggledOn({ value, key }));
 	if (on.length === 0) {
 		return translate(SETTINGS_MESSAGES.valueNone);
 	}
-	const labelOf = (key: string): string => {
-		const choice = entry.kind === "choice" ? entry.choices.find((c) => c.value === key) : undefined;
-		return translate(choice?.labelKey ?? key);
-	};
-	return on.map(labelOf).join(ITEM_SEPARATOR);
+	return on.map((key) => translatedChoice({ control, translate, value: key })).join(ITEM_SEPARATOR);
+}
+
+/** A choice control's value as its translated label, or the value itself when no choice offers it. */
+function translatedChoice(params: {
+	control: DeclarationControl;
+	translate: TranslateKey;
+	value: string;
+}): string {
+	const { control, translate, value } = params;
+	const { entry } = control;
+	const labelKey =
+		entry.kind === "choice" ? choiceLabelKey({ choices: entry.choices, value }) : undefined;
+	return labelKey === undefined ? value : translate(labelKey);
 }

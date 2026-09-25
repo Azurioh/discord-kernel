@@ -1,3 +1,4 @@
+import { storedIds } from "@/discord/components/settings-editor/from-declaration-stored";
 import type { SettingsDeclaration } from "@/settings/define-settings";
 import type { AnyField } from "@/settings/fields/field";
 import type { RequestContext, SettingsService } from "@/settings/settings-service";
@@ -87,15 +88,4 @@ function itemKind(declared: AnyField): string {
 /** Whether a field of this kind references a channel, a role or a member of the guild. */
 function isEntityKind(kind: string): boolean {
 	return kind === "channel" || kind === "role" || kind === "user";
-}
-
-/** The ids a stored entity value holds: none, one, or a list's. */
-function storedIds(value: unknown): readonly string[] {
-	if (typeof value === "string") {
-		return [value];
-	}
-	if (Array.isArray(value)) {
-		return value.filter((item): item is string => typeof item === "string");
-	}
-	return [];
 }
