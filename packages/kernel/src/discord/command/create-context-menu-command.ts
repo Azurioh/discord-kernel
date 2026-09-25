@@ -2,23 +2,24 @@ import {
 	ApplicationCommandType,
 	ContextMenuCommandBuilder,
 	type ContextMenuCommandInteraction,
-	type EmbedBuilder,
 	InteractionContextType,
 	type LocalizationMap,
 	type Message,
 	MessageFlags,
 	type User,
 } from "discord.js";
+import {
+	type CommandResponders,
+	createCommandResponders,
+} from "@/discord/command/command-responders";
 import { ContextMenuTargetError } from "@/discord/command/errors";
 import type { Guard } from "@/discord/command/guard";
+import { passesGuard } from "@/discord/command/passes-guard";
+import { renderCommandFailure } from "@/discord/command/render-command-failure";
 import type { CommandRuntime, ContextMenuCommand } from "@/discord/command/types";
-import { CORE_MESSAGES } from "@/discord/i18n";
+import { interactionLocale } from "@/discord/interaction/interaction-locale";
 import { type PermissionBit, resolvePermissions } from "@/discord/permissions";
-import { BusinessError } from "@/errors/business-error";
-import { createIncidentRef } from "@/errors/incident-ref";
-import { type Locale, resolveLocale } from "@/i18n/locale";
-import type { LocalizedText, TranslationParams } from "@/i18n/translator";
-import type { Logger } from "@/logger";
+import type { LocalizedText } from "@/i18n/translator";
 
 /**
  * Context-menu commands: the entries a user reaches by right-clicking a member
@@ -37,17 +38,10 @@ export interface ContextMenuTarget {
 	readonly message: Message;
 }
 
-export interface ContextMenuContext<K extends keyof ContextMenuTarget> {
+export interface ContextMenuContext<K extends keyof ContextMenuTarget> extends CommandResponders {
 	readonly interaction: ContextMenuCommandInteraction;
 	/** The right-clicked member or message. */
 	readonly target: ContextMenuTarget[K];
-	/** Reply language: user's client locale → guild locale → configured default. */
-	readonly locale: Locale;
-	/** Translate a catalog key for this interaction's locale. */
-	t(key: string, params?: TranslationParams): string;
-	confirm(message: string): Promise<void>;
-	error(message: string): Promise<void>;
-	deny(message: string): Promise<void>;
 }
 
 export interface ContextMenuCommandDef<K extends keyof ContextMenuTarget> {
@@ -126,21 +120,10 @@ async function dispatch<K extends keyof ContextMenuTarget>(
 	ephemeral: boolean,
 	runtime: CommandRuntime,
 ): Promise<void> {
-	const { presenter, logger, translator } = runtime;
-	const locale = resolveLocale(
-		[interaction.locale, interaction.guildLocale],
-		translator.defaultLocale,
-	);
+	const locale = interactionLocale(interaction, runtime.translator);
 
-	if (def.guard) {
-		const result = await def.guard.check(interaction);
-		if (!result.ok) {
-			await interaction.reply({
-				embeds: [presenter.denial(translator.resolve(locale, result.message), locale)],
-				flags: MessageFlags.Ephemeral,
-			});
-			return;
-		}
+	if (!(await passesGuard(interaction, def.guard, runtime))) {
+		return;
 	}
 
 	try {
@@ -148,82 +131,20 @@ async function dispatch<K extends keyof ContextMenuTarget>(
 			await interaction.deferReply(ephemeral ? { flags: MessageFlags.Ephemeral } : {});
 		}
 		await def.handler({
+			...createCommandResponders(interaction, locale, ephemeral, runtime),
 			interaction,
 			target: resolveTarget(interaction, def.target),
-			locale,
-			t: (key, params) => translator.translate(locale, key, params),
-			confirm: (message) =>
-				send(interaction, presenter.confirmation(message, locale), ephemeral, logger),
-			error: (message) => send(interaction, presenter.error(message, locale), ephemeral, logger),
-			deny: (message) => send(interaction, presenter.denial(message, locale), ephemeral, logger),
 		});
 	} catch (error) {
-		if (error instanceof BusinessError) {
-			const text = error.translation
-				? translator.translate(locale, error.translation.key, error.translation.params)
-				: error.message;
-			const embed =
-				error.severity === "warning"
-					? presenter.warning(text, locale)
-					: presenter.error(text, locale);
-			await send(interaction, embed, ephemeral, logger);
-			return;
-		}
-		const ref = createIncidentRef();
-		logger.error(
-			{
-				command: interaction.commandName,
-				userId: interaction.user.id,
-				ref,
-				err: error instanceof Error ? error.message : String(error),
-				stack: error instanceof Error ? error.stack : undefined,
-			},
-			"Context menu handler failed",
-		);
-		await send(
+		await renderCommandFailure(
 			interaction,
-			presenter.systemError(
-				translator.resolve(locale, def.fallbackError ?? { key: CORE_MESSAGES.genericError }),
-				ref,
-				locale,
-			),
-			ephemeral,
-			logger,
-		);
-	}
-}
-
-/**
- * Deliver an embed whatever the interaction's lifecycle state, and never throw:
- * a failed delivery (e.g. an expired interaction) must not escape into the
- * client's unhandled `error` event. Mirrors the command pipeline's `sendEmbed`,
- * which is typed for chat-input interactions only.
- */
-async function send(
-	interaction: ContextMenuCommandInteraction,
-	embed: EmbedBuilder,
-	ephemeral: boolean,
-	logger: Logger,
-): Promise<void> {
-	const flags = ephemeral ? MessageFlags.Ephemeral : undefined;
-	try {
-		if (interaction.deferred) {
-			await interaction.editReply({ embeds: [embed] });
-			return;
-		}
-		if (interaction.replied) {
-			await interaction.followUp({ embeds: [embed], flags });
-			return;
-		}
-		await interaction.reply({ embeds: [embed], flags });
-	} catch (error) {
-		logger.error(
 			{
-				commandName: interaction.commandName,
-				interactionId: interaction.id,
-				err: error instanceof Error ? error.message : String(error),
+				error,
+				ephemeral,
+				fallbackError: def.fallbackError,
+				logMessage: "Context menu handler failed",
 			},
-			"Failed to deliver interaction response",
+			runtime,
 		);
 	}
 }

@@ -111,9 +111,17 @@
 			"types": "./dist/discord/command/autocomplete-dispatcher.d.ts",
 			"default": "./dist/discord/command/autocomplete-dispatcher.js"
 		},
+		"./discord/command/autocomplete-limits": {
+			"types": "./dist/discord/command/autocomplete-limits.d.ts",
+			"default": "./dist/discord/command/autocomplete-limits.js"
+		},
 		"./discord/command/autocomplete": {
 			"types": "./dist/discord/command/autocomplete.d.ts",
 			"default": "./dist/discord/command/autocomplete.js"
+		},
+		"./discord/command/command-responders": {
+			"types": "./dist/discord/command/command-responders.d.ts",
+			"default": "./dist/discord/command/command-responders.js"
 		},
 		"./discord/command/context": {
 			"types": "./dist/discord/command/context.d.ts",
@@ -147,9 +155,17 @@
 			"types": "./dist/discord/command/options.d.ts",
 			"default": "./dist/discord/command/options.js"
 		},
+		"./discord/command/passes-guard": {
+			"types": "./dist/discord/command/passes-guard.d.ts",
+			"default": "./dist/discord/command/passes-guard.js"
+		},
 		"./discord/command/permission-guard": {
 			"types": "./dist/discord/command/permission-guard.d.ts",
 			"default": "./dist/discord/command/permission-guard.js"
+		},
+		"./discord/command/render-command-failure": {
+			"types": "./dist/discord/command/render-command-failure.d.ts",
+			"default": "./dist/discord/command/render-command-failure.js"
 		},
 		"./discord/command/route-key": {
 			"types": "./dist/discord/command/route-key.d.ts",
@@ -158,6 +174,10 @@
 		"./discord/command/router": {
 			"types": "./dist/discord/command/router.d.ts",
 			"default": "./dist/discord/command/router.js"
+		},
+		"./discord/command/send-embed": {
+			"types": "./dist/discord/command/send-embed.d.ts",
+			"default": "./dist/discord/command/send-embed.js"
 		},
 		"./discord/command/types": {
 			"types": "./dist/discord/command/types.d.ts",
@@ -251,6 +271,10 @@
 			"types": "./dist/discord/interaction/button.d.ts",
 			"default": "./dist/discord/interaction/button.js"
 		},
+		"./discord/interaction/interaction-locale": {
+			"types": "./dist/discord/interaction/interaction-locale.d.ts",
+			"default": "./dist/discord/interaction/interaction-locale.js"
+		},
 		"./discord/interaction/interaction-router": {
 			"types": "./dist/discord/interaction/interaction-router.d.ts",
 			"default": "./dist/discord/interaction/interaction-router.js"
@@ -318,6 +342,10 @@
 		"./errors/describe-error": {
 			"types": "./dist/errors/describe-error.d.ts",
 			"default": "./dist/errors/describe-error.js"
+		},
+		"./errors/error-message": {
+			"types": "./dist/errors/error-message.d.ts",
+			"default": "./dist/errors/error-message.js"
 		},
 		"./errors/incident-ref": {
 			"types": "./dist/errors/incident-ref.d.ts",

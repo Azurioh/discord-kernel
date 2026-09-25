@@ -1,5 +1,5 @@
 import type { AutocompleteResolver } from "@azurioh/discord-kernel/discord/command/options";
-import { resolveLocale } from "@azurioh/discord-kernel/i18n/locale";
+import { interactionLocale } from "@azurioh/discord-kernel/discord/interaction/interaction-locale";
 import type { Translator } from "@azurioh/discord-kernel/i18n/translator";
 import {
 	DEMO_FIELD_ENTRIES,
@@ -29,10 +29,7 @@ export function createSettingKeyAutocomplete(
 	extraChoices: ExtraSettingKeyChoices,
 ): AutocompleteResolver {
 	return (interaction) => {
-		const locale = resolveLocale(
-			[interaction.locale, interaction.guildLocale],
-			translator.defaultLocale,
-		);
+		const locale = interactionLocale(interaction, translator);
 		const t: Translate = (key, params) => translator.translate(locale, key, params);
 		const typed = interaction.options.getFocused().toLowerCase();
 		const choices: readonly SettingKeyChoice[] = [

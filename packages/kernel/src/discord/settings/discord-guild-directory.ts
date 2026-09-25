@@ -1,5 +1,6 @@
 import { ChannelType, type Client, type Guild } from "discord.js";
 import { isMissingAccess, isUnknownResource } from "@/discord/api-errors";
+import { MAX_AUTOCOMPLETE_CHOICES } from "@/discord/command/autocomplete-limits";
 import type { ChannelKind, GuildDirectory } from "@/settings/ports/guild-directory";
 
 /** Every `ChannelType` a guild channel can have: all of them except the DM ones. */
@@ -38,8 +39,8 @@ const CHANNEL_TYPE_BY_KIND = {
 	media: ChannelType.GuildMedia,
 } as const satisfies Record<ChannelKind, GuildChannelType>;
 
-/** Discord caps autocomplete at 25 choices, so no search returns more. */
-const SEARCH_LIMIT = 25;
+/** Discord caps autocomplete at this many choices, so no search returns more. */
+const SEARCH_LIMIT = MAX_AUTOCOMPLETE_CHOICES;
 
 interface NamedEntity {
 	readonly id: string;

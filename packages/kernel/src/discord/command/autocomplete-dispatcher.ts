@@ -1,6 +1,7 @@
 import type { Interaction } from "discord.js";
 import type { SlashCommand } from "@/discord/command/types";
 import type { InteractionDispatcher } from "@/discord/interaction/interaction-router";
+import { errorMessage } from "@/errors/error-message";
 import type { Logger } from "@/logger";
 
 /**
@@ -44,7 +45,7 @@ export class AutocompleteDispatcher implements InteractionDispatcher {
 			this.logger.error(
 				{
 					command: interaction.commandName,
-					err: error instanceof Error ? error.message : String(error),
+					err: errorMessage(error),
 				},
 				"Autocomplete handler failed",
 			);
