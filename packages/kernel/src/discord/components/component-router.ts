@@ -10,9 +10,12 @@ import { interactionLocale } from "@/discord/interaction/interaction-locale";
 import type { InteractionDispatcher } from "@/discord/interaction/interaction-router";
 import { formatPermissions, missingPermissions, type PermissionBit } from "@/discord/permissions";
 import type { Presenter } from "@/discord/presenter";
+import { isModuleDisabled } from "@/discord/settings/is-module-disabled";
+import { moduleDisabledEmbed } from "@/discord/settings/module-disabled-embed";
 import { errorMessage } from "@/errors/error-message";
 import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
+import type { ModuleGate } from "@/settings/system/module-gate";
 
 /**
  * Interactions a {@link ComponentHandler} can be routed: message components
@@ -80,6 +83,12 @@ export interface ComponentRouterDeps {
 	presenter: Presenter;
 	logger: Logger;
 	translator: Translator;
+	/**
+	 * When given, a handler registered with a module does not run on a guild
+	 * where that module is disabled: the member gets the translated "disabled
+	 * on this server" message instead (FR-036).
+	 */
+	gate?: ModuleGate;
 }
 
 function isRoutable(interaction: Interaction): interaction is RoutableInteraction {
@@ -95,6 +104,8 @@ function isRoutable(interaction: Interaction): interaction is RoutableInteractio
  */
 export class ComponentRouter implements InteractionDispatcher {
 	private readonly handlers: ComponentHandler[] = [];
+	/** The module each handler was registered for; absent means never gated. */
+	private readonly modules = new Map<ComponentHandler, string>();
 	private readonly runtime: ComponentRuntime;
 
 	constructor(private readonly deps: ComponentRouterDeps) {
@@ -105,14 +116,23 @@ export class ComponentRouter implements InteractionDispatcher {
 		};
 	}
 
-	register(handler: ComponentHandler): this {
+	/**
+	 * @param moduleName - the module the handler belongs to, so the gate can
+	 * skip it on guilds where that module is disabled. Omit it for a handler
+	 * that always runs.
+	 */
+	register(handler: ComponentHandler, moduleName?: string): this {
 		this.handlers.push(handler);
+		if (moduleName !== undefined) {
+			this.modules.set(handler, moduleName);
+		}
 		return this;
 	}
 
-	registerAll(handlers: Iterable<ComponentHandler>): this {
+	/** Register many handlers at once, all of `moduleName` when given. */
+	registerAll(handlers: Iterable<ComponentHandler>, moduleName?: string): this {
 		for (const handler of handlers) {
-			this.register(handler);
+			this.register(handler, moduleName);
 		}
 		return this;
 	}
@@ -132,6 +152,10 @@ export class ComponentRouter implements InteractionDispatcher {
 		if (!handler) {
 			return false;
 		}
+		// First: a disabled module answers the same way whoever clicks.
+		if (!(await this.passesGate(interaction, handler))) {
+			return true;
+		}
 		// Before the handler runs, so a declared permission cannot be bypassed by a
 		// handler that forgot to check it.
 		if (!(await this.passesAuthorization(interaction, handler))) {
@@ -149,6 +173,25 @@ export class ComponentRouter implements InteractionDispatcher {
 			);
 		}
 		return true;
+	}
+
+	/** Answer the member and return `false` when the handler's module is disabled on the guild. */
+	private async passesGate(
+		interaction: RoutableInteraction,
+		handler: ComponentHandler,
+	): Promise<boolean> {
+		const disabled = await isModuleDisabled({
+			gate: this.deps.gate,
+			moduleName: this.modules.get(handler),
+			guildId: interaction.guildId,
+		});
+		if (disabled) {
+			await interaction.reply({
+				embeds: [moduleDisabledEmbed(interaction, this.deps)],
+				flags: MessageFlags.Ephemeral,
+			});
+		}
+		return !disabled;
 	}
 
 	/**
