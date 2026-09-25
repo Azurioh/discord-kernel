@@ -12,6 +12,12 @@ export const KERNEL_SETTINGS_ID = "kernel";
  */
 export interface ModuleEnablement {
 	readonly name: string;
+	/**
+	 * Catalog key of the module's name as administrators read it, shown on its
+	 * toggle. Without one the toggle shows the raw module name, and the translator
+	 * logs it as an unknown key: give every toggleable module a label.
+	 */
+	readonly label?: string;
 	/** Whether the module starts enabled in a guild that never toggled it. Defaults to `true`. */
 	readonly defaultEnabled?: boolean;
 }
@@ -45,6 +51,9 @@ export function kernelSettings(modules: readonly ModuleEnablement[]) {
 				label: KERNEL_SETTINGS_MESSAGES.modules,
 				description: KERNEL_SETTINGS_MESSAGES.modulesDescription,
 				keys: modules.map(({ name }) => name),
+				keyLabels: Object.fromEntries(
+					modules.flatMap(({ name, label }) => (label === undefined ? [] : [[name, label]])),
+				),
 				default: Object.fromEntries(
 					modules.map(({ name, defaultEnabled }) => [name, defaultEnabled ?? true]),
 				),

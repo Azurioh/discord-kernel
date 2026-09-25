@@ -126,13 +126,13 @@ field label/description/placeholder/unit, enum and static-suggestion choice labe
 included) and `toggles` `keyLabels`, each checked with `TranslationRegistry.has`.
 
 `BotModule` gains an optional `settings?: readonly SettingsDeclaration[]` and
-`defaultEnabled?: boolean` (default `true`) so the composition root can collect declarations the
+`label?: string` (catalog key of its display name, checked at boot like every declaration key) and `defaultEnabled?: boolean` (default `true`) so the composition root can collect declarations the
 same way it collects `translations`. The registry always includes the kernel's own declaration:
 
 ```ts
 export const KERNEL_SETTINGS_ID = "kernel";
-export interface ModuleEnablement { readonly name: string; readonly defaultEnabled?: boolean }
-/** id "kernel": { modules: field.toggles (keys = module names, default = defaultEnabled ?? true), locale?: Locale } */
+export interface ModuleEnablement { readonly name: string; readonly label?: string; readonly defaultEnabled?: boolean }
+/** id "kernel": { modules: field.toggles (keys = module names, keyLabels = each module's label, default = defaultEnabled ?? true), locale?: Locale } */
 export function kernelSettings(modules: readonly ModuleEnablement[]): KernelSettings;
 export type KernelSettings = ReturnType<typeof kernelSettings>;
 ```

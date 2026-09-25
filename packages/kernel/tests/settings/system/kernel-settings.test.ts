@@ -25,6 +25,18 @@ describe("kernelSettings", () => {
 		});
 	});
 
+	it("labels each module's toggle with the module's own label key", () => {
+		const declaration = kernelSettings([
+			{ name: "tickets", label: "tickets.module.label" },
+			{ name: "levels" },
+		]);
+
+		expect(declaration.fields.modules.spec).toMatchObject({
+			kind: "toggles",
+			keyLabels: { tickets: "tickets.module.label" },
+		});
+	});
+
 	it("enables a module by default unless it says otherwise", () => {
 		const declaration = kernelSettings([
 			{ name: "tickets" },
@@ -99,6 +111,18 @@ describe("createSettingsRegistry and the kernel declaration", () => {
 		});
 
 		expect(registry.kernel.fields.modules.default).toEqual({ tickets: true, beta: false });
+	});
+
+	it("refuses to boot when a module's label has no translation", () => {
+		const create = () =>
+			createSettingsRegistry({
+				declarations: [],
+				translations: translations(),
+				modules: [{ name: "tickets", label: "tickets.module.missing" }],
+			});
+
+		expect(create).toThrow(SettingsDeclarationError);
+		expect(create).toThrow(/tickets\.module\.missing/);
 	});
 
 	it("checks the kernel declaration's catalog keys like any other", () => {
