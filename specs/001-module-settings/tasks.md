@@ -126,8 +126,14 @@ US3+US4 (P2), US7+US8+US9 (P2), US5+US6 (P3), polish.
 **Goal**: FR-038 language order.
 **Independent test**: S17.
 
-- [ ] T042 [US8] Write failing tests then implement `resolveGuildLocale(interaction, service)` (member locale if supported → guild setting → guild Discord locale if supported → `en`, via existing `resolveLocale`) in `packages/kernel/tests/discord/settings/resolve-guild-locale.test.ts` and `packages/kernel/src/discord/settings/resolve-guild-locale.ts`
-- [ ] T043 [US8] Use `resolveGuildLocale` where the command, component and event paths resolve the reply locale today (`packages/kernel/src/discord/command/context.ts` and the routers of T039–T041), with tests extended in the matching test files
+- [X] T042 [US8] Write failing tests then implement `resolveGuildLocale(interaction, service)` (member locale if supported → guild setting → guild Discord locale if supported → `en`, via existing `resolveLocale`) in `packages/kernel/tests/discord/settings/resolve-guild-locale.test.ts` and `packages/kernel/src/discord/settings/resolve-guild-locale.ts`
+- [X] T043 [US8] Use `resolveGuildLocale` where the command, component and event paths resolve the reply locale today (`packages/kernel/src/discord/command/context.ts` and the routers of T039–T041), with tests extended in the matching test files
+
+As built (resolver design rule, `docs/roadmap.md`): the language is read through the
+`LocaleResolver` port (`discord/interaction/locale-resolver.ts`); `resolveGuildLocale` became
+its default implementation `createGuildLocaleResolver({ service, registry, translator })` in
+`discord/settings/guild-locale-resolver.ts`, injected as the optional `localeResolver` of the
+command and component routers. Event handlers send no kernel reply, so no event path changed.
 
 ---
 

@@ -6,6 +6,7 @@ import type { Presenter } from "@/discord/presenter";
 import { ValidationError } from "@/errors/business-error";
 import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
+import { createFakeLocaleResolver } from "../../support/fake-locale-resolver";
 
 /** Embeds are opaque here: the tests assert which presenter path was taken. */
 function stubRuntime(): CommandRuntime & { presenter: Record<string, ReturnType<typeof vi.fn>> } {
@@ -152,5 +153,26 @@ describe("createContextMenuCommand", () => {
 
 		expect(runtime.presenter.systemError).toHaveBeenCalled();
 		expect(runtime.logger.error).toHaveBeenCalled();
+	});
+
+	it("answers, denies and renders failures in the locale of the bot's resolver (S17)", async () => {
+		const runtime = { ...stubRuntime(), localeResolver: createFakeLocaleResolver("fr") };
+		const handler = vi.fn(async () => {
+			throw new ValidationError("Bad input.");
+		});
+		const guarded = createContextMenuCommand({
+			name: "Inspect",
+			target: "user",
+			guard: { check: () => ({ ok: false, message: "Denied." }) },
+			handler: async () => undefined,
+		});
+		const failing = createContextMenuCommand({ name: "Inspect", target: "user", handler });
+
+		await guarded.dispatch(fakeUserInteraction() as never, runtime);
+		await failing.dispatch(fakeUserInteraction() as never, runtime);
+
+		expect(runtime.presenter.denial).toHaveBeenCalledWith("Denied.", "fr");
+		expect(handler).toHaveBeenCalledWith(expect.objectContaining({ locale: "fr" }));
+		expect(runtime.presenter.warning).toHaveBeenCalledWith("Bad input.", "fr");
 	});
 });

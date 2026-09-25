@@ -5,6 +5,7 @@ import type { ContextMenuCommand, SlashCommand } from "@/discord/command/types";
 import type { Presenter } from "@/discord/presenter";
 import type { Translator } from "@/i18n/translator";
 import { SETTINGS_MESSAGES } from "@/settings/messages";
+import { createFakeLocaleResolver } from "../../support/fake-locale-resolver";
 import { createFakeLogger } from "../../support/fake-logger";
 import { createFakeModuleGate } from "../../support/fake-module-gate";
 
@@ -155,5 +156,29 @@ describe("CommandRouter module gate (S15)", () => {
 		);
 
 		expect(command.dispatch).not.toHaveBeenCalled();
+	});
+});
+
+describe("CommandRouter reply language (S17)", () => {
+	it("says a module is disabled in the locale of the bot's resolver", async () => {
+		const deps = { ...makeDeps(), localeResolver: createFakeLocaleResolver("en") };
+		const router = new CommandRouter(deps).register(slashCommand("ticket"), "tickets");
+
+		await router.handle(fakeCommandInteraction({ name: "ticket", guildId: GUILD_A }) as never);
+
+		expect(deps.presenter.denial).toHaveBeenCalledWith(SETTINGS_MESSAGES.moduleDisabled, "en");
+	});
+
+	it("hands the resolver to the commands through the runtime", async () => {
+		const localeResolver = createFakeLocaleResolver("fr");
+		const command = slashCommand("ticket");
+		const router = new CommandRouter({ ...makeDeps(), localeResolver }).register(command);
+
+		await router.handle(fakeCommandInteraction({ name: "ticket", guildId: GUILD_B }) as never);
+
+		expect(command.dispatch).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({ localeResolver }),
+		);
 	});
 });

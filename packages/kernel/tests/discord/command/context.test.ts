@@ -69,4 +69,18 @@ describe("createContext locale resolution", () => {
 		const ctx = buildContext("fr", null);
 		expect(ctx.t("test.only-en")).toBe("English only");
 	});
+
+	it("uses the locale the pipeline resolved when it gives one", () => {
+		const ctx = createContext(
+			makeInteraction("de", "en"),
+			{},
+			true,
+			presenterStub,
+			createFakeLogger(),
+			makeTranslator(),
+			"fr",
+		);
+		expect(ctx.locale).toBe("fr");
+		expect(ctx.t("test.greeting", { name: "Ana" })).toBe("Bonjour Ana");
+	});
 });

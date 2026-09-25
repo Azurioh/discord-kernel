@@ -188,8 +188,46 @@ export interface SettingsService {
 
 // discord ring
 export function requireConfigured(declaration: SettingsDeclaration, service: SettingsService): Guard;
-export function resolveGuildLocale(interaction: BaseInteraction, service: SettingsService): Promise<Locale>;
 ```
+
+### Reply language (`@azurioh/discord-kernel/discord/interaction/locale-resolver`, `…/discord/settings/guild-locale-resolver`)
+
+Every value the kernel uses when it replies is read through a per-guild resolver port with a
+default implementation; a bot or a module can supply its own. The language is the first one.
+
+```ts
+/** Every discord.js interaction fits as is. */
+export interface LocaleSubject {
+  readonly locale: string;
+  readonly guildLocale: string | null;
+  readonly guildId: string | null;
+}
+export interface LocaleResolver {
+  resolve(subject: LocaleSubject): Promise<Locale>;
+}
+/**
+ * Default (FR-038): member locale if supported → guild `kernel.locale` setting (registry.kernel,
+ * through the service's cache; read only when the member locale is unsupported, never outside a
+ * guild) → guild Discord locale if supported → translator.defaultLocale. A failed read rejects.
+ */
+export function createGuildLocaleResolver(deps: {
+  service: SettingsService;
+  registry: SettingsRegistry;
+  translator: Translator;
+}): LocaleResolver;
+
+// Routers and runtimes accept an optional resolver (additive, no breaking change):
+//   new CommandRouter({ presenter, logger, translator, gate?, localeResolver? })
+//   new ComponentRouter({ presenter, logger, translator, gate?, localeResolver? })
+//   CommandRuntime.localeResolver?, ComponentRuntime.localeResolver?
+// createContext(…, translator, locale?) takes the locale the pipeline resolved.
+```
+
+Every kernel reply path (command context, unknown subcommand, guard denial, failure rendering,
+context menus, component permission denial, "module disabled") reads the language through the
+resolver. Without one, the interaction's own locales are used (`interactionLocale`), exactly as
+before. A resolver that throws is logged (`"Could not resolve the reply language; using the
+interaction's locales"`) and the interaction's own locales are used.
 
 Zod never appears in any exported type.
 

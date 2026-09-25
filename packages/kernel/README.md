@@ -133,6 +133,29 @@ registerColorAliases({ gold: "#f3c909", or: "#f3c909" });
 Everything else is injected: your modules are factories receiving a container
 you define, so nothing in the kernel is reachable as a singleton.
 
+## Per-guild values
+
+A value the kernel uses when it answers an interaction is read through a
+resolver port, per guild, never from a global. The bot passes a default
+implementation built from its own configuration, and any module can replace it
+with its own. Today that value is the reply language:
+
+```ts
+import { createGuildLocaleResolver } from "@azurioh/discord-kernel/discord/settings/guild-locale-resolver";
+
+// Member locale → guild language setting → guild Discord locale → translator default.
+const localeResolver = createGuildLocaleResolver({ service: settings, registry, translator });
+const commands = new CommandRouter({ presenter, logger, translator, localeResolver });
+const components = new ComponentRouter({ presenter, logger, translator, localeResolver });
+```
+
+Any object implementing `LocaleResolver`
+(`@azurioh/discord-kernel/discord/interaction/locale-resolver`) fits:
+`{ resolve({ locale, guildLocale, guildId }) => Promise<Locale> }`. Without one,
+the routers keep the interaction's own locales, so a bot without settings is
+unaffected. A resolver that throws is logged and the interaction's own locales
+are used.
+
 ## Requirements
 
 Node 22.12+, discord.js 14.27+, TypeScript 5.9. The published build is

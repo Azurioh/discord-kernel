@@ -295,6 +295,10 @@
 			"types": "./dist/discord/interaction/interaction-router.d.ts",
 			"default": "./dist/discord/interaction/interaction-router.js"
 		},
+		"./discord/interaction/locale-resolver": {
+			"types": "./dist/discord/interaction/locale-resolver.d.ts",
+			"default": "./dist/discord/interaction/locale-resolver.js"
+		},
 		"./discord/interaction/modal": {
 			"types": "./dist/discord/interaction/modal.d.ts",
 			"default": "./dist/discord/interaction/modal.js"
@@ -326,6 +330,10 @@
 		"./discord/settings/discord-guild-directory": {
 			"types": "./dist/discord/settings/discord-guild-directory.d.ts",
 			"default": "./dist/discord/settings/discord-guild-directory.js"
+		},
+		"./discord/settings/guild-locale-resolver": {
+			"types": "./dist/discord/settings/guild-locale-resolver.d.ts",
+			"default": "./dist/discord/settings/guild-locale-resolver.js"
 		},
 		"./discord/ui/card": {
 			"types": "./dist/discord/ui/card.d.ts",

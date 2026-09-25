@@ -6,8 +6,9 @@ import {
 	type ModalSubmitInteraction,
 } from "discord.js";
 import { CORE_MESSAGES } from "@/discord/i18n";
-import { interactionLocale } from "@/discord/interaction/interaction-locale";
 import type { InteractionDispatcher } from "@/discord/interaction/interaction-router";
+import type { LocaleResolver } from "@/discord/interaction/locale-resolver";
+import { replyLocale } from "@/discord/interaction/reply-locale";
 import { formatPermissions, missingPermissions, type PermissionBit } from "@/discord/permissions";
 import type { Presenter } from "@/discord/presenter";
 import { isModuleDisabled } from "@/discord/settings/is-module-disabled";
@@ -31,6 +32,8 @@ export interface ComponentRuntime {
 	readonly presenter: Presenter;
 	readonly logger: Logger;
 	readonly translator: Translator;
+	/** The bot's reply-language resolver, if it gave one (see `ComponentRouterDeps`). */
+	readonly localeResolver?: LocaleResolver;
 }
 
 /**
@@ -89,6 +92,12 @@ export interface ComponentRouterDeps {
 	 * on this server" message instead (FR-036).
 	 */
 	gate?: ModuleGate;
+	/**
+	 * Where the router's own replies (denials) read their language, also handed
+	 * to the handlers through the runtime. Without one, the interaction's own
+	 * locales are used.
+	 */
+	localeResolver?: LocaleResolver;
 }
 
 function isRoutable(interaction: Interaction): interaction is RoutableInteraction {
@@ -113,6 +122,7 @@ export class ComponentRouter implements InteractionDispatcher {
 			presenter: deps.presenter,
 			logger: deps.logger,
 			translator: deps.translator,
+			localeResolver: deps.localeResolver,
 		};
 	}
 
@@ -187,7 +197,7 @@ export class ComponentRouter implements InteractionDispatcher {
 		});
 		if (disabled) {
 			await interaction.reply({
-				embeds: [moduleDisabledEmbed(interaction, this.deps)],
+				embeds: [await moduleDisabledEmbed(interaction, this.deps)],
 				flags: MessageFlags.Ephemeral,
 			});
 		}
@@ -215,7 +225,7 @@ export class ComponentRouter implements InteractionDispatcher {
 			return true;
 		}
 
-		const locale = interactionLocale(interaction, this.deps.translator);
+		const locale = await replyLocale(interaction, this.deps);
 		const message = this.deps.translator.translate(locale, CORE_MESSAGES.guardPermissionDenied, {
 			missing: formatPermissions(missing),
 		});

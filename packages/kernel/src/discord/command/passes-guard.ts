@@ -1,7 +1,7 @@
 import { type CommandInteraction, MessageFlags } from "discord.js";
 import type { Guard } from "@/discord/command/guard";
 import type { CommandRuntime } from "@/discord/command/types";
-import { interactionLocale } from "@/discord/interaction/interaction-locale";
+import { replyLocale } from "@/discord/interaction/reply-locale";
 
 /**
  * Run a command's guard, if it has one. On a denial, answer with the guard's
@@ -19,7 +19,7 @@ export async function passesGuard(
 	if (result.ok) {
 		return true;
 	}
-	const locale = interactionLocale(interaction, runtime.translator);
+	const locale = await replyLocale(interaction, runtime);
 	await interaction.reply({
 		embeds: [runtime.presenter.denial(runtime.translator.resolve(locale, result.message), locale)],
 		flags: MessageFlags.Ephemeral,
