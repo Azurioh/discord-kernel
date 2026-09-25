@@ -15,47 +15,10 @@ import { createSettingsService } from "@/settings/settings-service";
 import {
 	SAMPLE_FIELD_ACCESS,
 	SAMPLE_GROUP_ACCESS,
+	SAMPLE_KEYS,
 	SAMPLE_MODULE_ACCESS,
 	sampleSettings,
 } from "./fixtures/sample-declaration";
-
-/** Every catalog key the sample declaration references. */
-const SAMPLE_KEYS = [
-	"sample.settings.title",
-	"sample.settings.description",
-	"sample.settings.group.general",
-	"sample.settings.group.general.description",
-	"sample.settings.group.limits",
-	"sample.settings.log-channel",
-	"sample.settings.staff-role",
-	"sample.settings.owner",
-	"sample.settings.accent",
-	"sample.settings.cooldown",
-	"sample.settings.unit.seconds",
-	"sample.settings.region",
-	"sample.settings.region.eu",
-	"sample.settings.region.na",
-	"sample.settings.max-open",
-	"sample.settings.max-open.description",
-	"sample.settings.unit.tickets",
-	"sample.settings.ratio",
-	"sample.settings.greeting",
-	"sample.settings.greeting.placeholder",
-	"sample.settings.enabled",
-	"sample.settings.api-key",
-	"sample.settings.api-key.description",
-	"sample.settings.watched-channels",
-	"sample.settings.ping-roles",
-	"sample.settings.notify-users",
-	"sample.settings.tiers",
-	"sample.settings.tier.gold",
-	"sample.settings.tier.silver",
-	"sample.settings.thresholds",
-	"sample.settings.keywords",
-	"sample.settings.features",
-	"sample.settings.feature.tickets",
-	"sample.settings.feature.logs",
-] as const;
 
 const SAMPLE_KEY_SET: ReadonlySet<string> = new Set(SAMPLE_KEYS);
 
