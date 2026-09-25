@@ -13,7 +13,8 @@ import { createFakeLogger } from "../../support/fake-logger";
  * A settings service over an in-memory store seeded with `stored`, for suites
  * that only read: the registry and the translator are empty stand-ins, since
  * reads take the declaration as an argument and translate nothing. `write`
- * spies on the store so a suite can assert a read wrote nothing.
+ * spies on the store so a suite can assert a read wrote nothing; `store` and
+ * `notifier` let a suite change the stored data behind the service's back.
  */
 export async function createReadOnlySettingsService(stored: readonly StoredSettings[] = []) {
 	const store: SettingsStore = createInMemorySettingsStore();
@@ -21,15 +22,17 @@ export async function createReadOnlySettingsService(stored: readonly StoredSetti
 		await store.write(entry, { expectedRevision: null });
 	}
 	const write = vi.spyOn(store, "write");
+	const read = vi.spyOn(store, "read");
 	const logger = createFakeLogger();
+	const notifier = createInProcessNotifier(logger);
 	const service = createSettingsService({
 		registry: {} as SettingsRegistry,
 		store,
 		guilds: createInMemoryGuildDirectory({}),
-		notifier: createInProcessNotifier(logger),
+		notifier,
 		translator: {} as Translator,
 		clock: fixedClock(new Date("2026-01-01T00:00:00.000Z")),
 		logger,
 	});
-	return { service, write, logger };
+	return { service, write, read, store, notifier, logger };
 }

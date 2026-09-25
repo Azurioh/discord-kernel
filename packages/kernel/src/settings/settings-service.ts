@@ -2,6 +2,7 @@ import type { Clock } from "@/clock";
 import { ConflictError, ValidationError } from "@/errors/business-error";
 import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
+import { createSettingsCache } from "@/settings/cache";
 import type { SettingsDeclaration } from "@/settings/define-settings";
 import { describeSettings, type SettingsSchema } from "@/settings/describe";
 import { parseFieldValue, pruneStoredValue } from "@/settings/fields/zod-schema";
@@ -33,7 +34,9 @@ export type ValidationResult<D extends SettingsDeclaration> =
 export interface SettingsService {
 	/**
 	 * Module logic read: every declared field, secrets included. A field with
-	 * no valid stored value reads as its default. Never writes.
+	 * no valid stored value reads as its default. Never writes. Cached per
+	 * guild and module until a change of them (this service's writes, or a
+	 * notifier event) or `SETTINGS_CACHE_TTL_MS`, whichever comes first.
 	 */
 	get<D extends SettingsDeclaration>(declaration: D, guildId: string): Promise<SettingsValues<D>>;
 
@@ -123,8 +126,10 @@ interface SettingsServiceDeps {
  */
 export function createSettingsService(deps: SettingsServiceDeps): SettingsService {
 	const { store, guilds, notifier, translator, clock, logger } = deps;
+	const cache = createSettingsCache({ clock, notifier });
 
-	async function get<D extends SettingsDeclaration>(
+	/** Read and decode a guild's stored settings, bypassing the cache. */
+	async function load<D extends SettingsDeclaration>(
 		declaration: D,
 		guildId: string,
 	): Promise<SettingsValues<D>> {
@@ -153,6 +158,13 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
 		return values as SettingsValues<D>;
 	}
 
+	function get<D extends SettingsDeclaration>(
+		declaration: D,
+		guildId: string,
+	): Promise<SettingsValues<D>> {
+		return cache.read(guildId, declaration.id, () => load(declaration, guildId));
+	}
+
 	/** Write `values` over `stored` and tell listeners which keys changed. */
 	async function write(params: {
 		declaration: SettingsDeclaration;
@@ -174,6 +186,8 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
 			updatedBy: ctx.userId,
 		};
 		await store.write(next, { expectedRevision: params.expectedRevision });
+		// Before notifying: a listener that reads back must see the new values.
+		cache.invalidate(guildId, declaration.id);
 		notifier.notify({
 			guildId,
 			moduleId: declaration.id,

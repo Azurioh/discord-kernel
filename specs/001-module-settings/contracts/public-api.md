@@ -193,7 +193,9 @@ export interface SettingsService {
    * Module logic read: every declared field, secrets included. A field with no
    * valid stored value reads as its default (or undefined). A stored value that
    * fails its field is logged at `error` level. Never writes, except a lazy
-   * migration (T050).
+   * migration (T050). Cached in process per (guildId, moduleId) until this
+   * service writes them, the notifier reports a change of them, or 60 s pass
+   * (R15); `getForSurface` reads through the same cache.
    */
   get<D extends SettingsDeclaration>(declaration: D, guildId: string): Promise<SettingsValues<D>>;
 
