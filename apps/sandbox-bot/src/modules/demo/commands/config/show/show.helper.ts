@@ -1,4 +1,5 @@
 import type { FieldSpec, SecretState } from "@azurioh/discord-kernel/settings";
+import { channelMention, roleMention, userMention } from "discord.js";
 import { DEMO_MESSAGES } from "@/modules/demo/i18n/demo.messages";
 import type { Translate } from "@/shared/i18n/translate";
 
@@ -21,11 +22,11 @@ export function formatSettingValue(params: {
 	}
 	switch (spec.kind) {
 		case "channel":
-			return `<#${String(value)}>`;
+			return channelMention(String(value));
 		case "role":
-			return `<@&${String(value)}>`;
+			return roleMention(String(value));
 		case "user":
-			return `<@${String(value)}>`;
+			return userMention(String(value));
 		case "color":
 		case "enum":
 		case "text":

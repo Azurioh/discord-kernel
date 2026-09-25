@@ -1,8 +1,8 @@
+import type { KeyedCatalog, MessageKey } from "@azurioh/discord-kernel/i18n/catalog";
 import { BASICS_MESSAGES } from "@/modules/basics/i18n/basics.messages";
-import type { MessageKey, ModuleCatalog } from "@/shared/i18n/module-catalog";
 
 /** The basics module's wording in English and French, keyed by `BASICS_MESSAGES`. */
-export const BASICS_CATALOG: ModuleCatalog<MessageKey<typeof BASICS_MESSAGES>> = {
+export const BASICS_CATALOG: KeyedCatalog<MessageKey<typeof BASICS_MESSAGES>> = {
 	[BASICS_MESSAGES.pingDescription]: {
 		en: "Check that the bot answers",
 		fr: "Vérifier que le bot répond",

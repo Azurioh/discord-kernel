@@ -98,9 +98,13 @@ export function normalizeColorName(raw: string): string {
 		.replace(/\p{Diacritic}/gu, "");
 }
 
-const BASE_COLORS_BY_NORMALIZED_NAME: ReadonlyMap<string, string> = new Map(
-	Object.entries(BASE_COLOR_NAMES).map(([name, hex]) => [normalizeColorName(name), hex]),
-);
+/** Index a name → `#rrggbb` table by {@link normalizeColorName}, so lookups fold case and accents. */
+export function indexColorNames(names: Readonly<Record<string, string>>): Map<string, string> {
+	return new Map(Object.entries(names).map(([name, hex]) => [normalizeColorName(name), hex]));
+}
+
+const BASE_COLORS_BY_NORMALIZED_NAME: ReadonlyMap<string, string> =
+	indexColorNames(BASE_COLOR_NAMES);
 
 /** `#RGB` and `#RRGGBB`, with or without the leading hash. */
 const HEX_COLOR_PATTERN = /^#?(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
