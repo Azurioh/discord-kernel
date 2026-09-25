@@ -1,6 +1,5 @@
 export {
 	COLLECTOR_IDLE_MS,
-	createStateStore,
 	type DisabledInteractiveMessageComponents,
 	type InteractiveMessageCollectorDeps,
 	type InteractiveMessageHandle,
@@ -9,10 +8,13 @@ export {
 	type InteractiveView,
 	mountInteractiveMessageCollector,
 	type SelectComponentContext,
-	type StateStore,
-	toMessageEditOptions,
 } from "@/discord/components/interactive-message/interactive-message-collector";
+export { toMessageEditOptions } from "@/discord/components/interactive-message/message-edit-options";
 export {
 	type InteractiveMessageOptions,
 	mountInteractiveMessage,
 } from "@/discord/components/interactive-message/mount-interactive-message";
+export {
+	createStateStore,
+	type StateStore,
+} from "@/discord/components/interactive-message/state-store";

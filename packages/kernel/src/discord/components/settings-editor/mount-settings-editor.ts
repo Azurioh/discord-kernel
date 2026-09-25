@@ -4,14 +4,14 @@ import type {
 	ModalMessageModalSubmitInteraction,
 } from "discord.js";
 import type { Clock } from "@/clock";
-import {
-	type InteractiveMessageHandle,
-	type InteractiveSelect,
-	type InteractiveView,
-	type StateStore,
-	toMessageEditOptions,
+import type {
+	InteractiveMessageHandle,
+	InteractiveSelect,
+	InteractiveView,
 } from "@/discord/components/interactive-message/interactive-message-collector";
+import { toMessageEditOptions } from "@/discord/components/interactive-message/message-edit-options";
 import { mountInteractiveMessage } from "@/discord/components/interactive-message/mount-interactive-message";
+import type { StateStore } from "@/discord/components/interactive-message/state-store";
 import {
 	popLevel,
 	pushLevel,

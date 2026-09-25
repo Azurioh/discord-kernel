@@ -1,7 +1,6 @@
 import type {
 	ActionRowBuilder,
 	AnySelectMenuInteraction,
-	Attachment,
 	ButtonInteraction,
 	ChatInputCommandInteraction,
 	CollectedMessageInteraction,
@@ -11,9 +10,11 @@ import type {
 	MessageActionRowComponentBuilder,
 	MessageMentionOptions,
 } from "discord.js";
+import { toMessageEditOptions } from "@/discord/components/interactive-message/message-edit-options";
+import type { StateStore } from "@/discord/components/interactive-message/state-store";
 import type { Button, ComponentContext } from "@/discord/interaction/button";
 import type { Card } from "@/discord/ui/card";
-import { type MessageFile, planMessageAttachments } from "@/discord/ui/message-attachments";
+import type { MessageFile } from "@/discord/ui/message-attachments";
 import { describeError } from "@/errors/describe-error";
 import type { Logger } from "@/logger";
 
@@ -89,71 +90,6 @@ export type InteractiveMessagePayload<S = never> =
 			 */
 			components?: never;
 	  });
-
-/**
- * The payload as discord.js takes it on an edit, given what the message already
- * carries: a file already up there under a wanted name is kept rather than
- * uploaded a second time, so an unrelated re-render neither drops nor re-sends
- * it.
- *
- * A payload stating no files touches neither field, leaving the message's own
- * attachments alone.
- *
- * `state` is only read for a `"card"` payload — it is what `Card.apply` needs
- * to render the container — and is otherwise unused. No caller building an
- * `"embeds"` payload has ever had to pass it, and still does not: it is the
- * third, optional parameter existing two-argument calls already omit.
- */
-export function toMessageEditOptions<S>(
-	payload: InteractiveMessagePayload<S>,
-	existing: readonly Attachment[],
-	state?: S,
-): InteractionUpdateOptions {
-	const { files, allowedMentions } = payload;
-	const mentions = allowedMentions === undefined ? {} : { allowedMentions };
-	const attachments = files === undefined ? {} : planMessageAttachments(existing, files);
-
-	if (payload.layout === "card") {
-		if (state === undefined) {
-			// Only reachable once a caller actually builds a `"card"` payload
-			// without threading the state its `Card` needs — a programming error
-			// in that caller, not something a member's click can trigger.
-			throw new Error(
-				'toMessageEditOptions: a "card" layout payload needs the state its Card was ' +
-					"declared over to call Card.apply, and none was given.",
-			);
-		}
-		return {
-			components: [payload.card.apply(state, false), ...(payload.controls ?? [])],
-			...mentions,
-			...attachments,
-		};
-	}
-
-	const { embeds, components } = payload;
-	return { embeds, components, ...mentions, ...attachments };
-}
-
-/**
- * The single mutable cell shared by the view and the collector. Kept explicit
- * rather than captured as a closure variable so the two always read the same
- * reference.
- */
-export interface StateStore<S> {
-	read(): S;
-	write(next: S): void;
-}
-
-/** Hold a state the collector can advance in place. */
-export function createStateStore<S>(initial: S): StateStore<S> {
-	let state = initial;
-	return {
-		read: () => state,
-		write: (next) => {
-			state = next;
-		},
-	};
-}
 
 /**
  * What {@link InteractiveView.disabledControls} hands back: enough of a payload
