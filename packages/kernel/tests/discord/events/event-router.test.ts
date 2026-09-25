@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createEvent } from "@/discord/events/create-event";
 import { EventRouter } from "@/discord/events/event-router";
 import type { EventListener } from "@/discord/events/types";
-import type { Logger } from "@/logger";
+import { createFakeLogger } from "../../support/fake-logger";
 
 interface Binding {
 	name: keyof ClientEvents;
@@ -28,19 +28,6 @@ function createFakeClient(): { client: Client; bindings: Binding[] } {
 		},
 	} as unknown as Client;
 	return { client, bindings };
-}
-
-function createFakeLogger(): Logger {
-	const logger = {
-		info: vi.fn(),
-		warn: vi.fn(),
-		error: vi.fn(),
-		debug: vi.fn(),
-		trace: vi.fn(),
-		fatal: vi.fn(),
-		child: vi.fn(() => logger),
-	};
-	return logger as unknown as Logger;
 }
 
 /** Read a binding while keeping the test honest about what `bind` produced. */

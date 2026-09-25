@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { fixedClock } from "@/clock";
 import type { Translator } from "@/i18n/translator";
-import type { Logger } from "@/logger";
 import { createInMemoryGuildDirectory } from "@/settings/in-memory/in-memory-guild-directory";
 import { createInMemorySettingsStore } from "@/settings/in-memory/in-memory-settings-store";
 import { createInProcessNotifier } from "@/settings/in-memory/in-process-notifier";
 import type { SettingsStore, StoredSettings } from "@/settings/ports/settings-store";
 import type { SettingsRegistry } from "@/settings/registry";
 import { createSettingsService } from "@/settings/settings-service";
+import { createFakeLogger } from "../support/fake-logger";
 import { sampleSettings } from "./fixtures/sample-declaration";
 
 const GUILD_A = "100000000000000001";
@@ -37,19 +37,6 @@ const SAMPLE_DEFAULTS = {
 	features: { tickets: true, logs: false },
 };
 
-function makeLogger(): Logger {
-	const logger = {
-		trace: vi.fn(),
-		debug: vi.fn(),
-		info: vi.fn(),
-		warn: vi.fn(),
-		error: vi.fn(),
-		fatal: vi.fn(),
-		child: () => logger,
-	};
-	return logger as unknown as Logger;
-}
-
 function record(guildId: string, values: Record<string, unknown>): StoredSettings {
 	return {
 		guildId,
@@ -67,7 +54,7 @@ async function makeService(stored: readonly StoredSettings[] = []) {
 		await store.write(entry, { expectedRevision: null });
 	}
 	const write = vi.spyOn(store, "write");
-	const logger = makeLogger();
+	const logger = createFakeLogger();
 	const service = createSettingsService({
 		// `get` never consults the registry: the declaration is passed in.
 		registry: {} as SettingsRegistry,

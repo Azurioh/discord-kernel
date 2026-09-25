@@ -1,25 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { TranslationRegistry } from "@/i18n/catalog";
 import { DuplicateTranslationKeyError } from "@/i18n/errors";
 import { createTranslator } from "@/i18n/translator";
-import type { Logger } from "@/logger";
-
-function makeLogger(): Logger {
-	const logger: Logger = {
-		trace: vi.fn(),
-		debug: vi.fn(),
-		info: vi.fn(),
-		warn: vi.fn(),
-		error: vi.fn(),
-		fatal: vi.fn(),
-		child: () => logger,
-	};
-	return logger;
-}
+import { createFakeLogger } from "../support/fake-logger";
 
 function makeTranslator(
 	catalog: Parameters<TranslationRegistry["register"]>[0],
-	logger = makeLogger(),
+	logger = createFakeLogger(),
 ) {
 	const registry = new TranslationRegistry();
 	registry.register(catalog);
@@ -53,14 +40,14 @@ describe("createTranslator", () => {
 	});
 
 	it("returns the key and warns for an unknown key", () => {
-		const logger = makeLogger();
+		const logger = createFakeLogger();
 		const translator = makeTranslator({ "m.known": { en: "known" } }, logger);
 		expect(translator.translate("en", "m.unknown")).toBe("m.unknown");
 		expect(logger.warn).toHaveBeenCalled();
 	});
 
 	it("keeps the placeholder and warns when a parameter is missing", () => {
-		const logger = makeLogger();
+		const logger = createFakeLogger();
 		const translator = makeTranslator({ "m.pong": { en: "Pong! {ms}ms" } }, logger);
 		expect(translator.translate("en", "m.pong")).toBe("Pong! {ms}ms");
 		expect(logger.warn).toHaveBeenCalled();

@@ -9,6 +9,7 @@ import {
 	type PersistentPage,
 } from "@/discord/components/persistent-paginator";
 import type { Logger } from "@/logger";
+import { createFakeLogger } from "../../support/fake-logger";
 
 /**
  * A persistent paginator always renders the "embeds" layout — it has no `Card`
@@ -27,20 +28,7 @@ function asEmbeds<S>(
 const CUSTOM_ID = "reminders";
 const PAGE_COUNT = 3;
 
-function createLoggerSpy(): Logger {
-	const logger = {
-		trace: vi.fn(),
-		debug: vi.fn(),
-		info: vi.fn(),
-		warn: vi.fn(),
-		error: vi.fn(),
-		fatal: vi.fn(),
-		child: () => logger,
-	};
-	return logger as unknown as Logger;
-}
-
-function createRuntime(logger: Logger = createLoggerSpy()): ComponentRuntime {
+function createRuntime(logger: Logger = createFakeLogger()): ComponentRuntime {
 	return {
 		logger,
 		presenter: {} as ComponentRuntime["presenter"],
@@ -225,7 +213,7 @@ describe("createPersistentPaginator click handling", () => {
 	});
 
 	it("falls back to the first page on a stale customId instead of throwing", async () => {
-		const logger = createLoggerSpy();
+		const logger = createFakeLogger();
 		const fetchPage = createFetcher();
 		const paginator = createPersistentPaginator({ customId: CUSTOM_ID, fetchPage });
 		const { interaction, editReply } = createButtonClick("reminders:legacy-shape");

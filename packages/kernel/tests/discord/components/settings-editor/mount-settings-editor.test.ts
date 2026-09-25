@@ -13,6 +13,7 @@ import { ValidationError } from "@/errors/business-error";
 import type { Locale } from "@/i18n/locale";
 import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
+import { createFakeLogger } from "../../../support/fake-logger";
 
 const OWNER = "admin-1";
 const IDS = editorComponentIds("mount-test");
@@ -38,20 +39,6 @@ const FIELDS: readonly SettingsEditorField<Field>[] = [
 		maxLength: 100,
 	},
 ];
-
-/** A no-op {@link Logger} double whose `error` calls can be asserted on. */
-function makeLogger(): Logger {
-	const logger = {
-		trace: vi.fn(),
-		debug: vi.fn(),
-		info: vi.fn(),
-		warn: vi.fn(),
-		error: vi.fn(),
-		fatal: vi.fn(),
-		child: (): Logger => logger,
-	};
-	return logger;
-}
 
 function noAttachments(): Collection<string, { name: string }> {
 	return new Collection();
@@ -152,7 +139,7 @@ describe("mountSettingsEditor: onWritten's failure after a successful write", ()
 	 * of both outcomes.
 	 */
 	it("still confirms the write, carrying the new subject, when onWritten throws", async () => {
-		const logger = makeLogger();
+		const logger = createFakeLogger();
 		const onWritten = vi.fn(async () => {
 			throw new ValidationError("refresh failed");
 		});
@@ -168,7 +155,7 @@ describe("mountSettingsEditor: onWritten's failure after a successful write", ()
 
 	/** Logged rather than shown or re-thrown — an incident to trace, not a message to hand back. */
 	it("logs onWritten's failure instead of showing or re-throwing it", async () => {
-		const logger = makeLogger();
+		const logger = createFakeLogger();
 		const failure = new ValidationError("refresh failed");
 		const onWritten = vi.fn(async () => {
 			throw failure;
@@ -185,7 +172,7 @@ describe("mountSettingsEditor: onWritten's failure after a successful write", ()
 	});
 
 	it("carries the new subject and a confirmation notice when onWritten succeeds", async () => {
-		const logger = makeLogger();
+		const logger = createFakeLogger();
 		const onWritten = vi.fn(async () => undefined);
 		const { screen, collect } = await mountTestEditor({ onWritten, logger });
 
@@ -271,7 +258,7 @@ describe("mountSettingsEditor: a card layout's per-entry button icon", () => {
 			translator,
 			locale: LOCALE,
 			clock: CLOCK,
-			logger: makeLogger(),
+			logger: createFakeLogger(),
 		});
 
 		const payload = editReply.mock.calls[0]?.[0];
