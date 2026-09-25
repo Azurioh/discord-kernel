@@ -1,12 +1,15 @@
+import { isDeepStrictEqual } from "node:util";
 import type { Clock } from "@/clock";
 import { ConflictError, ValidationError } from "@/errors/business-error";
+import { errorMessage } from "@/errors/error-message";
 import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 import { createSettingsCache } from "@/settings/cache";
+import { decodeStored } from "@/settings/decode-stored";
 import type { SettingsDeclaration } from "@/settings/define-settings";
 import { describeSettings, type SettingsSchema } from "@/settings/describe";
-import { parseFieldValue, pruneStoredValue } from "@/settings/fields/zod-schema";
 import { SETTINGS_ISSUE_MESSAGES } from "@/settings/messages";
+import { migrateStored } from "@/settings/migrate";
 import type { GuildDirectory } from "@/settings/ports/guild-directory";
 import type { SettingsChangedNotifier } from "@/settings/ports/settings-changed-notifier";
 import type { SettingsStore, StoredSettings } from "@/settings/ports/settings-store";
@@ -35,9 +38,16 @@ export type ValidationResult<D extends SettingsDeclaration> =
 export interface SettingsService {
 	/**
 	 * Module logic read: every declared field, secrets included. A field with
-	 * no valid stored value reads as its default. Never writes. Cached per
-	 * guild and module until a change of them (this service's writes, or a
-	 * notifier event) or `SETTINGS_CACHE_TTL_MS`, whichever comes first.
+	 * no valid stored value reads as its default. Cached per guild and module
+	 * until a change of them (this service's writes, or a notifier event) or
+	 * `SETTINGS_CACHE_TTL_MS`, whichever comes first.
+	 *
+	 * Writes only to migrate (FR-018): values stored under an older declaration
+	 * version go through the declaration's `migrate`, are validated, and are
+	 * written back once under the declared version, like any other write. A
+	 * migration that throws or yields invalid values writes nothing and is
+	 * logged; the guild then reads defaults for the fields it cannot read.
+	 * Values stored under a newer version are never written (FR-019).
 	 */
 	get<D extends SettingsDeclaration>(declaration: D, guildId: string): Promise<SettingsValues<D>>;
 
@@ -74,7 +84,9 @@ export interface SettingsService {
 	 * Validate a submission, then merge it onto the stored values in one write:
 	 * nothing is stored unless every field is valid. A field submitted as
 	 * `null` is unset; stored fields the declaration no longer declares are
-	 * dropped. Emits a settings change once written.
+	 * dropped. Values stored under an older declaration version are migrated
+	 * first, so the patch merges onto the values the guild reads. Emits a
+	 * settings change once written.
 	 *
 	 * @returns the written record.
 	 * @throws SettingsValidationError listing every invalid field.
@@ -92,7 +104,8 @@ export interface SettingsService {
 
 	/**
 	 * Unset the given fields (or every field), so they read as their defaults.
-	 * Writes nothing for a guild that never stored settings.
+	 * Writes nothing for a guild that never stored settings. Like
+	 * {@link set}, migrates older stored values before unsetting.
 	 *
 	 * @throws SettingsValidationError when a key is not declared.
 	 * @throws ConflictError when the stored record changed concurrently or was
@@ -136,34 +149,109 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
 	const { store, guilds, notifier, translator, clock, logger } = deps;
 	const cache = createSettingsCache({ clock, notifier });
 
+	/**
+	 * What a guild reads of `stored`: its valid declared fields, defaults not
+	 * applied, migrated in memory when stored under an older version. Logs
+	 * every field it has to drop and every failed migration.
+	 *
+	 * @returns the values, and whether they are a successful migration still to
+	 * be written back.
+	 */
+	function readable(
+		declaration: SettingsDeclaration,
+		stored: StoredSettings | null,
+	): { values: Readonly<Record<string, unknown>>; migrated: boolean } {
+		if (stored === null) {
+			return { values: {}, migrated: false };
+		}
+		const at = { guildId: stored.guildId, moduleId: declaration.id };
+		if (stored.version < declaration.version) {
+			const outcome = migrateStored(declaration, stored);
+			if (!outcome.ok) {
+				logger.error(
+					{
+						...at,
+						fromVersion: stored.version,
+						toVersion: declaration.version,
+						keys: outcome.invalidKeys,
+						...(outcome.error === undefined ? {} : { err: errorMessage(outcome.error) }),
+					},
+					"Settings migration failed; storage left unchanged, reading defaults for the fields it cannot read",
+				);
+			}
+			return { values: outcome.values, migrated: outcome.ok };
+		}
+		const decoded = decodeStored(declaration, stored.values);
+		if (decoded.invalidKeys.length > 0) {
+			logger.error(
+				{ ...at, keys: decoded.invalidKeys },
+				"Stored settings failed validation; reading defaults for these fields",
+			);
+		}
+		return { values: decoded.values, migrated: false };
+	}
+
+	/**
+	 * Write a successful migration back, expecting the revision it was read at.
+	 * When another reader (another shard) wrote first, its record is read
+	 * again instead: the conflict is not the caller's to handle.
+	 */
+	async function writeBack(params: {
+		declaration: SettingsDeclaration;
+		stored: StoredSettings;
+		values: Readonly<Record<string, unknown>>;
+	}): Promise<Readonly<Record<string, unknown>>> {
+		const { declaration, stored, values } = params;
+		const keys = new Set([...Object.keys(stored.values), ...Object.keys(values)]);
+		const changedKeys = [...keys].filter(
+			(key) => !isDeepStrictEqual(stored.values[key], values[key]),
+		);
+		try {
+			await write({
+				declaration,
+				guildId: stored.guildId,
+				stored,
+				expectedRevision: stored.revision,
+				values,
+				changedKeys,
+				author: undefined,
+			});
+			return values;
+		} catch (error) {
+			if (error instanceof ConflictError) {
+				const latest = await store.read(stored.guildId, declaration.id);
+				return readable(declaration, latest).values;
+			}
+			logger.error(
+				{
+					guildId: stored.guildId,
+					moduleId: declaration.id,
+					fromVersion: stored.version,
+					toVersion: declaration.version,
+					err: errorMessage(error),
+				},
+				"Failed to write migrated settings back; reading the migrated values",
+			);
+			return values;
+		}
+	}
+
 	/** Read and decode a guild's stored settings, bypassing the cache. */
 	async function load<D extends SettingsDeclaration>(
 		declaration: D,
 		guildId: string,
 	): Promise<SettingsValues<D>> {
 		const stored = await store.read(guildId, declaration.id);
-		const storedValues = stored?.values ?? {};
-		const values: Record<string, unknown> = {};
-		const invalidKeys: string[] = [];
-		for (const [key, declared] of Object.entries(declaration.fields)) {
-			values[key] = declared.default;
-			if (Object.hasOwn(storedValues, key)) {
-				const value = pruneStoredValue({ field: declared, value: storedValues[key] });
-				const parsed = parseFieldValue({ field: declared, value });
-				if (parsed.ok) {
-					values[key] = parsed.value;
-				} else {
-					invalidKeys.push(key);
-				}
-			}
-		}
-		if (invalidKeys.length > 0) {
-			logger.error(
-				{ guildId, moduleId: declaration.id, keys: invalidKeys },
-				"Stored settings failed validation; reading defaults for these fields",
-			);
-		}
-		return values as SettingsValues<D>;
+		const read = readable(declaration, stored);
+		const values =
+			read.migrated && stored !== null
+				? await writeBack({ declaration, stored, values: read.values })
+				: read.values;
+		const withDefaults = Object.entries(declaration.fields).map(([key, declared]) => [
+			key,
+			Object.hasOwn(values, key) ? values[key] : declared.default,
+		]);
+		return Object.fromEntries(withDefaults) as SettingsValues<D>;
 	}
 
 	function get<D extends SettingsDeclaration>(
@@ -173,7 +261,11 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
 		return cache.read(guildId, declaration.id, () => load(declaration, guildId));
 	}
 
-	/** Write `values` over `stored` and tell listeners which keys changed. */
+	/**
+	 * Write `values` over `stored` under the declared version and tell
+	 * listeners which keys changed. `author` is the user who asked, or
+	 * `undefined` for a write the kernel makes on its own (a migration).
+	 */
 	async function write(params: {
 		declaration: SettingsDeclaration;
 		guildId: string;
@@ -181,9 +273,9 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
 		expectedRevision: number | null;
 		values: Readonly<Record<string, unknown>>;
 		changedKeys: readonly string[];
-		ctx: RequestContext;
+		author: string | undefined;
 	}): Promise<StoredSettings> {
-		const { declaration, guildId, stored, ctx } = params;
+		const { declaration, guildId, stored, author } = params;
 		const next: StoredSettings = {
 			guildId,
 			moduleId: declaration.id,
@@ -191,7 +283,7 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
 			revision: (stored?.revision ?? 0) + 1,
 			values: params.values,
 			updatedAt: clock.now().toISOString(),
-			updatedBy: ctx.userId,
+			...(author === undefined ? {} : { updatedBy: author }),
 		};
 		await store.write(next, { expectedRevision: params.expectedRevision });
 		// Before notifying: a listener that reads back must see the new values.
@@ -201,7 +293,7 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
 			moduleId: declaration.id,
 			changedKeys: params.changedKeys,
 			revision: next.revision,
-			changedBy: ctx.userId,
+			...(author === undefined ? {} : { changedBy: author }),
 		});
 		return next;
 	}
@@ -250,7 +342,7 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
 			}
 			const stored = await store.read(guildId, declaration.id);
 			assertWritable(declaration, stored);
-			const values = declaredValues(declaration, stored);
+			const values = { ...readable(declaration, stored).values };
 			for (const [key, value] of Object.entries(result.values)) {
 				if (value === undefined) {
 					delete values[key];
@@ -266,7 +358,7 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
 					ctx.expectedRevision === undefined ? (stored?.revision ?? null) : ctx.expectedRevision,
 				values,
 				changedKeys: Object.keys(result.values),
-				ctx,
+				author: ctx.userId,
 			});
 		},
 
@@ -288,7 +380,7 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
 				return;
 			}
 			assertWritable(declaration, stored);
-			const values = declaredValues(declaration, stored);
+			const values = { ...readable(declaration, stored).values };
 			for (const key of resetKeys) {
 				delete values[key];
 			}
@@ -299,7 +391,7 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
 				expectedRevision: stored.revision,
 				values,
 				changedKeys: resetKeys,
-				ctx,
+				author: ctx.userId,
 			});
 		},
 
@@ -328,21 +420,6 @@ function assertWritable(declaration: SettingsDeclaration, stored: StoredSettings
 			`Settings of module "${declaration.id}" in guild ${stored.guildId} were written under version ${stored.version}, newer than the declared version ${declaration.version}`,
 		);
 	}
-}
-
-/** The stored values the declaration still declares, down to toggle keys (FR-017). */
-function declaredValues(
-	declaration: SettingsDeclaration,
-	stored: StoredSettings | null,
-): Record<string, unknown> {
-	const values: Record<string, unknown> = {};
-	for (const [key, value] of Object.entries(stored?.values ?? {})) {
-		const declared = Object.hasOwn(declaration.fields, key) ? declaration.fields[key] : undefined;
-		if (declared !== undefined) {
-			values[key] = pruneStoredValue({ field: declared, value });
-		}
-	}
-	return values;
 }
 
 function unknownField(key: string): SettingsIssue {

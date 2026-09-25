@@ -8,6 +8,7 @@ import {
 	type FieldChoice,
 	unhandledFieldKind,
 } from "@/settings/fields/field";
+import { isPlainObject } from "@/settings/is-plain-object";
 import type { SettingsIssueCode } from "@/settings/settings-validation-error";
 
 /** A Discord snowflake: 17 to 20 digits. */
@@ -68,7 +69,7 @@ export function parseFieldValue(params: { field: AnyField; value: unknown }): Fi
  */
 export function pruneStoredValue(params: { field: AnyField; value: unknown }): unknown {
 	const { field: target, value } = params;
-	if (target.spec.kind !== "toggles" || !isPlainRecord(value)) {
+	if (target.spec.kind !== "toggles" || !isPlainObject(value)) {
 		return value;
 	}
 	const { keys } = target.spec;
@@ -117,10 +118,6 @@ export function fieldsJsonSchema(params: {
 			params.annotate(declared, jsonSchema);
 		},
 	});
-}
-
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function schemaOf(target: AnyField): z.ZodType {

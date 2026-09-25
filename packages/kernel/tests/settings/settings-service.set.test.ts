@@ -270,17 +270,26 @@ describe("SettingsService.set", () => {
 		expect((await readStored(store))?.values).toStrictEqual({ maxOpen: 3, region: "na" });
 	});
 
-	it("drops stored toggles the declaration no longer declares (FR-017)", async () => {
+	it("drops stored toggles the declaration no longer declares, keeping the rest in stored form (FR-017)", async () => {
 		const { service, store } = await makeService([
 			record({ features: { tickets: false, removed: true } }),
 		]);
 
 		await service.set(valueCasesSettings, GUILD, { region: "na" }, CTX);
 
+		// The stored form of a toggles value lists every declared key, as `set` stores any submission.
 		expect((await readStored(store))?.values).toStrictEqual({
-			features: { tickets: false },
+			features: { tickets: false, logs: false },
 			region: "na",
 		});
+	});
+
+	it("drops a stored value that no longer validates, so the record holds only valid fields", async () => {
+		const { service, store } = await makeService([record({ maxOpen: 99, region: "na" })]);
+
+		await service.set(valueCasesSettings, GUILD, { enabled: false }, CTX);
+
+		expect((await readStored(store))?.values).toStrictEqual({ region: "na", enabled: false });
 	});
 
 	it("still rejects an undeclared toggle in a submission", async () => {

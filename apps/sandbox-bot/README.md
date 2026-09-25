@@ -210,10 +210,18 @@ visibility filter and as a guard. Values to try with `/config set`:
 | `accent` | `#ff8800` |
 | `cooldown` | `120` (seconds, 5 to 3600) |
 | `mode` | `strict` or `relaxed` |
-| `maxWarnings` | `5` (1 to 10) |
+| `warnLimit` | `5` (1 to 10) |
 | `features` | `{"logs":true}` |
 | `apiKey` | any text; never shown back |
 | `pingRoles` | `["123456789012345678"]` (IDs quoted inside a JSON list) |
+
+`demoSettings` is at version 2 to show a settings migration: version 1 stored
+the warning limit as `maxWarnings`, version 2 calls it `warnLimit`. Its `migrate`
+(in `demo.settings.ts`) renames the key; the kernel runs it the first time a
+guild's version-1 record is read, validates the result and stores it under
+version 2. To reshape a module's settings, raise `version` and extend `migrate`
+so it handles every older version; keep it pure (see the kernel README,
+"Evolving module settings").
 
 The bot also logs when it is ready, when it joins a guild and every settings
 change. The reply language is, in order: your Discord client language when the

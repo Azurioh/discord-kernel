@@ -1,10 +1,28 @@
-import { defineSettings, field } from "@azurioh/discord-kernel/settings";
+import { defineSettings, field, type SettingsMigration } from "@azurioh/discord-kernel/settings";
 import { DEMO_SETTINGS_MESSAGES } from "@/modules/demo/i18n/demo.messages";
 
-/** One field of most kinds, to try each validation rule from `/config set`. */
+/**
+ * Bring values stored under an older version to the current shape. Version 2
+ * renamed `maxWarnings` to `warnLimit`. Pure (the kernel validates and stores
+ * the result), and it handles every older version: a version it does not know
+ * throws, which the kernel logs, leaving the stored record as it was.
+ */
+const migrateDemoSettings: SettingsMigration = (fromVersion, raw) => {
+	if (fromVersion !== 1) {
+		throw new Error(`demo settings: no migration from version ${fromVersion}`);
+	}
+	const { maxWarnings, ...rest } = raw as Record<string, unknown>;
+	return maxWarnings === undefined ? rest : { ...rest, warnLimit: maxWarnings };
+};
+
+/**
+ * One field of most kinds, to try each validation rule from `/config set`.
+ * Version 2 shows a migration: see {@link migrateDemoSettings}.
+ */
 export const demoSettings = defineSettings({
 	id: "demo",
-	version: 1,
+	version: 2,
+	migrate: migrateDemoSettings,
 	labels: { title: DEMO_SETTINGS_MESSAGES.title, description: DEMO_SETTINGS_MESSAGES.description },
 	fields: {
 		logChannel: field.channel({
@@ -29,8 +47,8 @@ export const demoSettings = defineSettings({
 			],
 			default: "relaxed",
 		}),
-		maxWarnings: field.integer({
-			label: DEMO_SETTINGS_MESSAGES.maxWarnings,
+		warnLimit: field.integer({
+			label: DEMO_SETTINGS_MESSAGES.warnLimit,
 			min: 1,
 			max: 10,
 			default: 3,

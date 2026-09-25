@@ -39,7 +39,7 @@ export const DEMO_SETTINGS_MESSAGES = {
 	mode: "demo.settings.mode",
 	modeRelaxed: "demo.settings.mode.relaxed",
 	modeStrict: "demo.settings.mode.strict",
-	maxWarnings: "demo.settings.max-warnings",
+	warnLimit: "demo.settings.warn-limit",
 	features: "demo.settings.features",
 	featuresWelcome: "demo.settings.features.welcome",
 	featuresLogs: "demo.settings.features.logs",

@@ -2,6 +2,7 @@ import { ValidationError } from "@/errors/business-error";
 import type { SettingsDeclaration } from "@/settings/define-settings";
 import { type FieldSpec, unhandledFieldKind } from "@/settings/fields/field";
 import { type FieldValueIssue, parseFieldValue } from "@/settings/fields/zod-schema";
+import { isPlainObject } from "@/settings/is-plain-object";
 import { SETTINGS_ISSUE_MESSAGES } from "@/settings/messages";
 import type { GuildDirectory } from "@/settings/ports/guild-directory";
 import type { SettingsIssue, SettingsIssueCode } from "@/settings/settings-validation-error";
@@ -50,7 +51,7 @@ export async function validateSettings(params: {
 	guilds: GuildDirectory;
 }): Promise<SettingsValidation> {
 	const { declaration, patch } = params;
-	if (!isRecord(patch)) {
+	if (!isPlainObject(patch)) {
 		throw new ValidationError(
 			`Settings patch for module "${declaration.id}" must be an object keyed by field`,
 		);
@@ -67,10 +68,6 @@ export async function validateSettings(params: {
 		ok: true,
 		values: Object.fromEntries(entries.map(([key], index) => [key, outcomes[index]?.value])),
 	};
-}
-
-function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 async function validateEntry(params: {

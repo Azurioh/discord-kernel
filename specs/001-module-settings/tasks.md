@@ -169,8 +169,8 @@ after `authorize`. Outside a guild the guard denies like `guildOnlyGuard`.
 **Goal**: lazy migration on read.
 **Independent test**: S11.
 
-- [ ] T049 [US6] Write failing tests: stored v1 + v2 declaration adding a field → default for new field; stored v1 + v2 with `migrate` → migrated, validated, written once with `version: 2`, `revision + 1`; failing migration → storage unchanged, error logged, defaults for invalid fields; stored v3 + v2 declaration → never written, defaults for invalid fields; stored unknown field → ignored on read (dropping on write is covered by T027); `set` and `reset` on a stored v1 record with a v2 declaration migrate it first, then merge onto the migrated values (never onto the unmigrated ones) — in `packages/kernel/tests/settings/migrate.test.ts`
-- [ ] T050 [US6] Implement lazy migration in `packages/kernel/src/settings/migrate.ts` and call it from `get`, and before the merge in `set` and `reset` (today they merge onto unmigrated stored values), in `packages/kernel/src/settings/settings-service.ts` until T049 passes
+- [X] T049 [US6] Write failing tests: stored v1 + v2 declaration adding a field → default for new field; stored v1 + v2 with `migrate` → migrated, validated, written once with `version: 2`, `revision + 1`; failing migration → storage unchanged, error logged, defaults for invalid fields; stored v3 + v2 declaration → never written, defaults for invalid fields; stored unknown field → ignored on read (dropping on write is covered by T027); `set` and `reset` on a stored v1 record with a v2 declaration migrate it first, then merge onto the migrated values (never onto the unmigrated ones) — in `packages/kernel/tests/settings/migrate.test.ts`
+- [X] T050 [US6] Implement lazy migration in `packages/kernel/src/settings/migrate.ts` and call it from `get`, and before the merge in `set` and `reset` (today they merge onto unmigrated stored values), in `packages/kernel/src/settings/settings-service.ts` until T049 passes
 
 ---
 

@@ -1,7 +1,11 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { KERNEL_SETTINGS_ID, kernelSettings } from "@azurioh/discord-kernel/settings";
+import {
+	KERNEL_SETTINGS_ID,
+	kernelSettings,
+	type SettingsStore,
+} from "@azurioh/discord-kernel/settings";
 import { ChannelType, type Guild } from "discord.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSandbox, type Sandbox } from "@/bootstrap/create-sandbox";
@@ -16,7 +20,8 @@ import { createSqliteSettingsStore } from "@/shared/settings/sqlite/sqlite-setti
  * Discord interaction faked. Checks the spec's acceptance scenarios S15
  * (a disabled module answers "disabled" on that guild only), S16 (turning it
  * back on), S17 (reply language order), S18 (a command needing a required
- * setting is blocked until it is set) and that /server stays reachable.
+ * setting is blocked until it is set), S11 (settings stored under an older
+ * declaration version are migrated on read) and that /server stays reachable.
  */
 
 const GUILD = "100000000000000001";
@@ -29,11 +34,15 @@ const logger = createPinoLogger("test", { write: () => undefined });
 interface Sent {
 	readonly description: string | undefined;
 	readonly title: string | undefined;
+	/** Each embed field as `name: value`. */
+	readonly fields: readonly string[];
 }
 
 /** A chat-input interaction as the router reads it; records what the bot sends. */
 function slash(params: {
 	name: string;
+	/** The subcommand the member picked, for a command that has them. */
+	subcommand?: string;
 	guildId: string | null;
 	locale?: string;
 	guildLocale?: string | null;
@@ -44,10 +53,21 @@ function slash(params: {
 }) {
 	const sent: Sent[] = [];
 	const record = async (payload: {
-		embeds?: { data: { description?: string; title?: string } }[];
+		embeds?: {
+			data: {
+				description?: string;
+				title?: string;
+				fields?: { name: string; value: string }[];
+			};
+		}[];
 	}) => {
 		for (const embed of payload.embeds ?? []) {
-			sent.push({ description: embed.data.description, title: embed.data.title });
+			const { description, title, fields = [] } = embed.data;
+			sent.push({
+				description,
+				title,
+				fields: fields.map(({ name, value }) => `${name}: ${value}`),
+			});
 		}
 	};
 	const manageGuild = params.manageGuild ?? true;
@@ -65,7 +85,7 @@ function slash(params: {
 		replied: false,
 		client: { ws: { ping: 42 }, channels: { fetch: async () => params.channel ?? null } },
 		options: {
-			getSubcommand: () => null,
+			getSubcommand: () => params.subcommand ?? null,
 			getSubcommandGroup: () => null,
 			get: () => null,
 			data: [],
@@ -92,6 +112,8 @@ describe("sandbox, end to end", () => {
 	let directory: string;
 	let sandbox: Sandbox;
 	let config: SandboxConfig;
+	/** A second connection to the sandbox's SQLite file, as another process would open it. */
+	let sqlite: SettingsStore;
 
 	beforeEach(() => {
 		directory = mkdtempSync(join(tmpdir(), "sandbox-e2e-"));
@@ -102,6 +124,7 @@ describe("sandbox, end to end", () => {
 			settingsStore: { adapter: "sqlite", file: join(directory, "settings.sqlite") },
 		};
 		sandbox = createSandbox(config, logger);
+		sqlite = createSqliteSettingsStore(join(directory, "settings.sqlite"));
 	});
 
 	afterEach(async () => {
@@ -111,13 +134,23 @@ describe("sandbox, end to end", () => {
 
 	/** Write the guild's kernel settings straight into the store the sandbox reads. */
 	async function storeKernel(guildId: string, values: Record<string, unknown>) {
-		const store = createSqliteSettingsStore(join(directory, "settings.sqlite"));
-		const current = await store.read(guildId, KERNEL_SETTINGS_ID);
-		await store.write(
+		await storeRaw({ guildId, moduleId: KERNEL_SETTINGS_ID, version: 1, values });
+	}
+
+	/** Write a record straight into the SQLite file the sandbox reads, bypassing the service. */
+	async function storeRaw(params: {
+		guildId: string;
+		moduleId: string;
+		version: number;
+		values: Record<string, unknown>;
+	}) {
+		const { guildId, moduleId, version, values } = params;
+		const current = await sqlite.read(guildId, moduleId);
+		await sqlite.write(
 			{
 				guildId,
-				moduleId: KERNEL_SETTINGS_ID,
-				version: 1,
+				moduleId,
+				version,
 				revision: (current?.revision ?? 0) + 1,
 				values,
 				updatedAt: "2026-01-01T00:00:00.000Z",
@@ -179,6 +212,27 @@ describe("sandbox, end to end", () => {
 			/disabled on this server/i,
 		);
 		expect(interaction.deferReply).toHaveBeenCalled();
+	});
+
+	it("S11: migrates demo settings stored under version 1 on the first read", async () => {
+		await storeRaw({
+			guildId: GUILD,
+			moduleId: demoSettings.id,
+			version: 1,
+			values: { maxWarnings: 7, mode: "strict" },
+		});
+
+		const { sent } = await run({ name: "config", subcommand: "show", guildId: GUILD });
+		const record = await sqlite.read(GUILD, demoSettings.id);
+
+		expect(sent.flatMap(({ fields }) => fields)).toContain("Warning limit (warnLimit): 7");
+		expect(record?.version).toBe(2);
+		expect(record?.revision).toBe(2);
+		expect(record?.values).toStrictEqual({ warnLimit: 7, mode: "strict" });
+		expect(await sandbox.settings.get(demoSettings, GUILD)).toMatchObject({
+			warnLimit: 7,
+			mode: "strict",
+		});
 	});
 
 	it("S17: replies in the member's client language when the bot supports it", async () => {

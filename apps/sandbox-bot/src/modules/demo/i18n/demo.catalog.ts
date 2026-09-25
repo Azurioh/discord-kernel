@@ -101,7 +101,7 @@ export const DEMO_CATALOG: KeyedCatalog<
 	[DEMO_SETTINGS_MESSAGES.mode]: { en: "Mode", fr: "Mode" },
 	[DEMO_SETTINGS_MESSAGES.modeRelaxed]: { en: "Relaxed", fr: "Souple" },
 	[DEMO_SETTINGS_MESSAGES.modeStrict]: { en: "Strict", fr: "Strict" },
-	[DEMO_SETTINGS_MESSAGES.maxWarnings]: { en: "Maximum warnings", fr: "Avertissements maximum" },
+	[DEMO_SETTINGS_MESSAGES.warnLimit]: { en: "Warning limit", fr: "Limite d'avertissements" },
 	[DEMO_SETTINGS_MESSAGES.features]: { en: "Features", fr: "Fonctionnalités" },
 	[DEMO_SETTINGS_MESSAGES.featuresWelcome]: {
 		en: "Welcome message",
