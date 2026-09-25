@@ -56,24 +56,6 @@ export type ComponentAuthorization =
 	 */
 	| { readonly kind: "handler"; readonly because: string };
 
-/** Any member may click; `because` records why that is acceptable. */
-export function openToAnyone(because: string): ComponentAuthorization {
-	return { kind: "anyone", because };
-}
-
-/** The router denies the click unless the member holds every permission. */
-export function requiresPermissions(...required: readonly PermissionBit[]): ComponentAuthorization {
-	return { kind: "permissions", required };
-}
-
-/**
- * The decision needs per-resource state, so the handler makes it. `because`
- * names the rule it applies, so a reviewer can go and check that it does.
- */
-export function checkedByHandler(because: string): ComponentAuthorization {
-	return { kind: "handler", because };
-}
-
 /**
  * A persistent component handler, routed by `customId`. It claims an interaction
  * whose customId equals `customId` or starts with `${customId}:`, so dynamic
@@ -92,11 +74,6 @@ export interface ComponentHandler {
 	/** Who may act on this component. Required: see {@link ComponentAuthorization}. */
 	readonly authorize: ComponentAuthorization;
 	handle(interaction: RoutableInteraction, runtime: ComponentRuntime): Promise<void> | void;
-}
-
-/** Declare a {@link ComponentHandler}. Identity helper kept for a consistent DSL. */
-export function createComponentHandler(handler: ComponentHandler): ComponentHandler {
-	return handler;
 }
 
 export interface ComponentRouterDeps {

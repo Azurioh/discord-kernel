@@ -28,14 +28,16 @@ export type {
 	SettingsEditorSubmission,
 } from "@/discord/components/settings-editor/settings-editor-field-modal";
 export {
+	pickedFieldValue,
+	textFieldValue,
+} from "@/discord/components/settings-editor/settings-editor-field-values";
+export {
 	MAX_MODAL_COMPONENTS,
 	MAX_MODAL_INPUT_LENGTH,
-	pickedFieldValue,
 	type SettingsEditorChoice,
 	type SettingsEditorField,
 	type SettingsEditorFieldValue,
 	type SettingsEditorGroupField,
 	type SettingsEditorPickerField,
 	type SettingsEditorValueField,
-	textFieldValue,
 } from "@/discord/components/settings-editor/settings-editor-fields";

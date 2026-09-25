@@ -1,12 +1,11 @@
 import type { ActionRowBuilder, ButtonBuilder, EmbedBuilder } from "discord.js";
-import {
-	type ComponentHandler,
-	type ComponentRuntime,
-	createComponentHandler,
-	openToAnyone,
-	type RoutableInteraction,
+import { openToAnyone } from "@/discord/components/component-access";
+import type {
+	ComponentHandler,
+	ComponentRuntime,
+	RoutableInteraction,
 } from "@/discord/components/component-router";
-import { toMessageEditOptions } from "@/discord/components/interactive-message/interactive-message-collector";
+import { toMessageEditOptions } from "@/discord/components/interactive-message/message-edit-options";
 import {
 	clampPage,
 	isFirstPage,
@@ -186,12 +185,12 @@ export function createPersistentPaginator(
 	return {
 		customId,
 		render: (page = FIRST_PAGE) => loadPage(page),
-		handler: createComponentHandler({
+		handler: {
 			customId,
 			// Navigation only re-renders what the message already showed to
 			// whoever can see the channel; it grants no access of its own.
 			authorize: openToAnyone("paging a message reveals nothing its reader could not already see"),
 			handle: handleClick,
-		}),
+		},
 	};
 }

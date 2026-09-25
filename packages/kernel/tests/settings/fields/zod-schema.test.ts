@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DISCORD_BLURPLE } from "@/color";
-import { registerColorAliases } from "@/discord/ui/color-input";
+import { registerColorAliases } from "@/discord/ui/color-aliases";
 import { field } from "@/settings/fields/builders";
 import { parseFieldValue } from "@/settings/fields/zod-schema";
 

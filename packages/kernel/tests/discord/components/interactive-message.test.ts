@@ -2,12 +2,12 @@ import { Collection, EmbedBuilder } from "discord.js";
 import { describe, expect, it, vi } from "vitest";
 import {
 	COLLECTOR_IDLE_MS,
-	createStateStore,
 	type InteractiveSelect,
 	type InteractiveView,
 	mountInteractiveMessageCollector,
 	type SelectComponentContext,
 } from "@/discord/components/interactive-message/interactive-message-collector";
+import { createStateStore } from "@/discord/components/interactive-message/state-store";
 import { type Button, createButton } from "@/discord/interaction/button";
 import type { Logger } from "@/logger";
 
