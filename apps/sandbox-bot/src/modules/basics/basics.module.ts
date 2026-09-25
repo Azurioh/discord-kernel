@@ -6,6 +6,7 @@ import { createRollCommand } from "@/modules/basics/commands/roll/roll.command";
 import { createGuildCreateEvent } from "@/modules/basics/events/lifecycle/guild-create/guild-create.event";
 import { createReadyEvent } from "@/modules/basics/events/lifecycle/ready/ready.event";
 import { BASICS_CATALOG } from "@/modules/basics/i18n/basics.catalog";
+import { BASICS_MESSAGES } from "@/modules/basics/i18n/basics.messages";
 
 export interface BasicsModuleDeps {
 	readonly guildIds: readonly string[];
@@ -16,6 +17,7 @@ export interface BasicsModuleDeps {
 export function createBasicsModule(deps: BasicsModuleDeps): BotModule {
 	return {
 		name: "basics",
+		label: BASICS_MESSAGES.moduleName,
 		commands: [
 			createPingCommand(deps.guildIds),
 			createRollCommand(deps.guildIds),

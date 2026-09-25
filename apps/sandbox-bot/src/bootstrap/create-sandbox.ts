@@ -87,7 +87,7 @@ export function createSandbox(config: SandboxConfig, logger: Logger): Sandbox {
 		declarations: modules.flatMap((module) => module.settings ?? []),
 		translations,
 		// Only what the gate can disable gets a toggle: admin is never gated.
-		modules: gatedModules.map(({ name, defaultEnabled }) => ({ name, defaultEnabled })),
+		modules: gatedModules,
 	});
 	const settings = createSettingsService({
 		registry,

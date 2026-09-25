@@ -5,6 +5,7 @@ import { DEMO_MESSAGES, DEMO_SETTINGS_MESSAGES } from "@/modules/demo/i18n/demo.
 export const DEMO_CATALOG: KeyedCatalog<
 	MessageKey<typeof DEMO_MESSAGES> | MessageKey<typeof DEMO_SETTINGS_MESSAGES>
 > = {
+	[DEMO_MESSAGES.moduleName]: { en: "Settings demo", fr: "Démo des paramètres" },
 	[DEMO_MESSAGES.configDescription]: {
 		en: "Read and change the demo settings",
 		fr: "Lire et modifier les paramètres de la démo",

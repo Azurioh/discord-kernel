@@ -3,6 +3,7 @@ import { BASICS_MESSAGES } from "@/modules/basics/i18n/basics.messages";
 
 /** The basics module's wording in English and French, keyed by `BASICS_MESSAGES`. */
 export const BASICS_CATALOG: KeyedCatalog<MessageKey<typeof BASICS_MESSAGES>> = {
+	[BASICS_MESSAGES.moduleName]: { en: "Basics", fr: "Bases" },
 	[BASICS_MESSAGES.pingDescription]: {
 		en: "Check that the bot answers",
 		fr: "Vérifier que le bot répond",

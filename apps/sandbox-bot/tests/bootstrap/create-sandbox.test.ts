@@ -82,4 +82,14 @@ describe("createSandbox", () => {
 		const spec = deps?.kernelSettings().fields.modules.spec;
 		expect(spec?.kind === "toggles" ? spec.keys : undefined).toEqual(["basics", "demo"]);
 	});
+
+	it("labels every module toggle with a translated name", () => {
+		const { client } = createSandbox(CONFIG, logger);
+		void client.destroy();
+
+		const deps = vi.mocked(adminModule.createAdminModule).mock.lastCall?.[0];
+		const spec = deps?.kernelSettings().fields.modules.spec;
+		const labels = spec?.kind === "toggles" ? spec.keyLabels : undefined;
+		expect(Object.keys(labels ?? {})).toEqual(["basics", "demo"]);
+	});
 });

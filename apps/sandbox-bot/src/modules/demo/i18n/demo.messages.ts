@@ -1,5 +1,6 @@
 /** The `/config` command's wording: descriptions and replies. */
 export const DEMO_MESSAGES = {
+	moduleName: "demo.module.name",
 	configDescription: "demo.config.description",
 	showDescription: "demo.config.show.description",
 	editDescription: "demo.config.edit.description",
