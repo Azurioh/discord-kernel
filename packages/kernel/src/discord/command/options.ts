@@ -33,14 +33,28 @@ export interface OptionLocalizations {
 	descriptionLocalizations?: LocalizationMap;
 }
 
-/** Applies the localization maps to a builder, if any were provided. */
-function applyOptionLocalizations(
-	option: {
-		setNameLocalizations(map: LocalizationMap): unknown;
-		setDescriptionLocalizations(map: LocalizationMap): unknown;
-	},
+/** The setters every discord.js option builder shares, whatever its type. */
+interface OptionBuilder {
+	setName(name: string): unknown;
+	setDescription(description: string): unknown;
+	setRequired(required: boolean): unknown;
+	setNameLocalizations(map: LocalizationMap): unknown;
+	setDescriptionLocalizations(map: LocalizationMap): unknown;
+}
+
+/**
+ * The block every option type opens with: its name, description, whether it
+ * is required, and its translated labels.
+ */
+function describeOption(
+	option: OptionBuilder,
+	name: string,
+	declared: { readonly description: string; readonly isRequired: boolean },
 	localizations: OptionLocalizations,
 ): void {
+	option.setName(name);
+	option.setDescription(declared.description);
+	option.setRequired(declared.isRequired);
 	if (localizations.nameLocalizations) {
 		option.setNameLocalizations(localizations.nameLocalizations);
 	}
@@ -194,8 +208,7 @@ class StringOption<TValue extends string, TRequired extends boolean>
 	apply(container: OptionContainer, name: string): void {
 		assertChoicesAndAutocompleteExclusive(this.choiceValues !== null, this.autocomplete);
 		container.addStringOption((option) => {
-			option.setName(name).setDescription(this.description).setRequired(this.isRequired);
-			applyOptionLocalizations(option, this.localizations);
+			describeOption(option, name, this, this.localizations);
 			if (this.choiceValues) {
 				option.addChoices(...this.choiceValues.map((value) => ({ name: value, value })));
 			}
@@ -240,85 +253,86 @@ export function createStringOption(
 	);
 }
 
-class UserOption<TRequired extends boolean> implements Option<User, TRequired> {
+/**
+ * What an option type contributes on top of the shared name/description/
+ * required/localization block: which builder it registers through (and any
+ * extra setter it applies there), how it reads the submitted value, and the
+ * name its `choices()` refusal gives it.
+ */
+interface OptionKind<TValue, TBuilder> {
+	readonly label: string;
+	add(container: OptionContainer, configure: (option: TBuilder) => void): void;
+	read(interaction: ChatInputCommandInteraction, name: string, required: boolean): TValue | null;
+}
+
+/** Adapt a `configure` step to the builder callback discord.js expects back. */
+function configuring<TBase>(
+	configure: (option: TBase) => void,
+): <TBuilder extends TBase>(option: TBuilder) => TBuilder {
+	return (option) => {
+		configure(option);
+		return option;
+	};
+}
+
+/**
+ * An option type that supports neither choices nor autocomplete: every
+ * difference between two of them lives in their {@link OptionKind}.
+ */
+class PlainOption<TValue, TRequired extends boolean> implements Option<TValue, TRequired> {
 	constructor(
+		private readonly kind: OptionKind<TValue, OptionBuilder>,
 		readonly description: string,
 		readonly isRequired: TRequired,
 		private readonly localizations: OptionLocalizations = {},
 	) {}
 
-	required(): Option<User, true> {
-		return new UserOption<true>(this.description, true, this.localizations);
+	required(): Option<TValue, true> {
+		return new PlainOption<TValue, true>(this.kind, this.description, true, this.localizations);
 	}
 
-	choices<const C extends readonly User[]>(_values: C): Option<C[number], TRequired> {
-		throw new OptionValidationError("User options do not support choices.");
+	choices<const C extends readonly TValue[]>(_values: C): Option<C[number], TRequired> {
+		throw new OptionValidationError(`${this.kind.label} options do not support choices.`);
 	}
 
 	apply(container: OptionContainer, name: string): void {
-		container.addUserOption((option) => {
-			option.setName(name).setDescription(this.description).setRequired(this.isRequired);
-			applyOptionLocalizations(option, this.localizations);
-			return option;
-		});
+		this.kind.add(container, (option) => describeOption(option, name, this, this.localizations));
 	}
 
 	read(
 		interaction: ChatInputCommandInteraction,
 		name: string,
-	): TRequired extends true ? User : User | null {
-		return interaction.options.getUser(name, this.isRequired as boolean) as TRequired extends true
-			? User
-			: User | null;
+	): TRequired extends true ? TValue : TValue | null {
+		return this.kind.read(interaction, name, this.isRequired) as TRequired extends true
+			? TValue
+			: TValue | null;
 	}
 }
+
+const USER_KIND: OptionKind<User, OptionBuilder> = {
+	label: "User",
+	add: (container, configure) => container.addUserOption(configuring(configure)),
+	read: (interaction, name, required) => interaction.options.getUser(name, required),
+};
 
 export function createUserOption(
 	description: string,
 	localizations: OptionLocalizations = {},
 ): Option<User, false> {
-	return new UserOption<false>(description, false, localizations);
+	return new PlainOption<User, false>(USER_KIND, description, false, localizations);
 }
 
-class BooleanOption<TRequired extends boolean> implements Option<boolean, TRequired> {
-	constructor(
-		readonly description: string,
-		readonly isRequired: TRequired,
-		private readonly localizations: OptionLocalizations = {},
-	) {}
-
-	required(): Option<boolean, true> {
-		return new BooleanOption<true>(this.description, true, this.localizations);
-	}
-
-	choices<const C extends readonly boolean[]>(_values: C): Option<C[number], TRequired> {
-		throw new OptionValidationError("Boolean options do not support choices.");
-	}
-
-	apply(container: OptionContainer, name: string): void {
-		container.addBooleanOption((option) => {
-			option.setName(name).setDescription(this.description).setRequired(this.isRequired);
-			applyOptionLocalizations(option, this.localizations);
-			return option;
-		});
-	}
-
-	read(
-		interaction: ChatInputCommandInteraction,
-		name: string,
-	): TRequired extends true ? boolean : boolean | null {
-		return interaction.options.getBoolean(
-			name,
-			this.isRequired as boolean,
-		) as TRequired extends true ? boolean : boolean | null;
-	}
-}
+const BOOLEAN_KIND: OptionKind<boolean, OptionBuilder> = {
+	label: "Boolean",
+	add: (container, configure) => container.addBooleanOption(configuring(configure)),
+	read: (interaction, name, required) => interaction.options.getBoolean(name, required),
+};
 
 export function createBooleanOption(
 	description: string,
 	localizations: OptionLocalizations = {},
 ): Option<boolean, false> {
-	return new BooleanOption<false>(description, false, localizations);
+	return new PlainOption<boolean, false>(BOOLEAN_KIND, description, false, localizations);
 }
 
 interface IntegerBounds {
@@ -326,8 +340,20 @@ interface IntegerBounds {
 	max?: number;
 }
 
-class IntegerOption<TRequired extends boolean> implements AutocompletableOption<number, TRequired> {
+/** The setters the integer and number builders share on top of the plain ones. */
+interface NumericOptionBuilder extends OptionBuilder {
+	setMinValue(min: number): unknown;
+	setMaxValue(max: number): unknown;
+	setAutocomplete(autocomplete: boolean): unknown;
+}
+
+/**
+ * An integer or a number option: bounded, autocompletable, never offered as a
+ * fixed choice list. The two differ only in their {@link OptionKind}.
+ */
+class NumericOption<TRequired extends boolean> implements AutocompletableOption<number, TRequired> {
 	constructor(
+		private readonly kind: OptionKind<number, NumericOptionBuilder>,
 		readonly description: string,
 		readonly isRequired: TRequired,
 		private readonly bounds: IntegerBounds,
@@ -336,7 +362,8 @@ class IntegerOption<TRequired extends boolean> implements AutocompletableOption<
 	) {}
 
 	required(): AutocompletableOption<number, true> {
-		return new IntegerOption<true>(
+		return new NumericOption<true>(
+			this.kind,
 			this.description,
 			true,
 			this.bounds,
@@ -346,11 +373,12 @@ class IntegerOption<TRequired extends boolean> implements AutocompletableOption<
 	}
 
 	choices<const C extends readonly number[]>(_values: C): Option<C[number], TRequired> {
-		throw new OptionValidationError("Integer options do not support choices.");
+		throw new OptionValidationError(`${this.kind.label} options do not support choices.`);
 	}
 
 	withAutocomplete(resolver: AutocompleteResolver): AutocompletableOption<number, TRequired> {
-		return new IntegerOption<TRequired>(
+		return new NumericOption<TRequired>(
+			this.kind,
 			this.description,
 			this.isRequired,
 			this.bounds,
@@ -360,9 +388,8 @@ class IntegerOption<TRequired extends boolean> implements AutocompletableOption<
 	}
 
 	apply(container: OptionContainer, name: string): void {
-		container.addIntegerOption((option) => {
-			option.setName(name).setDescription(this.description).setRequired(this.isRequired);
-			applyOptionLocalizations(option, this.localizations);
+		this.kind.add(container, (option) => {
+			describeOption(option, name, this, this.localizations);
 			if (this.bounds.min !== undefined) {
 				option.setMinValue(this.bounds.min);
 			}
@@ -372,7 +399,6 @@ class IntegerOption<TRequired extends boolean> implements AutocompletableOption<
 			if (this.autocomplete !== undefined) {
 				option.setAutocomplete(true);
 			}
-			return option;
 		});
 	}
 
@@ -380,139 +406,84 @@ class IntegerOption<TRequired extends boolean> implements AutocompletableOption<
 		interaction: ChatInputCommandInteraction,
 		name: string,
 	): TRequired extends true ? number : number | null {
-		return interaction.options.getInteger(
-			name,
-			this.isRequired as boolean,
-		) as TRequired extends true ? number : number | null;
+		return this.kind.read(interaction, name, this.isRequired) as TRequired extends true
+			? number
+			: number | null;
 	}
 }
+
+const INTEGER_KIND: OptionKind<number, NumericOptionBuilder> = {
+	label: "Integer",
+	add: (container, configure) => container.addIntegerOption(configuring(configure)),
+	read: (interaction, name, required) => interaction.options.getInteger(name, required),
+};
 
 export function createIntegerOption(
 	description: string,
 	bounds: IntegerBounds = {},
 	localizations: OptionLocalizations = {},
 ): AutocompletableOption<number, false> {
-	return new IntegerOption<false>(description, false, bounds, undefined, localizations);
+	return new NumericOption<false>(
+		INTEGER_KIND,
+		description,
+		false,
+		bounds,
+		undefined,
+		localizations,
+	);
 }
 
-class NumberOption<TRequired extends boolean> implements AutocompletableOption<number, TRequired> {
-	constructor(
-		readonly description: string,
-		readonly isRequired: TRequired,
-		private readonly bounds: IntegerBounds,
-		readonly autocomplete?: AutocompleteResolver,
-		private readonly localizations: OptionLocalizations = {},
-	) {}
-
-	required(): AutocompletableOption<number, true> {
-		return new NumberOption<true>(
-			this.description,
-			true,
-			this.bounds,
-			this.autocomplete,
-			this.localizations,
-		);
-	}
-
-	choices<const C extends readonly number[]>(_values: C): Option<C[number], TRequired> {
-		throw new OptionValidationError("Number options do not support choices.");
-	}
-
-	withAutocomplete(resolver: AutocompleteResolver): AutocompletableOption<number, TRequired> {
-		return new NumberOption<TRequired>(
-			this.description,
-			this.isRequired,
-			this.bounds,
-			resolver,
-			this.localizations,
-		);
-	}
-
-	apply(container: OptionContainer, name: string): void {
-		container.addNumberOption((option) => {
-			option.setName(name).setDescription(this.description).setRequired(this.isRequired);
-			applyOptionLocalizations(option, this.localizations);
-			if (this.bounds.min !== undefined) {
-				option.setMinValue(this.bounds.min);
-			}
-			if (this.bounds.max !== undefined) {
-				option.setMaxValue(this.bounds.max);
-			}
-			if (this.autocomplete !== undefined) {
-				option.setAutocomplete(true);
-			}
-			return option;
-		});
-	}
-
-	read(
-		interaction: ChatInputCommandInteraction,
-		name: string,
-	): TRequired extends true ? number : number | null {
-		return interaction.options.getNumber(name, this.isRequired as boolean) as TRequired extends true
-			? number
-			: number | null;
-	}
-}
+const NUMBER_KIND: OptionKind<number, NumericOptionBuilder> = {
+	label: "Number",
+	add: (container, configure) => container.addNumberOption(configuring(configure)),
+	read: (interaction, name, required) => interaction.options.getNumber(name, required),
+};
 
 export function createNumberOption(
 	description: string,
 	bounds: IntegerBounds = {},
 	localizations: OptionLocalizations = {},
 ): AutocompletableOption<number, false> {
-	return new NumberOption<false>(description, false, bounds, undefined, localizations);
+	return new NumericOption<false>(
+		NUMBER_KIND,
+		description,
+		false,
+		bounds,
+		undefined,
+		localizations,
+	);
+}
+
+/** A plain string input whose raw text is validated, then converted, by `parse`. */
+function textKind<TValue>(
+	label: string,
+	parse: (raw: string) => TValue,
+): OptionKind<TValue, OptionBuilder> {
+	return {
+		label,
+		add: (container, configure) => container.addStringOption(configuring(configure)),
+		read: (interaction, name, required) => {
+			const raw = interaction.options.getString(name, required);
+			return raw === null ? null : parse(raw);
+		},
+	};
 }
 
 const INVALID_DATETIME_MESSAGE =
 	"Invalid date format. Use `YYYY-MM-DD HH:MM` (e.g. `2025-03-15 14:00`).";
 
-function assertValidDate(value: string, message: string): void {
-	if (Number.isNaN(Date.parse(value))) {
-		throw new OptionValidationError(message);
+const DATE_TIME_KIND = textKind<Date>("Date", (raw) => {
+	if (Number.isNaN(Date.parse(raw))) {
+		throw new OptionValidationError(INVALID_DATETIME_MESSAGE);
 	}
-}
-
-class DateTimeOption<TRequired extends boolean> implements Option<Date, TRequired> {
-	constructor(
-		readonly description: string,
-		readonly isRequired: TRequired,
-		private readonly localizations: OptionLocalizations = {},
-	) {}
-
-	required(): Option<Date, true> {
-		return new DateTimeOption<true>(this.description, true, this.localizations);
-	}
-
-	choices<const C extends readonly Date[]>(_values: C): Option<C[number], TRequired> {
-		throw new OptionValidationError("Date options do not support choices.");
-	}
-
-	apply(container: OptionContainer, name: string): void {
-		container.addStringOption((option) => {
-			option.setName(name).setDescription(this.description).setRequired(this.isRequired);
-			applyOptionLocalizations(option, this.localizations);
-			return option;
-		});
-	}
-
-	read(
-		interaction: ChatInputCommandInteraction,
-		name: string,
-	): TRequired extends true ? Date : Date | null {
-		const raw = interaction.options.getString(name, this.isRequired as boolean);
-		if (raw === null) {
-			return null as TRequired extends true ? Date : Date | null;
-		}
-		assertValidDate(raw, INVALID_DATETIME_MESSAGE);
-		return new Date(raw.replace(" ", "T")) as TRequired extends true ? Date : Date | null;
-	}
-}
+	return new Date(raw.replace(" ", "T"));
+});
 
 export function createDateTimeOption(
 	description: string,
 	localizations: OptionLocalizations = {},
 ): Option<Date, false> {
-	return new DateTimeOption<false>(description, false, localizations);
+	return new PlainOption<Date, false>(DATE_TIME_KIND, description, false, localizations);
 }
 
 const INVALID_WALL_CLOCK_MESSAGE =
@@ -527,43 +498,12 @@ const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
  * IANA zone applies. This is what lets the same option be reused by any module
  * that needs a wall-clock input.
  */
-class WallClockOption<TRequired extends boolean> implements Option<string, TRequired> {
-	constructor(
-		readonly description: string,
-		readonly isRequired: TRequired,
-		private readonly localizations: OptionLocalizations = {},
-	) {}
-
-	required(): Option<string, true> {
-		return new WallClockOption<true>(this.description, true, this.localizations);
+const WALL_CLOCK_KIND = textKind<string>("Wall-clock", (raw) => {
+	if (!isValidWallClock(raw)) {
+		throw new OptionValidationError(INVALID_WALL_CLOCK_MESSAGE);
 	}
-
-	choices<const C extends readonly string[]>(_values: C): Option<C[number], TRequired> {
-		throw new OptionValidationError("Wall-clock options do not support choices.");
-	}
-
-	apply(container: OptionContainer, name: string): void {
-		container.addStringOption((option) => {
-			option.setName(name).setDescription(this.description).setRequired(this.isRequired);
-			applyOptionLocalizations(option, this.localizations);
-			return option;
-		});
-	}
-
-	read(
-		interaction: ChatInputCommandInteraction,
-		name: string,
-	): TRequired extends true ? string : string | null {
-		const raw = interaction.options.getString(name, this.isRequired as boolean);
-		if (raw === null) {
-			return null as TRequired extends true ? string : string | null;
-		}
-		if (!isValidWallClock(raw)) {
-			throw new OptionValidationError(INVALID_WALL_CLOCK_MESSAGE);
-		}
-		return raw as TRequired extends true ? string : string | null;
-	}
-}
+	return raw;
+});
 
 /**
  * A `YYYY-MM-DD[ HH:MM[:SS]]` string option, validated against the wall-clock
@@ -574,49 +514,18 @@ export function createWallClockOption(
 	description: string,
 	localizations: OptionLocalizations = {},
 ): Option<string, false> {
-	return new WallClockOption<false>(description, false, localizations);
+	return new PlainOption<string, false>(WALL_CLOCK_KIND, description, false, localizations);
 }
 
 /** A strict, date-only (`YYYY-MM-DD`) option — rejects any time component. */
-class DateOption<TRequired extends boolean> implements Option<Date, TRequired> {
-	constructor(
-		readonly description: string,
-		readonly isRequired: TRequired,
-		private readonly localizations: OptionLocalizations = {},
-	) {}
-
-	required(): Option<Date, true> {
-		return new DateOption<true>(this.description, true, this.localizations);
+const DATE_KIND = textKind<Date>("Date", (raw) => {
+	// Strict `YYYY-MM-DD` with a real-calendar check (rejects `2026/03/15`,
+	// time-bearing input, and impossible dates like `2026-02-30`).
+	if (!DATE_ONLY_PATTERN.test(raw) || !isValidWallClock(raw)) {
+		throw new OptionValidationError(INVALID_DATE_ONLY_MESSAGE);
 	}
-
-	choices<const C extends readonly Date[]>(_values: C): Option<C[number], TRequired> {
-		throw new OptionValidationError("Date options do not support choices.");
-	}
-
-	apply(container: OptionContainer, name: string): void {
-		container.addStringOption((option) => {
-			option.setName(name).setDescription(this.description).setRequired(this.isRequired);
-			applyOptionLocalizations(option, this.localizations);
-			return option;
-		});
-	}
-
-	read(
-		interaction: ChatInputCommandInteraction,
-		name: string,
-	): TRequired extends true ? Date : Date | null {
-		const raw = interaction.options.getString(name, this.isRequired as boolean);
-		if (raw === null) {
-			return null as TRequired extends true ? Date : Date | null;
-		}
-		// Strict `YYYY-MM-DD` with a real-calendar check (rejects `2026/03/15`,
-		// time-bearing input, and impossible dates like `2026-02-30`).
-		if (!DATE_ONLY_PATTERN.test(raw) || !isValidWallClock(raw)) {
-			throw new OptionValidationError(INVALID_DATE_ONLY_MESSAGE);
-		}
-		return new Date(raw) as TRequired extends true ? Date : Date | null;
-	}
-}
+	return new Date(raw);
+});
 
 /**
  * A strict date-only (`YYYY-MM-DD`) option. The returned `Date` is UTC
@@ -628,7 +537,7 @@ export function createDateOption(
 	description: string,
 	localizations: OptionLocalizations = {},
 ): Option<Date, false> {
-	return new DateOption<false>(description, false, localizations);
+	return new PlainOption<Date, false>(DATE_KIND, description, false, localizations);
 }
 
 /** The channel types Discord accepts on a channel option (guild channels only). */
@@ -650,54 +559,28 @@ export type ChannelOptionValue<TType extends AllowedChannelType> = Extract<
 	}
 >;
 
-class ChannelOption<TType extends AllowedChannelType, TRequired extends boolean>
-	implements Option<ChannelOptionValue<TType>, TRequired>
-{
-	constructor(
-		readonly description: string,
-		readonly isRequired: TRequired,
-		private readonly channelTypes: readonly TType[] | undefined,
-		private readonly localizations: OptionLocalizations = {},
-	) {}
-
-	required(): Option<ChannelOptionValue<TType>, true> {
-		return new ChannelOption<TType, true>(
-			this.description,
-			true,
-			this.channelTypes,
-			this.localizations,
-		);
-	}
-
-	choices<const C extends readonly ChannelOptionValue<TType>[]>(
-		_values: C,
-	): Option<C[number], TRequired> {
-		throw new OptionValidationError("Channel options do not support choices.");
-	}
-
-	apply(container: OptionContainer, name: string): void {
-		container.addChannelOption((option) => {
-			option.setName(name).setDescription(this.description).setRequired(this.isRequired);
-			applyOptionLocalizations(option, this.localizations);
-			if (this.channelTypes !== undefined) {
-				option.addChannelTypes(...this.channelTypes);
-			}
-			return option;
-		});
-	}
-
-	read(
-		interaction: ChatInputCommandInteraction,
-		name: string,
-	): TRequired extends true ? ChannelOptionValue<TType> : ChannelOptionValue<TType> | null {
+function channelKind<TType extends AllowedChannelType>(
+	channelTypes: readonly TType[] | undefined,
+): OptionKind<ChannelOptionValue<TType>, OptionBuilder> {
+	return {
+		label: "Channel",
+		add: (container, configure) =>
+			container.addChannelOption((option) => {
+				configure(option);
+				if (channelTypes !== undefined) {
+					option.addChannelTypes(...channelTypes);
+				}
+				return option;
+			}),
 		// The declared types are re-sent at read time: `addChannelTypes` only drives
 		// the client-side picker, so Discord can still deliver another channel kind.
-		return interaction.options.getChannel(
-			name,
-			this.isRequired as boolean,
-			this.channelTypes,
-		) as TRequired extends true ? ChannelOptionValue<TType> : ChannelOptionValue<TType> | null;
-	}
+		read: (interaction, name, required) =>
+			interaction.options.getChannel(
+				name,
+				required,
+				channelTypes,
+			) as ChannelOptionValue<TType> | null,
+	};
 }
 
 export function createChannelOption<const TType extends AllowedChannelType = AllowedChannelType>(
@@ -705,138 +588,50 @@ export function createChannelOption<const TType extends AllowedChannelType = All
 	channelTypes?: readonly TType[],
 	localizations: OptionLocalizations = {},
 ): Option<ChannelOptionValue<TType>, false> {
-	return new ChannelOption<TType, false>(description, false, channelTypes, localizations);
+	return new PlainOption<ChannelOptionValue<TType>, false>(
+		channelKind(channelTypes),
+		description,
+		false,
+		localizations,
+	);
 }
 
-class RoleOption<TRequired extends boolean> implements Option<Role, TRequired> {
-	constructor(
-		readonly description: string,
-		readonly isRequired: TRequired,
-		private readonly localizations: OptionLocalizations = {},
-	) {}
-
-	required(): Option<Role, true> {
-		return new RoleOption<true>(this.description, true, this.localizations);
-	}
-
-	choices<const C extends readonly Role[]>(_values: C): Option<C[number], TRequired> {
-		throw new OptionValidationError("Role options do not support choices.");
-	}
-
-	apply(container: OptionContainer, name: string): void {
-		container.addRoleOption((option) => {
-			option.setName(name).setDescription(this.description).setRequired(this.isRequired);
-			applyOptionLocalizations(option, this.localizations);
-			return option;
-		});
-	}
-
-	read(
-		interaction: ChatInputCommandInteraction,
-		name: string,
-	): TRequired extends true ? Role : Role | null {
-		return interaction.options.getRole(name, this.isRequired as boolean) as TRequired extends true
-			? Role
-			: Role | null;
-	}
-}
+const ROLE_KIND: OptionKind<Role, OptionBuilder> = {
+	label: "Role",
+	add: (container, configure) => container.addRoleOption(configuring(configure)),
+	read: (interaction, name, required) => interaction.options.getRole(name, required) as Role | null,
+};
 
 export function createRoleOption(
 	description: string,
 	localizations: OptionLocalizations = {},
 ): Option<Role, false> {
-	return new RoleOption<false>(description, false, localizations);
+	return new PlainOption<Role, false>(ROLE_KIND, description, false, localizations);
 }
 
-class MentionableOption<TRequired extends boolean> implements Option<Role | User, TRequired> {
-	constructor(
-		readonly description: string,
-		readonly isRequired: TRequired,
-		private readonly localizations: OptionLocalizations = {},
-	) {}
-
-	required(): Option<Role | User, true> {
-		return new MentionableOption<true>(this.description, true, this.localizations);
-	}
-
-	choices<const C extends readonly (Role | User)[]>(_values: C): Option<C[number], TRequired> {
-		throw new OptionValidationError("Mentionable options do not support choices.");
-	}
-
-	apply(container: OptionContainer, name: string): void {
-		container.addMentionableOption((option) => {
-			option.setName(name).setDescription(this.description).setRequired(this.isRequired);
-			applyOptionLocalizations(option, this.localizations);
-			return option;
-		});
-	}
-
-	read(
-		interaction: ChatInputCommandInteraction,
-		name: string,
-	): TRequired extends true ? Role | User : Role | User | null {
-		return interaction.options.getMentionable(
-			name,
-			this.isRequired as boolean,
-		) as TRequired extends true ? Role | User : Role | User | null;
-	}
-}
+const MENTIONABLE_KIND: OptionKind<Role | User, OptionBuilder> = {
+	label: "Mentionable",
+	add: (container, configure) => container.addMentionableOption(configuring(configure)),
+	read: (interaction, name, required) =>
+		interaction.options.getMentionable(name, required) as Role | User | null,
+};
 
 export function createMentionableOption(
 	description: string,
 	localizations: OptionLocalizations = {},
 ): Option<Role | User, false> {
-	return new MentionableOption<false>(description, false, localizations);
+	return new PlainOption<Role | User, false>(MENTIONABLE_KIND, description, false, localizations);
 }
 
-class AttachmentOption<TRequired extends boolean> implements Option<Attachment, TRequired> {
-	constructor(
-		readonly description: string,
-		readonly isRequired: TRequired,
-		private readonly localizations: OptionLocalizations = {},
-	) {}
-
-	required(): Option<Attachment, true> {
-		return new AttachmentOption<true>(this.description, true, this.localizations);
-	}
-
-	choices<const C extends readonly Attachment[]>(_values: C): Option<C[number], TRequired> {
-		throw new OptionValidationError("Attachment options do not support choices.");
-	}
-
-	apply(container: OptionContainer, name: string): void {
-		container.addAttachmentOption((option) => {
-			option.setName(name).setDescription(this.description).setRequired(this.isRequired);
-			applyOptionLocalizations(option, this.localizations);
-			return option;
-		});
-	}
-
-	read(
-		interaction: ChatInputCommandInteraction,
-		name: string,
-	): TRequired extends true ? Attachment : Attachment | null {
-		return interaction.options.getAttachment(
-			name,
-			this.isRequired as boolean,
-		) as TRequired extends true ? Attachment : Attachment | null;
-	}
-}
+const ATTACHMENT_KIND: OptionKind<Attachment, OptionBuilder> = {
+	label: "Attachment",
+	add: (container, configure) => container.addAttachmentOption(configuring(configure)),
+	read: (interaction, name, required) => interaction.options.getAttachment(name, required),
+};
 
 export function createAttachmentOption(
 	description: string,
 	localizations: OptionLocalizations = {},
 ): Option<Attachment, false> {
-	return new AttachmentOption<false>(description, false, localizations);
-}
-
-type AsRequired<O> = O extends Option<infer V, boolean> ? Option<V, true> : never;
-
-/** Turn every option in a record into its required variant. */
-export function allRequired<O extends Options>(fields: O): { [K in keyof O]: AsRequired<O[K]> } {
-	const out = {} as { [K in keyof O]: AsRequired<O[K]> };
-	for (const [key, option] of Object.entries(fields)) {
-		out[key as keyof O] = option.required() as AsRequired<O[keyof O]>;
-	}
-	return out;
+	return new PlainOption<Attachment, false>(ATTACHMENT_KIND, description, false, localizations);
 }
