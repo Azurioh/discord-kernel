@@ -18,6 +18,7 @@ import {
 	createSettingsRegistry,
 	createSettingsService,
 	SETTINGS_CATALOG,
+	type SettingsService,
 } from "@azurioh/discord-kernel/settings";
 import { Client, GatewayIntentBits } from "discord.js";
 import { createSettingsStore } from "@/bootstrap/create-settings-store";
@@ -32,6 +33,8 @@ import { createEmbedPresenter } from "@/shared/discord/embed-presenter";
 export interface Sandbox {
 	readonly client: Client;
 	readonly commands: CommandRouter;
+	/** The settings service every surface writes through (`/config`, `/server`). */
+	readonly settings: SettingsService;
 }
 
 /**
@@ -130,5 +133,5 @@ export function createSandbox(config: SandboxConfig, logger: Logger): Sandbox {
 		)
 		.bind(client);
 
-	return { client, commands };
+	return { client, commands, settings };
 }
