@@ -5,10 +5,10 @@ import {
 	promptEditorGroupValue,
 	type SettingsEditorSubmission,
 } from "@/discord/components/settings-editor/settings-editor-field-modal";
-import {
-	type SettingsEditorGroupField,
-	type SettingsEditorValueField,
-	textFieldValue,
+import { textFieldValue } from "@/discord/components/settings-editor/settings-editor-field-values";
+import type {
+	SettingsEditorGroupField,
+	SettingsEditorValueField,
 } from "@/discord/components/settings-editor/settings-editor-fields";
 import type { Locale } from "@/i18n/locale";
 import type { Translator } from "@/i18n/translator";

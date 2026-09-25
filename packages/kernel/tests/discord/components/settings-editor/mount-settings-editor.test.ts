@@ -7,10 +7,8 @@ import {
 	type SettingsEditorCardChrome,
 	type SettingsEditorEmbedsChrome,
 } from "@/discord/components/settings-editor/settings-editor.view";
-import {
-	type SettingsEditorField,
-	textFieldValue,
-} from "@/discord/components/settings-editor/settings-editor-fields";
+import { textFieldValue } from "@/discord/components/settings-editor/settings-editor-field-values";
+import type { SettingsEditorField } from "@/discord/components/settings-editor/settings-editor-fields";
 import { ValidationError } from "@/errors/business-error";
 import type { Locale } from "@/i18n/locale";
 import type { Translator } from "@/i18n/translator";

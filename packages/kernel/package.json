@@ -259,6 +259,10 @@
 			"types": "./dist/discord/components/settings-editor/settings-editor-field-modal.d.ts",
 			"default": "./dist/discord/components/settings-editor/settings-editor-field-modal.js"
 		},
+		"./discord/components/settings-editor/settings-editor-field-values": {
+			"types": "./dist/discord/components/settings-editor/settings-editor-field-values.d.ts",
+			"default": "./dist/discord/components/settings-editor/settings-editor-field-values.js"
+		},
 		"./discord/components/settings-editor/settings-editor-fields": {
 			"types": "./dist/discord/components/settings-editor/settings-editor-fields.d.ts",
 			"default": "./dist/discord/components/settings-editor/settings-editor-fields.js"
