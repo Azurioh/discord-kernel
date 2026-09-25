@@ -103,6 +103,10 @@
 			"types": "./dist/discord/channel-exporter.d.ts",
 			"default": "./dist/discord/channel-exporter.js"
 		},
+		"./discord/command/all-required": {
+			"types": "./dist/discord/command/all-required.d.ts",
+			"default": "./dist/discord/command/all-required.js"
+		},
 		"./discord/command/autocomplete-dispatcher": {
 			"types": "./dist/discord/command/autocomplete-dispatcher.d.ts",
 			"default": "./dist/discord/command/autocomplete-dispatcher.js"
