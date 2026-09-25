@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Logger } from "@/logger";
 import {
 	AmbiguousJobScheduleError,
 	DuplicateJobNameError,
@@ -7,19 +6,7 @@ import {
 	MissingJobScheduleError,
 } from "@/scheduler/errors";
 import { CronScheduler, type ScheduledJob } from "@/scheduler/scheduler";
-
-function createLoggerSpy(): Logger {
-	const logger = {
-		trace: vi.fn(),
-		debug: vi.fn(),
-		info: vi.fn(),
-		warn: vi.fn(),
-		error: vi.fn(),
-		fatal: vi.fn(),
-		child: () => logger,
-	};
-	return logger as unknown as Logger;
-}
+import { createFakeLogger } from "../support/fake-logger";
 
 const INTERVAL_MS = 1_000;
 
@@ -28,7 +15,7 @@ describe("CronScheduler schedule validation", () => {
 	// `ready` handler, on an already-online bot: throwing would leave every other
 	// module's jobs unregistered while the bot still looks healthy.
 	it("skips a job declaring both a cron expression and an interval", () => {
-		const logger = createLoggerSpy();
+		const logger = createFakeLogger();
 		const scheduler = new CronScheduler(logger);
 		const job = {
 			name: "both",
@@ -48,7 +35,7 @@ describe("CronScheduler schedule validation", () => {
 	});
 
 	it("skips a job declaring no schedule at all", () => {
-		const logger = createLoggerSpy();
+		const logger = createFakeLogger();
 		const scheduler = new CronScheduler(logger);
 		const job = { name: "neither", run: vi.fn() } as unknown as ScheduledJob;
 
@@ -64,7 +51,7 @@ describe("CronScheduler schedule validation", () => {
 	});
 
 	it("skips a non-positive interval", () => {
-		const logger = createLoggerSpy();
+		const logger = createFakeLogger();
 		const scheduler = new CronScheduler(logger);
 
 		scheduler.start([{ name: "zero", intervalMs: 0, run: vi.fn() }]);
@@ -79,7 +66,7 @@ describe("CronScheduler schedule validation", () => {
 	});
 
 	it("still registers the healthy jobs of a batch containing a bad one", () => {
-		const scheduler = new CronScheduler(createLoggerSpy());
+		const scheduler = new CronScheduler(createFakeLogger());
 		const valid = { name: "valid", intervalMs: INTERVAL_MS, runOnStart: true, run: vi.fn() };
 		const invalid = { name: "invalid", run: vi.fn() } as unknown as ScheduledJob;
 
@@ -91,7 +78,7 @@ describe("CronScheduler schedule validation", () => {
 	});
 
 	it("skips a duplicate stable job name", () => {
-		const logger = createLoggerSpy();
+		const logger = createFakeLogger();
 		const scheduler = new CronScheduler(logger);
 		const firstRun = vi.fn();
 		const duplicateRun = vi.fn();
@@ -116,7 +103,7 @@ describe("CronScheduler schedule validation", () => {
 
 describe("CronScheduler cron rescheduling", () => {
 	it("exposes whether initial registration has started", () => {
-		const scheduler = new CronScheduler(createLoggerSpy());
+		const scheduler = new CronScheduler(createFakeLogger());
 		expect(scheduler.started).toBe(false);
 
 		scheduler.start([]);
@@ -127,7 +114,7 @@ describe("CronScheduler cron rescheduling", () => {
 	});
 
 	it("replaces a registered cron job at runtime", () => {
-		const logger = createLoggerSpy();
+		const logger = createFakeLogger();
 		const scheduler = new CronScheduler(logger);
 		scheduler.start([{ name: "editable", cron: "0 9 * * 6", run: vi.fn() }]);
 
@@ -140,7 +127,7 @@ describe("CronScheduler cron rescheduling", () => {
 	});
 
 	it("keeps the current task when the replacement cron is invalid", () => {
-		const scheduler = new CronScheduler(createLoggerSpy());
+		const scheduler = new CronScheduler(createFakeLogger());
 		scheduler.start([{ name: "editable", cron: "0 9 * * 6", run: vi.fn() }]);
 
 		expect(scheduler.rescheduleCron("editable", "not a cron")).toBe(false);
@@ -149,7 +136,7 @@ describe("CronScheduler cron rescheduling", () => {
 	});
 
 	it("rejects missing and interval jobs", () => {
-		const scheduler = new CronScheduler(createLoggerSpy());
+		const scheduler = new CronScheduler(createFakeLogger());
 		scheduler.start([{ name: "interval", intervalMs: INTERVAL_MS, run: vi.fn() }]);
 
 		expect(scheduler.rescheduleCron("missing", "0 10 * * 6")).toBe(false);
@@ -171,7 +158,7 @@ describe("CronScheduler interval jobs", () => {
 	// yield to the microtask queue between ticks — that is the very property that
 	// prevents a slow job from overlapping itself.
 	it("runs an interval job once per elapsed interval", async () => {
-		const scheduler = new CronScheduler(createLoggerSpy());
+		const scheduler = new CronScheduler(createFakeLogger());
 		const run = vi.fn();
 		scheduler.start([{ name: "interval", intervalMs: INTERVAL_MS, run }]);
 
@@ -184,7 +171,7 @@ describe("CronScheduler interval jobs", () => {
 	});
 
 	it("never overlaps a run slower than its own interval", async () => {
-		const scheduler = new CronScheduler(createLoggerSpy());
+		const scheduler = new CronScheduler(createFakeLogger());
 		let inFlight = 0;
 		let maxConcurrent = 0;
 		const run = vi.fn(async () => {
@@ -202,7 +189,7 @@ describe("CronScheduler interval jobs", () => {
 	});
 
 	it("stops firing once stop() cleared the timer", () => {
-		const scheduler = new CronScheduler(createLoggerSpy());
+		const scheduler = new CronScheduler(createFakeLogger());
 		const run = vi.fn();
 		scheduler.start([{ name: "interval", intervalMs: INTERVAL_MS, run }]);
 
@@ -215,7 +202,7 @@ describe("CronScheduler interval jobs", () => {
 	});
 
 	it("logs a failing run and keeps the schedule alive", async () => {
-		const logger = createLoggerSpy();
+		const logger = createFakeLogger();
 		const scheduler = new CronScheduler(logger);
 		const run = vi.fn().mockRejectedValue(new Error("boom"));
 		scheduler.start([{ name: "flaky", intervalMs: INTERVAL_MS, run }]);
@@ -240,7 +227,7 @@ describe("CronScheduler runOnStart", () => {
 	});
 
 	it("runs the job once at start, before any interval elapsed", () => {
-		const scheduler = new CronScheduler(createLoggerSpy());
+		const scheduler = new CronScheduler(createFakeLogger());
 		const run = vi.fn();
 		scheduler.start([{ name: "boot", intervalMs: INTERVAL_MS, runOnStart: true, run }]);
 
@@ -249,7 +236,7 @@ describe("CronScheduler runOnStart", () => {
 	});
 
 	it("leaves a job without runOnStart untouched at start", () => {
-		const scheduler = new CronScheduler(createLoggerSpy());
+		const scheduler = new CronScheduler(createFakeLogger());
 		const run = vi.fn();
 		scheduler.start([{ name: "quiet", intervalMs: INTERVAL_MS, run }]);
 
@@ -258,7 +245,7 @@ describe("CronScheduler runOnStart", () => {
 	});
 
 	it("also runs a cron job at start", () => {
-		const scheduler = new CronScheduler(createLoggerSpy());
+		const scheduler = new CronScheduler(createFakeLogger());
 		const run = vi.fn();
 		scheduler.start([{ name: "cron-boot", cron: "* * * * *", runOnStart: true, run }]);
 
@@ -267,7 +254,7 @@ describe("CronScheduler runOnStart", () => {
 	});
 
 	it("skips the boot run of a job whose cron expression was rejected", () => {
-		const logger = createLoggerSpy();
+		const logger = createFakeLogger();
 		const scheduler = new CronScheduler(logger);
 		const run = vi.fn();
 		scheduler.start([{ name: "broken", cron: "not a cron", runOnStart: true, run }]);
@@ -280,7 +267,7 @@ describe("CronScheduler runOnStart", () => {
 	});
 
 	it("isolates a failing boot run instead of throwing at start", async () => {
-		const logger = createLoggerSpy();
+		const logger = createFakeLogger();
 		const scheduler = new CronScheduler(logger);
 		const run = vi.fn().mockRejectedValue(new Error("boot failed"));
 

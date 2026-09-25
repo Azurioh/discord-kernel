@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import { fixedClock } from "@/clock";
 import { ConflictError, ValidationError } from "@/errors/business-error";
 import type { Translator } from "@/i18n/translator";
-import type { Logger } from "@/logger";
 import { createInMemoryGuildDirectory } from "@/settings/in-memory/in-memory-guild-directory";
 import { createInMemorySettingsStore } from "@/settings/in-memory/in-memory-settings-store";
 import { createInProcessNotifier } from "@/settings/in-memory/in-process-notifier";
@@ -12,6 +11,7 @@ import type { SettingsStore, StoredSettings } from "@/settings/ports/settings-st
 import type { SettingsRegistry } from "@/settings/registry";
 import { createSettingsService } from "@/settings/settings-service";
 import { SettingsValidationError } from "@/settings/settings-validation-error";
+import { createFakeLogger } from "../support/fake-logger";
 import {
 	ROLE_A,
 	TEXT_CHANNEL,
@@ -26,19 +26,6 @@ const OTHER_GUILD = "100000000000000002";
 const USER = "400000000000000001";
 const NOW = "2026-03-04T05:06:07.000Z";
 const CTX = { guildId: GUILD, userId: USER, locale: "en" };
-
-function makeLogger(): Logger {
-	const logger = {
-		trace: vi.fn(),
-		debug: vi.fn(),
-		info: vi.fn(),
-		warn: vi.fn(),
-		error: vi.fn(),
-		fatal: vi.fn(),
-		child: () => logger,
-	};
-	return logger as unknown as Logger;
-}
 
 function record(values: Record<string, unknown>, overrides: Partial<StoredSettings> = {}) {
 	return {
@@ -58,7 +45,7 @@ async function makeService(stored: readonly StoredSettings[] = []) {
 		await store.write(entry, { expectedRevision: null });
 	}
 	const write = vi.spyOn(store, "write");
-	const logger = makeLogger();
+	const logger = createFakeLogger();
 	const notifier = createInProcessNotifier(logger);
 	const events: SettingsChangedEvent[] = [];
 	notifier.subscribe((event) => events.push(event));

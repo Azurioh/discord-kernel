@@ -1,13 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
-import { fixedClock } from "@/clock";
-import type { Translator } from "@/i18n/translator";
-import type { Logger } from "@/logger";
-import { createInMemoryGuildDirectory } from "@/settings/in-memory/in-memory-guild-directory";
-import { createInMemorySettingsStore } from "@/settings/in-memory/in-memory-settings-store";
-import { createInProcessNotifier } from "@/settings/in-memory/in-process-notifier";
-import type { SettingsStore, StoredSettings } from "@/settings/ports/settings-store";
-import type { SettingsRegistry } from "@/settings/registry";
-import { createSettingsService } from "@/settings/settings-service";
+import { describe, expect, it } from "vitest";
+import type { StoredSettings } from "@/settings/ports/settings-store";
+import { createReadOnlySettingsService } from "./fixtures/read-only-settings-service";
 import { sampleSettings } from "./fixtures/sample-declaration";
 
 const GUILD_A = "100000000000000001";
@@ -37,19 +30,6 @@ const SAMPLE_DEFAULTS = {
 	features: { tickets: true, logs: false },
 };
 
-function makeLogger(): Logger {
-	const logger = {
-		trace: vi.fn(),
-		debug: vi.fn(),
-		info: vi.fn(),
-		warn: vi.fn(),
-		error: vi.fn(),
-		fatal: vi.fn(),
-		child: () => logger,
-	};
-	return logger as unknown as Logger;
-}
-
 function record(guildId: string, values: Record<string, unknown>): StoredSettings {
 	return {
 		guildId,
@@ -61,29 +41,9 @@ function record(guildId: string, values: Record<string, unknown>): StoredSetting
 	};
 }
 
-async function makeService(stored: readonly StoredSettings[] = []) {
-	const store: SettingsStore = createInMemorySettingsStore();
-	for (const entry of stored) {
-		await store.write(entry, { expectedRevision: null });
-	}
-	const write = vi.spyOn(store, "write");
-	const logger = makeLogger();
-	const service = createSettingsService({
-		// `get` never consults the registry: the declaration is passed in.
-		registry: {} as SettingsRegistry,
-		store,
-		guilds: createInMemoryGuildDirectory({}),
-		notifier: createInProcessNotifier(logger),
-		translator: {} as Translator,
-		clock: fixedClock(new Date("2026-01-01T00:00:00.000Z")),
-		logger,
-	});
-	return { service, write, logger };
-}
-
 describe("SettingsService.get", () => {
 	it("returns every default for an unconfigured guild and writes nothing", async () => {
-		const { service, write } = await makeService();
+		const { service, write } = await createReadOnlySettingsService();
 
 		const values = await service.get(sampleSettings, GUILD_A);
 
@@ -92,7 +52,7 @@ describe("SettingsService.get", () => {
 	});
 
 	it("returns stored values over defaults", async () => {
-		const { service, write } = await makeService([
+		const { service, write } = await createReadOnlySettingsService([
 			record(GUILD_A, {
 				logChannel: CHANNEL,
 				cooldown: 120,
@@ -116,7 +76,9 @@ describe("SettingsService.get", () => {
 	});
 
 	it("never returns one guild's values for another guild", async () => {
-		const { service } = await makeService([record(GUILD_A, { logChannel: CHANNEL, maxOpen: 4 })]);
+		const { service } = await createReadOnlySettingsService([
+			record(GUILD_A, { logChannel: CHANNEL, maxOpen: 4 }),
+		]);
 
 		const values = await service.get(sampleSettings, GUILD_B);
 
@@ -124,7 +86,9 @@ describe("SettingsService.get", () => {
 	});
 
 	it("gives module logic the value of a secret", async () => {
-		const { service } = await makeService([record(GUILD_A, { apiKey: "s3cr3t" })]);
+		const { service } = await createReadOnlySettingsService([
+			record(GUILD_A, { apiKey: "s3cr3t" }),
+		]);
 
 		const values = await service.get(sampleSettings, GUILD_A);
 
@@ -132,7 +96,9 @@ describe("SettingsService.get", () => {
 	});
 
 	it("ignores stored keys the declaration does not declare", async () => {
-		const { service } = await makeService([record(GUILD_A, { removed: "old", maxOpen: 3 })]);
+		const { service } = await createReadOnlySettingsService([
+			record(GUILD_A, { removed: "old", maxOpen: 3 }),
+		]);
 
 		const values = await service.get(sampleSettings, GUILD_A);
 
@@ -140,7 +106,9 @@ describe("SettingsService.get", () => {
 	});
 
 	it("reads a toggle missing from storage as its per-key default, else false", async () => {
-		const { service } = await makeService([record(GUILD_A, { features: { logs: true } })]);
+		const { service } = await createReadOnlySettingsService([
+			record(GUILD_A, { features: { logs: true } }),
+		]);
 
 		const values = await service.get(sampleSettings, GUILD_A);
 
@@ -148,7 +116,7 @@ describe("SettingsService.get", () => {
 	});
 
 	it("ignores a stored toggle the declaration no longer declares, without logging (FR-017)", async () => {
-		const { service, write, logger } = await makeService([
+		const { service, write, logger } = await createReadOnlySettingsService([
 			record(GUILD_A, { features: { logs: true, removed: true } }),
 		]);
 
@@ -160,7 +128,7 @@ describe("SettingsService.get", () => {
 	});
 
 	it("falls back to the default of a stored value that no longer validates, and logs it as an error", async () => {
-		const { service, write, logger } = await makeService([
+		const { service, write, logger } = await createReadOnlySettingsService([
 			record(GUILD_A, { maxOpen: 99, greeting: 42, region: "na" }),
 		]);
 
