@@ -100,6 +100,21 @@ function asCard<S>(
 	return payload;
 }
 
+/**
+ * A level laid out as buttons: no `Section` at all, and its entries' buttons
+ * in one row, in declaration order.
+ */
+function expectOneButtonRow(
+	blocks: readonly BlockJson[],
+	fields: readonly SettingsEditorField<Field>[],
+): void {
+	expect(blocks.some((block) => block.type === ComponentType.Section)).toBe(false);
+	const row = blocks.find((block) => block.type === ComponentType.ActionRow);
+	expect(row?.components?.map((c) => c.custom_id)).toEqual(
+		fields.map((field) => `btn:${field.key}`),
+	);
+}
+
 /** The custom ids of every button in one rendered `ActionRow`. */
 function idsOf(row: ActionRowBuilder<MessageActionRowComponentBuilder>): (string | undefined)[] {
 	return (row.toJSON().components as { custom_id?: string }[]).map((c) => c.custom_id);
@@ -260,11 +275,7 @@ describe("createCardEditorView", () => {
 			const payload = asCard(view.render(state([ROOT_LEVEL_KEY, "flat"])));
 			const blocks = containerBlocks(payload.card.apply(state([ROOT_LEVEL_KEY, "flat"])));
 
-			expect(blocks.some((block) => block.type === ComponentType.Section)).toBe(false);
-			const row = blocks.find((block) => block.type === ComponentType.ActionRow);
-			expect(row?.components?.map((c) => c.custom_id)).toEqual(
-				fields.map((field) => `btn:${field.key}`),
-			);
+			expectOneButtonRow(blocks, fields);
 		});
 
 		/**
@@ -318,11 +329,7 @@ describe("createCardEditorView", () => {
 			const payload = asCard(view.render(state([ROOT_LEVEL_KEY])));
 			const blocks = containerBlocks(payload.card.apply(state([ROOT_LEVEL_KEY])));
 
-			expect(blocks.some((block) => block.type === ComponentType.Section)).toBe(false);
-			const row = blocks.find((block) => block.type === ComponentType.ActionRow);
-			expect(row?.components?.map((c) => c.custom_id)).toEqual(
-				fields.map((field) => `btn:${field.key}`),
-			);
+			expectOneButtonRow(blocks, fields);
 		});
 	});
 
