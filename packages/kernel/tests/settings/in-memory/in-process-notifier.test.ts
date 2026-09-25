@@ -1,20 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import type { Logger } from "@/logger";
 import { createInProcessNotifier } from "@/settings/in-memory/in-process-notifier";
 import type { SettingsChangedEvent } from "@/settings/ports/settings-changed-notifier";
-
-function createFakeLogger(): Logger {
-	const logger = {
-		info: vi.fn(),
-		warn: vi.fn(),
-		error: vi.fn(),
-		debug: vi.fn(),
-		trace: vi.fn(),
-		fatal: vi.fn(),
-		child: vi.fn(() => logger),
-	};
-	return logger as unknown as Logger;
-}
+import { createFakeLogger } from "../../support/fake-logger";
 
 const event: SettingsChangedEvent = {
 	guildId: "100000000000000001",

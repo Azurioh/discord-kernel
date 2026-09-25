@@ -9,20 +9,7 @@ import { ComponentRouter } from "@/discord/components/component-router";
 import { createComponentHandler } from "@/discord/components/create-component-handler";
 import type { Presenter } from "@/discord/presenter";
 import type { Translator } from "@/i18n/translator";
-import type { Logger } from "@/logger";
-
-function makeLogger(): Logger {
-	const logger = {
-		trace: vi.fn(),
-		debug: vi.fn(),
-		info: vi.fn(),
-		warn: vi.fn(),
-		error: vi.fn(),
-		fatal: vi.fn(),
-		child: () => logger,
-	};
-	return logger as unknown as Logger;
-}
+import { createFakeLogger } from "../../support/fake-logger";
 
 function makeDeps() {
 	const presenter = {
@@ -32,7 +19,7 @@ function makeDeps() {
 		defaultLocale: "en",
 		translate: vi.fn((_locale: string, key: string) => key),
 	} as unknown as Translator;
-	return { presenter, logger: makeLogger(), translator };
+	return { presenter, logger: createFakeLogger(), translator };
 }
 
 /** A button interaction double carrying a scriptable permission set. */

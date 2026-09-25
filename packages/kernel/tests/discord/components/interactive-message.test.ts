@@ -9,26 +9,13 @@ import {
 } from "@/discord/components/interactive-message/interactive-message-collector";
 import { createStateStore } from "@/discord/components/interactive-message/state-store";
 import { type Button, createButton } from "@/discord/interaction/button";
-import type { Logger } from "@/logger";
+import { createFakeLogger } from "../../support/fake-logger";
 
 const OWNER_ID = "owner-1";
 const OTHER_ID = "intruder-9";
 
 interface Counter {
 	value: number;
-}
-
-function createLoggerSpy(): Logger {
-	const logger = {
-		trace: vi.fn(),
-		debug: vi.fn(),
-		info: vi.fn(),
-		warn: vi.fn(),
-		error: vi.fn(),
-		fatal: vi.fn(),
-		child: () => logger,
-	};
-	return logger as unknown as Logger;
 }
 
 function createView(): InteractiveView<Counter> {
@@ -110,7 +97,7 @@ function mount(
 	});
 
 	const editReply = vi.fn(async () => undefined);
-	const logger = createLoggerSpy();
+	const logger = createFakeLogger();
 	const store = createStateStore(initial);
 	const view = createView();
 

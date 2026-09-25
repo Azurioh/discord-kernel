@@ -3,20 +3,7 @@ import { createContext } from "@/discord/command/context";
 import type { Presenter } from "@/discord/presenter";
 import { TranslationRegistry } from "@/i18n/catalog";
 import { createTranslator, type Translator } from "@/i18n/translator";
-import type { Logger } from "@/logger";
-
-function makeLogger(): Logger {
-	const logger: Logger = {
-		trace: vi.fn(),
-		debug: vi.fn(),
-		info: vi.fn(),
-		warn: vi.fn(),
-		error: vi.fn(),
-		fatal: vi.fn(),
-		child: () => logger,
-	};
-	return logger;
-}
+import { createFakeLogger } from "../../support/fake-logger";
 
 function makeTranslator(defaultLocale: "en" | "fr" = "en"): Translator {
 	const registry = new TranslationRegistry();
@@ -24,7 +11,7 @@ function makeTranslator(defaultLocale: "en" | "fr" = "en"): Translator {
 		"test.greeting": { en: "Hello {name}", fr: "Bonjour {name}" },
 		"test.only-en": { en: "English only" },
 	});
-	return createTranslator(registry, { defaultLocale, logger: makeLogger() });
+	return createTranslator(registry, { defaultLocale, logger: createFakeLogger() });
 }
 
 const presenterStub = {
@@ -51,7 +38,7 @@ function buildContext(locale: string, guildLocale: string | null, translator = m
 		{},
 		true,
 		presenterStub,
-		makeLogger(),
+		createFakeLogger(),
 		translator,
 	);
 }
