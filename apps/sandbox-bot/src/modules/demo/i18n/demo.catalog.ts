@@ -110,4 +110,17 @@ export const DEMO_CATALOG: KeyedCatalog<
 	[DEMO_SETTINGS_MESSAGES.featuresLogs]: { en: "Logs", fr: "Journaux" },
 	[DEMO_SETTINGS_MESSAGES.apiKey]: { en: "API key", fr: "Clé d'API" },
 	[DEMO_SETTINGS_MESSAGES.pingRoles]: { en: "Roles to ping", fr: "Rôles à mentionner" },
+	[DEMO_SETTINGS_MESSAGES.timezone]: { en: "Time zone", fr: "Fuseau horaire" },
+	[DEMO_SETTINGS_MESSAGES.timezoneDescription]: {
+		en: "One of the offered time zones.",
+		fr: "L'un des fuseaux horaires proposés.",
+	},
+	[DEMO_SETTINGS_MESSAGES.welcomeChannelName]: {
+		en: "Welcome channel name",
+		fr: "Nom du salon d'accueil",
+	},
+	[DEMO_SETTINGS_MESSAGES.welcomeChannelNameDescription]: {
+		en: "A suggested name, or any other.",
+		fr: "Un nom proposé, ou tout autre nom.",
+	},
 };

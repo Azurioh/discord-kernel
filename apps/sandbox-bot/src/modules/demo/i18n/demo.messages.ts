@@ -45,4 +45,8 @@ export const DEMO_SETTINGS_MESSAGES = {
 	featuresLogs: "demo.settings.features.logs",
 	apiKey: "demo.settings.api-key",
 	pingRoles: "demo.settings.ping-roles",
+	timezone: "demo.settings.timezone",
+	timezoneDescription: "demo.settings.timezone.description",
+	welcomeChannelName: "demo.settings.welcome-channel-name",
+	welcomeChannelNameDescription: "demo.settings.welcome-channel-name.description",
 } as const;

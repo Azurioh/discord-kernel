@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { AutocompleteDispatcher } from "@azurioh/discord-kernel/discord/command/autocomplete-dispatcher";
 import {
 	KERNEL_SETTINGS_ID,
 	kernelSettings,
@@ -21,7 +22,9 @@ import { createSqliteSettingsStore } from "@/shared/settings/sqlite/sqlite-setti
  * (a disabled module answers "disabled" on that guild only), S16 (turning it
  * back on), S17 (reply language order), S18 (a command needing a required
  * setting is blocked until it is set), S11 (settings stored under an older
- * declaration version are migrated on read) and that /server stays reachable.
+ * declaration version are migrated on read), S9 (suggestions through the
+ * sandbox's service and `/config set` autocomplete), S10 (a strict field
+ * refuses a value its search does not know) and that /server stays reachable.
  */
 
 const GUILD = "100000000000000001";
@@ -226,7 +229,7 @@ describe("sandbox, end to end", () => {
 		const record = await sqlite.read(GUILD, demoSettings.id);
 
 		expect(sent.flatMap(({ fields }) => fields)).toContain("Warning limit (warnLimit): 7");
-		expect(record?.version).toBe(2);
+		expect(record?.version).toBe(3);
 		expect(record?.revision).toBe(2);
 		expect(record?.values).toStrictEqual({ warnLimit: 7, mode: "strict" });
 		expect(await sandbox.settings.get(demoSettings, GUILD)).toMatchObject({
@@ -331,6 +334,99 @@ describe("sandbox, end to end", () => {
 			expect(described(sent)).not.toMatch(/not configured/i);
 			expect(interaction.reply.mock.calls.length + interaction.deferReply.mock.calls.length).toBe(
 				1,
+			);
+		});
+	});
+
+	it("S11: carries demo settings of version 2 over to version 3 as they are", async () => {
+		await storeRaw({
+			guildId: GUILD,
+			moduleId: demoSettings.id,
+			version: 2,
+			values: { warnLimit: 4 },
+		});
+
+		expect(await sandbox.settings.get(demoSettings, GUILD)).toMatchObject({ warnLimit: 4 });
+		const record = await sqlite.read(GUILD, demoSettings.id);
+		expect(record?.version).toBe(3);
+		expect(record?.values).toStrictEqual({ warnLimit: 4 });
+	});
+
+	describe("S9, S10: searchable demo settings", () => {
+		const CTX = { guildId: GUILD, userId: ADMIN, locale: "en" };
+
+		/** An autocomplete request for `/config set`'s value, with `key` already picked. */
+		function autocomplete(key: string | null, typed: string) {
+			const respond = vi.fn(async () => undefined);
+			const interaction = {
+				commandName: "config",
+				guildId: GUILD,
+				locale: "fr",
+				guildLocale: null,
+				user: { id: ADMIN },
+				isAutocomplete: () => true,
+				options: {
+					getSubcommandGroup: () => null,
+					getSubcommand: () => "set",
+					getFocused: (full?: boolean) => (full ? { name: "value", value: typed } : typed),
+					getString: (name: string) => (name === "key" ? key : null),
+				},
+				respond,
+			};
+			return { interaction, respond };
+		}
+
+		it("S9: suggests at most 25 time zones through the sandbox's service, filtered by query", async () => {
+			const all = await sandbox.settings.suggest(demoSettings, "timezone", "", {
+				...CTX,
+				values: {},
+			});
+			const europe = await sandbox.settings.suggest(demoSettings, "timezone", "paris", {
+				...CTX,
+				values: {},
+			});
+
+			expect(all).toHaveLength(25);
+			expect(europe).toStrictEqual([{ name: "Europe · Paris", value: "Europe/Paris" }]);
+		});
+
+		it("S9: labels a stored time zone with the search's label", async () => {
+			await expect(
+				sandbox.settings.label(demoSettings, "timezone", "Asia/Tokyo", CTX),
+			).resolves.toBe("Asia · Tokyo");
+		});
+
+		it("S9: autocompletes /config set's value with the same suggestions", async () => {
+			const { interaction, respond } = autocomplete("timezone", "tok");
+
+			const dispatcher = new AutocompleteDispatcher(sandbox.commands, logger);
+			const claimed = await dispatcher.handle(interaction as never);
+
+			expect(claimed).toBe(true);
+			expect(respond).toHaveBeenCalledWith([{ name: "Asia · Tokyo", value: "Asia/Tokyo" }]);
+		});
+
+		it("S10: refuses a time zone the strict search does not know, accepts a known one", async () => {
+			await expect(
+				sandbox.settings.set(demoSettings, GUILD, { timezone: "Mars/Olympus" }, CTX),
+			).rejects.toMatchObject({
+				issues: [expect.objectContaining({ field: "timezone", code: "unknownChoice" })],
+			});
+			await sandbox.settings.set(demoSettings, GUILD, { timezone: "Europe/Paris" }, CTX);
+
+			expect((await sandbox.settings.get(demoSettings, GUILD)).timezone).toBe("Europe/Paris");
+		});
+
+		it("accepts any welcome channel name, suggested or not", async () => {
+			const suggested = await sandbox.settings.suggest(demoSettings, "welcomeChannelName", "", {
+				...CTX,
+				values: {},
+			});
+			await sandbox.settings.set(demoSettings, GUILD, { welcomeChannelName: "town-square" }, CTX);
+
+			expect(suggested.map((choice) => choice.value)).toContain("welcome");
+			expect((await sandbox.settings.get(demoSettings, GUILD)).welcomeChannelName).toBe(
+				"town-square",
 			);
 		});
 	});

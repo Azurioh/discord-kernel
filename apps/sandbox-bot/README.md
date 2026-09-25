@@ -214,12 +214,23 @@ visibility filter and as a guard. Values to try with `/config set`:
 | `features` | `{"logs":true}` |
 | `apiKey` | any text; never shown back |
 | `pingRoles` | `["123456789012345678"]` (IDs quoted inside a JSON list) |
+| `timezone` | `Europe/Paris` (only a zone the search offers: `Mars/Olympus` is refused) |
+| `welcomeChannelName` | `welcome`, or any other name |
 
-`demoSettings` is at version 2 to show a settings migration: version 1 stored
-the warning limit as `maxWarnings`, version 2 calls it `warnLimit`. Its `migrate`
-(in `demo.settings.ts`) renames the key; the kernel runs it the first time a
-guild's version-1 record is read, validates the result and stores it under
-version 2. To reshape a module's settings, raise `version` and extend `migrate`
+`/config set`'s `value` autocompletes with the kernel's suggestions for the key
+picked (`service.suggest`): guild channels, roles and members, enum choices, and
+the demo's two searches (`demo-suggestions.helper.ts`). `timezone` is strict: a
+value its search does not label is refused with "not one of the allowed
+choices". `/config edit` shows each searchable field as a select of its first 25
+suggestions; `welcomeChannelName`, not strict, adds an "Other value" box in the
+same modal for a name the list lacks.
+
+`demoSettings` is at version 3 to show settings migrations: version 1 stored
+the warning limit as `maxWarnings`, version 2 calls it `warnLimit`, version 3
+adds the two searchable fields. Its `migrate` (in `demo.settings.ts`) renames
+the key from version 1 and keeps version 2 values as they are; the kernel runs
+it the first time a guild's older record is read, validates the result and
+stores it under version 3. To reshape a module's settings, raise `version` and extend `migrate`
 so it handles every older version; keep it pure (see the kernel README,
 "Evolving module settings").
 
