@@ -71,6 +71,22 @@ exporting it from its first home.
 A source file does not import a symbol only to re-export it. Consumers import it from where
 it is defined. Only `index.ts` entry points re-export, with `export { } from` only.
 
+### No function that adds nothing
+
+A function must do something its caller could not get for free. Do not write:
+
+- an identity function (`(x: T): T => x`) whose only purpose is to "look like the DSL".
+  Pass the object where the type is expected, or write `{ ... } satisfies T`;
+- a wrapper that only forwards its arguments to another function unchanged.
+
+Allowed, because they add something:
+
+- a **generic** identity function that infers types the caller would otherwise write by hand
+  (`createEvent` infers the handler's arguments from the event name);
+- a thin function that narrows a type (`resolvePermissions` accepts only permission flags),
+  adapts a vendor to a kernel port (`createPinoLogger` returns a `Logger`), or names a
+  domain concept used in several places (`pageCount`, `clampPage`).
+
 ### Public paths are an API
 
 `packages/kernel/package.json` lists every public subpath explicitly (no `./*` wildcard).
