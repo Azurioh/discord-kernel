@@ -323,6 +323,10 @@
 			"types": "./dist/discord/ui/card.d.ts",
 			"default": "./dist/discord/ui/card.js"
 		},
+		"./discord/ui/color-aliases": {
+			"types": "./dist/discord/ui/color-aliases.d.ts",
+			"default": "./dist/discord/ui/color-aliases.js"
+		},
 		"./discord/ui/color-input-errors": {
 			"types": "./dist/discord/ui/color-input-errors.d.ts",
 			"default": "./dist/discord/ui/color-input-errors.js"

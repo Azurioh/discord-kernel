@@ -3,9 +3,9 @@ import { DISCORD_BLURPLE } from "@/color";
 import {
 	COLOR_ALIASES,
 	MAX_COLOR_INPUT_LENGTH,
-	parseColorInput,
 	registerColorAliases,
-} from "@/discord/ui/color-input";
+} from "@/discord/ui/color-aliases";
+import { parseColorInput } from "@/discord/ui/color-input";
 import { ColorAliasTooLongError } from "@/discord/ui/color-input-errors";
 
 const HEX_PATTERN = /^#[0-9a-f]{6}$/;

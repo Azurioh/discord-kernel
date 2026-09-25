@@ -58,7 +58,7 @@ from the composition root before any module is constructed:
 
 ```ts
 import { configureEmbedColors } from "@azurioh/discord-kernel/discord/ui/colors";
-import { registerColorAliases } from "@azurioh/discord-kernel/discord/ui/color-input";
+import { registerColorAliases } from "@azurioh/discord-kernel/discord/ui/color-aliases";
 
 configureEmbedColors({ brand: 0xf3c909 });
 registerColorAliases({ gold: "#f3c909", or: "#f3c909" });
