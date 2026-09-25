@@ -17,11 +17,13 @@ import {
 	type ChannelFieldDef,
 	createModal,
 	type ModalFields,
+	type ModalValues,
 	type RoleFieldDef,
 	type SelectFieldDef,
 	type TextFieldDef,
 	type UserFieldDef,
 } from "@/discord/interaction/modal";
+import type { SelectBounds } from "@/discord/interaction/select-bounds";
 import type { Locale } from "@/i18n/locale";
 import type { Translator } from "@/i18n/translator";
 
@@ -126,8 +128,23 @@ export async function promptEditorFieldValue<F extends string>(
 			? createImageModal(field, current, translator, locale)
 			: createTextModal(field, current, translator, locale);
 
+	const submitted = await collectModalSubmission(
+		interaction,
+		modal.build(nextModalOpenState(field.key)),
+	);
+	return submitted === null ? null : { interaction: submitted, ...modal.read(submitted) };
+}
+
+/**
+ * Show `built` and wait for this very opening's submission. `null` on timeout,
+ * on any failure to show or collect it, and on a submission that did not come
+ * from a message.
+ */
+async function collectModalSubmission(
+	interaction: MessageComponentInteraction,
+	built: ModalBuilder,
+): Promise<ModalMessageModalSubmitInteraction | null> {
 	try {
-		const built = modal.build(nextModalOpenState(field.key));
 		const expectedCustomId = customIdOf(built);
 		await interaction.showModal(built);
 		const submitted = await interaction.awaitModalSubmit({
@@ -142,7 +159,7 @@ export async function promptEditorFieldValue<F extends string>(
 		if (!submitted.isFromMessage()) {
 			return null;
 		}
-		return { interaction: submitted, ...modal.read(submitted) };
+		return submitted;
 	} catch {
 		return null;
 	}
@@ -193,22 +210,11 @@ export async function promptEditorGroupValue<F extends string>(
 	locale: Locale,
 ): Promise<SettingsEditorGroupPrompt<F> | null> {
 	const modal = createGroupModal(group, currentValue, legend, translator, locale);
-	try {
-		const built = modal.build(nextModalOpenState(group.key));
-		const expectedCustomId = customIdOf(built);
-		await interaction.showModal(built);
-		const submitted = await interaction.awaitModalSubmit({
-			time: MODAL_TIMEOUT_MS,
-			filter: (submission) =>
-				submission.user.id === interaction.user.id && submission.customId === expectedCustomId,
-		});
-		if (!submitted.isFromMessage()) {
-			return null;
-		}
-		return { interaction: submitted, values: modal.read(submitted) };
-	} catch {
-		return null;
-	}
+	const submitted = await collectModalSubmission(
+		interaction,
+		modal.build(nextModalOpenState(group.key)),
+	);
+	return submitted === null ? null : { interaction: submitted, values: modal.read(submitted) };
 }
 
 /** Reading a group's submission back — the group's own counterpart of {@link EditorFieldModal}. */
@@ -341,6 +347,28 @@ function valueFieldDefOf<F extends string>(
 	};
 }
 
+/**
+ * The one modal a single field opens: titled after the field, carrying
+ * `fields`, and read back into the shape every single-field caller shares.
+ */
+function createFieldModal<const M extends ModalFields>(
+	labelKey: string,
+	fields: M,
+	translator: Translator,
+	locale: Locale,
+	toSubmission: (values: ModalValues<M>) => ReturnType<EditorFieldModal["read"]>,
+): EditorFieldModal {
+	const modal = createModal({
+		id: EDITOR_FIELD_MODAL_ID,
+		title: modalTitle(translator.translate(locale, labelKey), translator, locale),
+		fields,
+	});
+	return {
+		build: (state) => modal.build(state),
+		read: (interaction) => toSubmission(modal.read(interaction)),
+	};
+}
+
 /** Every field but the images: one optional text input, emptied to clear. */
 function createTextModal<F extends string>(
 	field: SettingsEditorValueField<F>,
@@ -348,16 +376,13 @@ function createTextModal<F extends string>(
 	translator: Translator,
 	locale: Locale,
 ): EditorFieldModal {
-	const label = translator.translate(locale, field.labelKey);
-	const modal = createModal({
-		id: EDITOR_FIELD_MODAL_ID,
-		title: modalTitle(label, translator, locale),
-		fields: { value: valueFieldDefOf(field, current, translator, locale) },
-	});
-	return {
-		build: (state) => modal.build(state),
-		read: (interaction) => ({ value: modal.read(interaction).value, upload: null, ids: null }),
-	};
+	return createFieldModal(
+		field.labelKey,
+		{ value: valueFieldDefOf(field, current, translator, locale) },
+		translator,
+		locale,
+		(values) => ({ value: values.value, upload: null, ids: null }),
+	);
 }
 
 /**
@@ -374,11 +399,9 @@ function createImageModal<F extends string>(
 	translator: Translator,
 	locale: Locale,
 ): EditorFieldModal {
-	const label = translator.translate(locale, field.labelKey);
-	const modal = createModal({
-		id: EDITOR_FIELD_MODAL_ID,
-		title: modalTitle(label, translator, locale),
-		fields: {
+	return createFieldModal(
+		field.labelKey,
+		{
 			upload: {
 				kind: "file",
 				label: translator.translate(locale, SETTINGS_EDITOR_MESSAGES.modalUploadLabel),
@@ -403,14 +426,10 @@ function createImageModal<F extends string>(
 				...(current.text === null ? {} : { value: current.text }),
 			},
 		},
-	});
-	return {
-		build: (state) => modal.build(state),
-		read: (interaction) => {
-			const values = modal.read(interaction);
-			return { value: values.value, upload: values.upload?.[0] ?? null, ids: null };
-		},
-	};
+		translator,
+		locale,
+		(values) => ({ value: values.value, upload: values.upload?.[0] ?? null, ids: null }),
+	);
 }
 
 /**
@@ -427,11 +446,9 @@ function createPickerModal<F extends string>(
 	translator: Translator,
 	locale: Locale,
 ): EditorFieldModal {
-	const label = translator.translate(locale, field.labelKey);
-	const modal = createModal({
-		id: EDITOR_FIELD_MODAL_ID,
-		title: modalTitle(label, translator, locale),
-		fields: {
+	return createFieldModal(
+		field.labelKey,
+		{
 			value: pickerFieldDef(
 				field,
 				pickerShared(field, translator, locale),
@@ -440,14 +457,16 @@ function createPickerModal<F extends string>(
 				locale,
 			),
 		},
-	});
-	return {
-		build: (state) => modal.build(state),
-		read: (interaction) => {
-			const read = modal.read(interaction) as { value: readonly string[] | null };
-			return { value: null, upload: null, ids: read.value };
-		},
-	};
+		translator,
+		locale,
+		(values) => ({ value: null, upload: null, ids: values.value as readonly string[] | null }),
+	);
+}
+
+/** The part of a picker component every kind of picker declares alike. */
+interface PickerShared extends SelectBounds {
+	label: string;
+	required: boolean;
 }
 
 /**
@@ -458,13 +477,7 @@ function pickerShared<F extends string>(
 	field: SettingsEditorPickerField<F>,
 	translator: Translator,
 	locale: Locale,
-): {
-	label: string;
-	required: boolean;
-	minValues?: number;
-	maxValues?: number;
-	placeholder?: string;
-} {
+): PickerShared {
 	const placeholder =
 		field.pickerPlaceholderKey === undefined
 			? undefined
@@ -484,13 +497,7 @@ function pickerShared<F extends string>(
 /** The one component a picker modal carries, in the shape its field's kind names. */
 function pickerFieldDef<F extends string>(
 	field: SettingsEditorPickerField<F>,
-	shared: {
-		label: string;
-		required: boolean;
-		minValues?: number;
-		maxValues?: number;
-		placeholder?: string;
-	},
+	shared: PickerShared,
 	held: readonly string[],
 	translator: Translator,
 	locale: Locale,
