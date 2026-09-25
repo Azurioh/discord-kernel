@@ -191,10 +191,6 @@
 			"types": "./dist/discord/components/component-router.d.ts",
 			"default": "./dist/discord/components/component-router.js"
 		},
-		"./discord/components/create-component-handler": {
-			"types": "./dist/discord/components/create-component-handler.d.ts",
-			"default": "./dist/discord/components/create-component-handler.js"
-		},
 		"./discord/components/interactive-message/index": {
 			"types": "./dist/discord/components/interactive-message/index.d.ts",
 			"default": "./dist/discord/components/interactive-message/index.js"

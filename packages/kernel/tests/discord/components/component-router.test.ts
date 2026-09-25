@@ -6,7 +6,6 @@ import {
 	requiresPermissions,
 } from "@/discord/components/component-access";
 import { ComponentRouter } from "@/discord/components/component-router";
-import { createComponentHandler } from "@/discord/components/create-component-handler";
 import type { Presenter } from "@/discord/presenter";
 import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
@@ -52,13 +51,11 @@ function fakeButton(customId: string, held: bigint | null) {
 describe("ComponentRouter authorization", () => {
 	it("runs a handler whose declared permissions the member holds", async () => {
 		const handle = vi.fn();
-		const router = new ComponentRouter(makeDeps()).register(
-			createComponentHandler({
-				customId: "ban",
-				authorize: requiresPermissions(PermissionFlagsBits.BanMembers),
-				handle,
-			}),
-		);
+		const router = new ComponentRouter(makeDeps()).register({
+			customId: "ban",
+			authorize: requiresPermissions(PermissionFlagsBits.BanMembers),
+			handle,
+		});
 		const interaction = fakeButton("ban", PermissionFlagsBits.BanMembers);
 
 		await router.handle(interaction as never);
@@ -73,13 +70,11 @@ describe("ComponentRouter authorization", () => {
 	it("denies before the handler runs when a declared permission is missing", async () => {
 		const handle = vi.fn();
 		const deps = makeDeps();
-		const router = new ComponentRouter(deps).register(
-			createComponentHandler({
-				customId: "ban",
-				authorize: requiresPermissions(PermissionFlagsBits.BanMembers),
-				handle,
-			}),
-		);
+		const router = new ComponentRouter(deps).register({
+			customId: "ban",
+			authorize: requiresPermissions(PermissionFlagsBits.BanMembers),
+			handle,
+		});
 		const interaction = fakeButton("ban", PermissionFlagsBits.SendMessages);
 
 		const claimed = await router.handle(interaction as never);
@@ -93,13 +88,11 @@ describe("ComponentRouter authorization", () => {
 	/** An unknown permission set is never read as a granted one. */
 	it("denies outside a guild, where no permission set can be resolved", async () => {
 		const handle = vi.fn();
-		const router = new ComponentRouter(makeDeps()).register(
-			createComponentHandler({
-				customId: "ban",
-				authorize: requiresPermissions(PermissionFlagsBits.BanMembers),
-				handle,
-			}),
-		);
+		const router = new ComponentRouter(makeDeps()).register({
+			customId: "ban",
+			authorize: requiresPermissions(PermissionFlagsBits.BanMembers),
+			handle,
+		});
 
 		await router.handle(fakeButton("ban", null) as never);
 
@@ -108,16 +101,14 @@ describe("ComponentRouter authorization", () => {
 
 	it("enforces every permission of a multi-permission declaration", async () => {
 		const handle = vi.fn();
-		const router = new ComponentRouter(makeDeps()).register(
-			createComponentHandler({
-				customId: "purge",
-				authorize: requiresPermissions(
-					PermissionFlagsBits.BanMembers,
-					PermissionFlagsBits.ManageChannels,
-				),
-				handle,
-			}),
-		);
+		const router = new ComponentRouter(makeDeps()).register({
+			customId: "purge",
+			authorize: requiresPermissions(
+				PermissionFlagsBits.BanMembers,
+				PermissionFlagsBits.ManageChannels,
+			),
+			handle,
+		});
 
 		await router.handle(fakeButton("purge", PermissionFlagsBits.BanMembers) as never);
 
@@ -129,9 +120,11 @@ describe("ComponentRouter authorization", () => {
 		["handler", checkedByHandler("test double")],
 	])("lets a %s declaration through to the handler", async (_kind, authorize) => {
 		const handle = vi.fn();
-		const router = new ComponentRouter(makeDeps()).register(
-			createComponentHandler({ customId: "open", authorize, handle }),
-		);
+		const router = new ComponentRouter(makeDeps()).register({
+			customId: "open",
+			authorize,
+			handle,
+		});
 
 		await router.handle(fakeButton("open", null) as never);
 
@@ -140,13 +133,11 @@ describe("ComponentRouter authorization", () => {
 
 	it("applies the declaration to a customId carrying appended state", async () => {
 		const handle = vi.fn();
-		const router = new ComponentRouter(makeDeps()).register(
-			createComponentHandler({
-				customId: "feature:ban",
-				authorize: requiresPermissions(PermissionFlagsBits.BanMembers),
-				handle,
-			}),
-		);
+		const router = new ComponentRouter(makeDeps()).register({
+			customId: "feature:ban",
+			authorize: requiresPermissions(PermissionFlagsBits.BanMembers),
+			handle,
+		});
 
 		await router.handle(
 			fakeButton("feature:ban:target-1", PermissionFlagsBits.SendMessages) as never,
@@ -156,13 +147,11 @@ describe("ComponentRouter authorization", () => {
 	});
 
 	it("ignores a customId no handler claims", async () => {
-		const router = new ComponentRouter(makeDeps()).register(
-			createComponentHandler({
-				customId: "ban",
-				authorize: openToAnyone("test double"),
-				handle: vi.fn(),
-			}),
-		);
+		const router = new ComponentRouter(makeDeps()).register({
+			customId: "ban",
+			authorize: openToAnyone("test double"),
+			handle: vi.fn(),
+		});
 
 		expect(await router.handle(fakeButton("something-else", null) as never)).toBe(false);
 	});

@@ -5,7 +5,6 @@ import type {
 	ComponentRuntime,
 	RoutableInteraction,
 } from "@/discord/components/component-router";
-import { createComponentHandler } from "@/discord/components/create-component-handler";
 import { toMessageEditOptions } from "@/discord/components/interactive-message/message-edit-options";
 import {
 	clampPage,
@@ -186,12 +185,12 @@ export function createPersistentPaginator(
 	return {
 		customId,
 		render: (page = FIRST_PAGE) => loadPage(page),
-		handler: createComponentHandler({
+		handler: {
 			customId,
 			// Navigation only re-renders what the message already showed to
 			// whoever can see the channel; it grants no access of its own.
 			authorize: openToAnyone("paging a message reveals nothing its reader could not already see"),
 			handle: handleClick,
-		}),
+		},
 	};
 }
