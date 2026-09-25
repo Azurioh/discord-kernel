@@ -14,6 +14,7 @@ import type { Logger } from "@azurioh/discord-kernel/logger";
 import type { BotModule } from "@azurioh/discord-kernel/module/module";
 import {
 	createInProcessNotifier,
+	createModuleGate,
 	createSettingsRegistry,
 	createSettingsService,
 	SETTINGS_CATALOG,
@@ -22,6 +23,7 @@ import { Client, GatewayIntentBits } from "discord.js";
 import { createSettingsStore } from "@/bootstrap/create-settings-store";
 import { PAGINATOR_CATALOG } from "@/components/paginator/i18n/paginator.catalog";
 import type { SandboxConfig } from "@/config";
+import { createAdminModule } from "@/modules/admin/admin.module";
 import { createBasicsModule } from "@/modules/basics/basics.module";
 import { createDemoModule } from "@/modules/demo/demo.module";
 import { createEmbedPresenter } from "@/shared/discord/embed-presenter";
@@ -54,10 +56,23 @@ export function createSandbox(config: SandboxConfig, logger: Logger): Sandbox {
 	const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 	const guildIds = [config.devGuildId];
 
-	const modules: readonly BotModule[] = [
+	// Resolved on use: the service and the registry need every module's
+	// declaration and catalog first.
+	const lazySettings = () => settings;
+	const kernelSettings = () => registry.kernel;
+	// The modules an administrator can turn off on a guild.
+	const gatedModules: readonly BotModule[] = [
 		createBasicsModule({ guildIds, logger }),
-		createDemoModule({ guildIds, translator, logger, settings: () => settings }),
+		createDemoModule({ guildIds, translator, logger, settings: lazySettings }),
 	];
+	const admin = createAdminModule({
+		guildIds,
+		translator,
+		logger,
+		settings: lazySettings,
+		kernelSettings,
+	});
+	const modules: readonly BotModule[] = [admin, ...gatedModules];
 	for (const module of modules) {
 		if (module.translations) {
 			translations.register(module.translations);
@@ -71,6 +86,7 @@ export function createSandbox(config: SandboxConfig, logger: Logger): Sandbox {
 	const registry = createSettingsRegistry({
 		declarations: modules.flatMap((module) => module.settings ?? []),
 		translations,
+		modules: modules.map(({ name, defaultEnabled }) => ({ name, defaultEnabled })),
 	});
 	const settings = createSettingsService({
 		registry,
@@ -81,24 +97,30 @@ export function createSandbox(config: SandboxConfig, logger: Logger): Sandbox {
 		clock: systemClock,
 		logger,
 	});
+	const gate = createModuleGate({ service: settings, registry, logger });
 
 	// Replies follow the guild's language setting (FR-038); a bot may pass its own resolver.
 	const localeResolver = createGuildLocaleResolver({ service: settings, registry, translator });
-	const runtime = { presenter, logger, translator, localeResolver };
-	const commands = new CommandRouter(runtime).registerAll(
-		modules.flatMap((module) => module.commands ?? []),
-	);
-	const components = new ComponentRouter(runtime).registerAll(
-		modules.flatMap((module) => module.components ?? []),
-	);
+	const runtime = { presenter, logger, translator, gate, localeResolver };
+	const commands = new CommandRouter(runtime);
+	const components = new ComponentRouter(runtime);
+	const events = new EventRouter(logger, gate);
+	// Registered without a module name, so never gated: `/server` is where a
+	// module is turned back on, and disabling it would lock the admin out.
+	commands.registerAll(admin.commands ?? []);
+	for (const module of gatedModules) {
+		commands.registerAll(module.commands ?? [], module.name);
+		components.registerAll(module.components ?? [], module.name);
+		events.registerAll(module.events ?? [], module.name);
+	}
 	const interactions = new InteractionRouter([
 		commands,
 		new AutocompleteDispatcher(commands, logger),
 		components,
 	]);
 
-	new EventRouter(logger)
-		.registerAll(modules.flatMap((module) => module.events ?? []))
+	// The dispatcher itself is never gated: each router checks its own handlers.
+	events
 		.register(
 			createEvent({
 				name: "interactionCreate",
