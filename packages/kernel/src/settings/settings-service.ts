@@ -5,9 +5,11 @@ import { errorMessage } from "@/errors/error-message";
 import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 import { createSettingsCache } from "@/settings/cache";
+import type { Choice } from "@/settings/choice";
 import { decodeStored } from "@/settings/decode-stored";
 import type { SettingsDeclaration } from "@/settings/define-settings";
 import { describeSettings, type SettingsSchema } from "@/settings/describe";
+import type { AnyField } from "@/settings/fields/field";
 import { SETTINGS_ISSUE_MESSAGES } from "@/settings/messages";
 import { migrateStored } from "@/settings/migrate";
 import type { GuildDirectory } from "@/settings/ports/guild-directory";
@@ -16,6 +18,12 @@ import type { SettingsStore, StoredSettings } from "@/settings/ports/settings-st
 import type { SettingsRegistry } from "@/settings/registry";
 import { type SettingsIssue, SettingsValidationError } from "@/settings/settings-validation-error";
 import { type SettingsStatus, settingsStatus } from "@/settings/status";
+import {
+	type SuggestionPorts,
+	type SuggestionScope,
+	suggestChoices,
+	suggestionLabel,
+} from "@/settings/suggest";
 import type { SettingsValues, SurfaceValues } from "@/settings/types";
 import { validateSettings } from "@/settings/validate";
 
@@ -126,6 +134,44 @@ export interface SettingsService {
 	 * @param locale - any locale string; an unsupported one falls back to English.
 	 */
 	describe(declaration: SettingsDeclaration, locale: string): SettingsSchema;
+
+	/**
+	 * Suggestions for one field (FR-021 to FR-026), in the command
+	 * autocomplete's own `Choice` format, so one search serves both. A channel,
+	 * role or member field searches the guild; static choices are translated
+	 * to `ctx.locale` and kept when their name or value contains `query`; a
+	 * dynamic search gets `query` and `ctx` (with `ctx.values`, the other
+	 * values currently entered). A list suggests for its item. At most 25
+	 * results; a search slower than `SUGGESTION_TIMEOUT_MS` (2.5 s) or failing
+	 * yields none and is logged at `warn`.
+	 *
+	 * @throws ValidationError when `fieldKey` is not declared: a malformed
+	 * request, like a patch that is not an object.
+	 */
+	suggest<D extends SettingsDeclaration>(
+		declaration: D,
+		fieldKey: string,
+		query: string,
+		ctx: RequestContext & { readonly values: Readonly<Record<string, unknown>> },
+	): Promise<readonly Choice[]>;
+
+	/**
+	 * The readable label of one value of a field, in `ctx.locale` (FR-022): a
+	 * channel, role or member's name on the guild, a static choice's
+	 * translated label, a dynamic search's `label`, or, without one, the name
+	 * of the exact match in `resolve(String(value))`. A list reads `value` as
+	 * one item. A search gets the guild's current values as `ctx.values`.
+	 *
+	 * @returns the label, or `undefined` when none is known (the value is not
+	 * suggested, the entity is gone, or the search timed out or failed, logged).
+	 * @throws ValidationError when `fieldKey` is not declared.
+	 */
+	label<D extends SettingsDeclaration>(
+		declaration: D,
+		fieldKey: string,
+		value: unknown,
+		ctx: RequestContext,
+	): Promise<string | undefined>;
 }
 
 interface SettingsServiceDeps {
@@ -148,6 +194,7 @@ interface SettingsServiceDeps {
 export function createSettingsService(deps: SettingsServiceDeps): SettingsService {
 	const { store, guilds, notifier, translator, clock, logger } = deps;
 	const cache = createSettingsCache({ clock, notifier });
+	const ports: SuggestionPorts = { guilds, translator, logger };
 
 	/**
 	 * What a guild reads of `stored`: its valid declared fields, defaults not
@@ -298,21 +345,23 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
 		return next;
 	}
 
+	async function getForSurface<D extends SettingsDeclaration>(
+		declaration: D,
+		guildId: string,
+	): Promise<SurfaceValues<D>> {
+		const values: Record<string, unknown> = await get(declaration, guildId);
+		const surface = Object.entries(values).map(([key, value]) =>
+			declaration.fields[key]?.spec.kind === "secret"
+				? [key, { isSet: value !== undefined }]
+				: [key, value],
+		);
+		return Object.fromEntries(surface) as SurfaceValues<D>;
+	}
+
 	return {
 		get,
 
-		async getForSurface<D extends SettingsDeclaration>(
-			declaration: D,
-			guildId: string,
-		): Promise<SurfaceValues<D>> {
-			const values: Record<string, unknown> = await get(declaration, guildId);
-			const surface = Object.entries(values).map(([key, value]) =>
-				declaration.fields[key]?.spec.kind === "secret"
-					? [key, { isSet: value !== undefined }]
-					: [key, value],
-			);
-			return Object.fromEntries(surface) as SurfaceValues<D>;
-		},
+		getForSurface,
 
 		async status(declaration: SettingsDeclaration, guildId: string): Promise<SettingsStatus> {
 			return settingsStatus(declaration, await get(declaration, guildId));
@@ -398,6 +447,34 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
 		describe(declaration: SettingsDeclaration, locale: string): SettingsSchema {
 			return describeSettings({ declaration, locale, translator });
 		},
+
+		async suggest<D extends SettingsDeclaration>(
+			declaration: D,
+			fieldKey: string,
+			query: string,
+			ctx: RequestContext & { readonly values: Readonly<Record<string, unknown>> },
+		): Promise<readonly Choice[]> {
+			const spec = declaredField(declaration, fieldKey).spec;
+			const scope: SuggestionScope = { ...ports, moduleId: declaration.id, key: fieldKey, ctx };
+			return suggestChoices({ scope, spec, query });
+		},
+
+		async label<D extends SettingsDeclaration>(
+			declaration: D,
+			fieldKey: string,
+			value: unknown,
+			ctx: RequestContext,
+		): Promise<string | undefined> {
+			const spec = declaredField(declaration, fieldKey).spec;
+			const values = await getForSurface(declaration, ctx.guildId);
+			const scope: SuggestionScope = {
+				...ports,
+				moduleId: declaration.id,
+				key: fieldKey,
+				ctx: { ...ctx, values },
+			};
+			return suggestionLabel({ scope, spec, value });
+		},
 	};
 }
 
@@ -420,6 +497,20 @@ function assertWritable(declaration: SettingsDeclaration, stored: StoredSettings
 			`Settings of module "${declaration.id}" in guild ${stored.guildId} were written under version ${stored.version}, newer than the declared version ${declaration.version}`,
 		);
 	}
+}
+
+/**
+ * The declared field under `key`.
+ *
+ * @throws ValidationError when the declaration has none: asking a field's
+ * suggestions or labels by a wrong key is a malformed request.
+ */
+function declaredField(declaration: SettingsDeclaration, key: string): AnyField {
+	const declared = Object.hasOwn(declaration.fields, key) ? declaration.fields[key] : undefined;
+	if (declared === undefined) {
+		throw new ValidationError(`Settings of module "${declaration.id}" have no field "${key}"`);
+	}
+	return declared;
 }
 
 function unknownField(key: string): SettingsIssue {
