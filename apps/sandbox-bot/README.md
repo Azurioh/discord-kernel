@@ -40,8 +40,18 @@ a readable terminal; run `tsx src/main.ts` directly (or pipe it elsewhere) to
 get the raw JSON. With the pipe, the script's exit code is `pino-pretty`'s, so
 read the last log line rather than `$?` when a start fails.
 
-Settings are written to `apps/sandbox-bot/.data/settings.json` (gitignored);
-set `SETTINGS_FILE` to use another path.
+Settings go through the kernel's `SettingsStore` port; `SETTINGS_STORE` picks
+the adapter at boot:
+
+| `SETTINGS_STORE` | Adapter | File (gitignored by default) | Path variable |
+| ---------------- | ------- | ---------------------------- | ------------- |
+| `json` (default) | `src/shared/settings/json-file-settings-store.ts`, one process only | `.data/settings.json` | `SETTINGS_FILE` |
+| `sqlite` | `src/shared/settings/sqlite/`, Node's built-in `node:sqlite`, safe for several processes | `.data/settings.sqlite` | `SETTINGS_SQLITE_FILE` |
+
+`src/bootstrap/create-settings-store.ts` is the only file that knows the
+adapters; the rest of the bot sees the port. Both adapters pass the kernel's
+`runSettingsStoreContract`. The SQLite adapter needs Node 24.15+, the first
+release where `node:sqlite` loads without an `ExperimentalWarning`.
 
 ## Project layout
 
