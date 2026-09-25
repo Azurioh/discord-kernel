@@ -16,7 +16,6 @@ import {
 } from "@/discord/components/settings-editor/settings-editor-fields";
 import type { Locale } from "@/i18n/locale";
 import type { Translator } from "@/i18n/translator";
-import type { Logger } from "@/logger";
 import { defineSettings, type SettingsDeclaration } from "@/settings/define-settings";
 import { field } from "@/settings/fields/builders";
 import type { AnyField } from "@/settings/fields/field";

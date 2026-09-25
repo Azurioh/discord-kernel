@@ -1,9 +1,8 @@
 import Ajv2020 from "ajv/dist/2020";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { fixedClock } from "@/clock";
 import { type Catalog, TranslationRegistry } from "@/i18n/catalog";
 import { createTranslator, type Translator } from "@/i18n/translator";
-import type { Logger } from "@/logger";
 import { defineSettings } from "@/settings/define-settings";
 import { describeSettings, type SettingsSchema } from "@/settings/describe";
 import { field } from "@/settings/fields/builders";
