@@ -283,3 +283,69 @@ describe("mountSettingsEditor: a card layout's per-entry button icon", () => {
 		expect(withoutIcon?.accessory?.emoji?.name).toBe("✏️");
 	});
 });
+
+describe("mountSettingsEditor: a card layout's displayValue hook", () => {
+	/** Every text the payload renders, serialised, so an assertion can look for one value. */
+	function renderedText(payload: unknown): string {
+		const { components } = payload as { components: { toJSON(): unknown }[] };
+		return JSON.stringify(components.map((component) => component.toJSON()));
+	}
+
+	it("shows the current value on the card and refreshes it after a write", async () => {
+		const handlers = new Map<string, (arg: unknown) => unknown>();
+		const response = {
+			createMessageComponentCollector: vi.fn(() => ({
+				on: (event: string, handler: (arg: unknown) => unknown) => {
+					handlers.set(event, handler);
+				},
+				off: () => undefined,
+				stop: () => undefined,
+			})),
+		};
+		const editReply = vi.fn(async (payload: unknown) => {
+			void payload;
+			return response;
+		});
+		const interaction = {
+			user: { id: OWNER },
+			client: { user: { displayAvatarURL: () => "https://cdn.example.test/bot.png" } },
+			editReply,
+		} as unknown as Parameters<typeof mountSettingsEditor>[0];
+		const chrome: SettingsEditorCardChrome<Subject, never> = {
+			layout: "card",
+			titleKey: "screen.title",
+			hasOverrides: () => true,
+			preview: () => [],
+			filesOf: () => [],
+		};
+
+		await mountSettingsEditor<Subject, never, Field>(interaction, {
+			ids: IDS,
+			fields: FIELDS,
+			initial: { subject: { name: "value-before" }, assets: [] },
+			currentValue: () => textFieldValue(null),
+			displayValue: (subject) => subject.name,
+			save: async (subject) => ({ subject, assets: [] }),
+			reset: async () => ({ subject: { name: "value-after" }, assets: [] }),
+			chrome,
+			// Keeps the params, so the value the "Current" line carries shows.
+			translator: {
+				translate: (_locale: Locale, key: string, params?: Record<string, string>) =>
+					`${key}${JSON.stringify(params ?? {})}`,
+			} as unknown as Translator,
+			locale: LOCALE,
+			clock: CLOCK,
+			logger: createFakeLogger(),
+		});
+		expect(renderedText(editReply.mock.calls[0]?.[0])).toContain("value-before");
+
+		const collect = (clicked: unknown) => handlers.get("collect")?.(clicked);
+		await collect(createClick(IDS.reset).interaction);
+		const confirm = createClick(IDS.resetConfirm);
+		await collect(confirm.interaction);
+
+		const updated = renderedText((confirm.update.mock.calls as unknown[][])[0]?.[0]);
+		expect(updated).toContain("value-after");
+		expect(updated).not.toContain("value-before");
+	});
+});

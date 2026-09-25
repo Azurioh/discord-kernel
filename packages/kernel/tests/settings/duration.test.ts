@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseDuration } from "@/settings/duration";
+import { formatDuration, parseDuration } from "@/settings/duration";
 
 describe("parseDuration", () => {
 	it.each([
@@ -34,4 +34,23 @@ describe("parseDuration", () => {
 	])("rejects %j", (input) => {
 		expect(parseDuration(input)).toBeUndefined();
 	});
+});
+
+describe("formatDuration", () => {
+	it.each([
+		[0, "0s"],
+		[90, "1m30s"],
+		[900, "15m"],
+		[5400, "1h30m"],
+		[93_784, "1d2h3m4s"],
+	])("formats %i seconds as %s", (seconds, text) => {
+		expect(formatDuration(seconds)).toBe(text);
+	});
+
+	it.each([0, 59, 3600, 93_784, 604_800])(
+		"round-trips %i seconds through parseDuration",
+		(seconds) => {
+			expect(parseDuration(formatDuration(seconds))).toBe(seconds);
+		},
+	);
 });

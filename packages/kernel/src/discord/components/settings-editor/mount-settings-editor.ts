@@ -87,6 +87,18 @@ export interface SettingsEditorOptions<S, A, F extends string> {
 	/** What the modal for `field` opens on. */
 	currentValue(subject: S, field: F): SettingsEditorFieldValue;
 	/**
+	 * What `field` currently holds, already translated, shown on the card under
+	 * the entry's hint as "Current: …" so an administrator reads it without
+	 * opening the modal. Rendered from the state's subject, so it follows every
+	 * write. `null` shows no line for that field; a group shows one
+	 * `label: value` per member answering one; a level shows nothing. A long
+	 * value is cut with an ellipsis.
+	 *
+	 * Read by the card layout only: the embeds layout ignores it. Left out, the
+	 * card renders exactly as it did without it.
+	 */
+	displayValue?(subject: S, field: F): string | null;
+	/**
 	 * Persist one field — its typed value, its upload, or what a picker's select
 	 * came back with, whichever `submission` carries.
 	 *
@@ -577,6 +589,9 @@ export async function mountSettingsEditor<S, A, F extends string>(
 			translator,
 			locale,
 			dressing,
+			options.displayValue === undefined
+				? undefined
+				: (subject, field) => options.displayValue?.(subject, field) ?? null,
 		);
 	} else {
 		view = createEditorView(

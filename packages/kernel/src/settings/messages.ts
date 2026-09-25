@@ -29,6 +29,15 @@ export const SETTINGS_MESSAGES = {
 	/** Shown instead of a secret's value, which no surface ever reads back. */
 	secretSet: "core.settings.secret.set",
 	secretNotSet: "core.settings.secret.not-set",
+	/** Shown for a stored channel, role or member the guild no longer has. */
+	valueUnavailable: "core.settings.value.unavailable",
+	/** Shown for a setting that holds no value. */
+	valueNotSet: "core.settings.value.not-set",
+	/** Shown for a toggles setting with none of its toggles on. */
+	valueNone: "core.settings.value.none",
+	/** The two options a yes/no setting is picked from. */
+	booleanTrue: "core.settings.boolean.true",
+	booleanFalse: "core.settings.boolean.false",
 	/** Reply when a module disabled on the guild is used there. */
 	moduleDisabled: "core.settings.module.disabled",
 	/** Reply when a module still lacks a required setting. */
@@ -98,6 +107,14 @@ export const SETTINGS_CATALOG: KeyedCatalog<
 	},
 	[SETTINGS_MESSAGES.secretSet]: { en: "Set", fr: "Défini" },
 	[SETTINGS_MESSAGES.secretNotSet]: { en: "Not set", fr: "Non défini" },
+	[SETTINGS_MESSAGES.valueUnavailable]: {
+		en: "A saved value is unavailable: it no longer exists on this server.",
+		fr: "Une valeur enregistrée est indisponible : elle n'existe plus sur ce serveur.",
+	},
+	[SETTINGS_MESSAGES.valueNotSet]: { en: "Not set", fr: "Non défini" },
+	[SETTINGS_MESSAGES.valueNone]: { en: "None", fr: "Aucun" },
+	[SETTINGS_MESSAGES.booleanTrue]: { en: "Yes", fr: "Oui" },
+	[SETTINGS_MESSAGES.booleanFalse]: { en: "No", fr: "Non" },
 	[SETTINGS_MESSAGES.moduleDisabled]: {
 		en: "This feature is disabled on this server.",
 		fr: "Cette fonctionnalité est désactivée sur ce serveur.",

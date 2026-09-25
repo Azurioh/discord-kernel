@@ -12,6 +12,7 @@ import { createInMemorySettingsStore } from "@/settings/in-memory/in-memory-sett
 import { createInProcessNotifier } from "@/settings/in-memory/in-process-notifier";
 import type { SettingsRegistry } from "@/settings/registry";
 import { createSettingsService } from "@/settings/settings-service";
+import { createFakeLogger } from "../support/fake-logger";
 import {
 	SAMPLE_FIELD_ACCESS,
 	SAMPLE_GROUP_ACCESS,
@@ -49,23 +50,10 @@ function sampleCatalog(untranslated?: string): Catalog {
 	);
 }
 
-function makeLogger(): Logger {
-	const logger = {
-		trace: vi.fn(),
-		debug: vi.fn(),
-		info: vi.fn(),
-		warn: vi.fn(),
-		error: vi.fn(),
-		fatal: vi.fn(),
-		child: () => logger,
-	};
-	return logger as unknown as Logger;
-}
-
 function makeTranslator(catalog: Catalog): Translator {
 	const registry = new TranslationRegistry();
 	registry.register(catalog);
-	return createTranslator(registry, { defaultLocale: "en", logger: makeLogger() });
+	return createTranslator(registry, { defaultLocale: "en", logger: createFakeLogger() });
 }
 
 function describeSample(locale: string, untranslated?: string): SettingsSchema {
@@ -521,7 +509,7 @@ describe("describeSettings: contract shape", () => {
 
 describe("SettingsService.describe", () => {
 	it("returns the translated description of the declaration", () => {
-		const logger = makeLogger();
+		const logger = createFakeLogger();
 		const translator = makeTranslator(sampleCatalog());
 		const service = createSettingsService({
 			// Describing never consults the registry: the declaration is passed in.

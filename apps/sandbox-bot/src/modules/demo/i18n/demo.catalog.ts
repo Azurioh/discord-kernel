@@ -9,6 +9,14 @@ export const DEMO_CATALOG: KeyedCatalog<
 		en: "Read and change the demo settings",
 		fr: "Lire et modifier les paramètres de la démo",
 	},
+	[DEMO_MESSAGES.editDescription]: {
+		en: "Open the settings screen",
+		fr: "Ouvrir l'écran des paramètres",
+	},
+	[DEMO_MESSAGES.editIntro]: {
+		en: "Pick a setting to change it. This screen is generated from the module's declaration.",
+		fr: "Choisissez un paramètre pour le modifier. Cet écran est généré à partir de la déclaration du module.",
+	},
 	[DEMO_MESSAGES.showDescription]: {
 		en: "Show every demo setting",
 		fr: "Afficher tous les paramètres de la démo",

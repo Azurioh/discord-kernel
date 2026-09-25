@@ -2,10 +2,8 @@ import { resolveLocale, SOURCE_LOCALE } from "@/i18n/locale";
 import type { TranslateKey, Translator } from "@/i18n/translator";
 import type { SettingsDeclaration, SettingsGroup } from "@/settings/define-settings";
 import { annotateField } from "@/settings/describe-field";
+import { displayOrder } from "@/settings/field-order";
 import { fieldsJsonSchema, type JsonSchemaNode } from "@/settings/fields/zod-schema";
-
-/** Rank of a group with no preferred position or no order: after every ranked one. */
-const UNRANKED = Number.MAX_SAFE_INTEGER;
 
 /** URN prefix of a described module: `urn:discord-kernel:settings:<id>:v<version>`. */
 const SCHEMA_ID_PREFIX = "urn:discord-kernel:settings";
@@ -63,41 +61,16 @@ export function describeSettings(params: {
 	return { ...document, ...fields, "x-kernel": moduleHints } as SettingsSchema;
 }
 
-/** The declared groups, translated, in the module's preferred order, then by their own order. */
+/** The declared groups, translated, in the display order every surface shares. */
 function describeGroups(params: {
 	declaration: SettingsDeclaration;
 	translate: TranslateKey;
 }): JsonSchemaNode[] {
 	const { declaration, translate } = params;
-	const groupOrder = declaration.ui?.groupOrder ?? [];
-	const ranked = Object.entries(declaration.groups ?? {}).map(([id, group]) => ({
-		id,
-		group,
-		rank: preferredRank({ groupOrder, id }),
-	}));
-	ranked.sort((left, right) => compareGroups({ left, right }));
-	return ranked.map(({ id, group }) => describeGroup({ id, group, translate }));
-}
-
-/** A group's place in the module's preferred order; unlisted groups come last. */
-function preferredRank(params: { groupOrder: readonly string[]; id: string }): number {
-	const position = params.groupOrder.indexOf(params.id);
-	return position === -1 ? UNRANKED : position;
-}
-
-/** A group ranked by the module's preferred order, then by its own order. */
-interface RankedGroup {
-	readonly id: string;
-	readonly group: SettingsGroup;
-	readonly rank: number;
-}
-
-function compareGroups(params: { left: RankedGroup; right: RankedGroup }): number {
-	const { left, right } = params;
-	if (left.rank !== right.rank) {
-		return left.rank - right.rank;
-	}
-	return (left.group.order ?? UNRANKED) - (right.group.order ?? UNRANKED);
+	return displayOrder(declaration).groups.flatMap((id) => {
+		const group = declaration.groups?.[id];
+		return group === undefined ? [] : [describeGroup({ id, group, translate })];
+	});
 }
 
 function describeGroup(params: {

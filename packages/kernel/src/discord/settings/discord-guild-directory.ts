@@ -25,7 +25,8 @@ const KIND_BY_CHANNEL_TYPE = {
 	[ChannelType.GuildMedia]: "media",
 } as const satisfies Record<GuildChannelType, ChannelKind>;
 
-const CHANNEL_TYPE_BY_KIND = {
+/** The kernel's channel kinds to Discord's guild channel types: the inverse of the map above. */
+export const CHANNEL_TYPE_BY_KIND = {
 	text: ChannelType.GuildText,
 	voice: ChannelType.GuildVoice,
 	category: ChannelType.GuildCategory,

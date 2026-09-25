@@ -117,8 +117,11 @@ to the kernel as of 2026-09-23.
   `text`, `image`, `level`, `role`, `category`, `user`, `channel`, `choice`, `group`
   (`settings-editor-fields.ts:15-23`). A group modal holds at most 5 components
   (`settings-editor-fields.ts:267`).
-- **Decision**: `settingsEditorFromDeclaration(declaration, service, context)` returns the
-  `fields`, `currentValue`, `save`, `saveGroup` and `reset` options. Mapping:
+- **Decision**: `settingsEditorFromDeclaration(declaration, service, context)` resolves to the
+  `fields`, `levels`, `initial`, `currentValue`, `save`, `saveGroup` and `reset` options.
+  The adapter honours field `ui.order`, group `order` and `ui.groupOrder`, with the same ranking
+  as `describeSettings` (`src/settings/field-order.ts`).
+  Mapping:
 
   | Declaration kind | settings-editor kind | Notes |
   |---|---|---|
@@ -128,8 +131,11 @@ to the kernel as of 2026-09-23.
   | enum | `choice` | static options (≤ 25 enforced at declaration) |
   | searchable text | `choice` | first 25 results of `resolve("")`; non-strict adds free text entry (FR-026a) |
   | role, user | `role`, `user` | list variants use `minValues`/`maxValues` |
+  | list of enum values | `choice` | bounded by the list's `minItems`/`maxItems` |
+  | list of integers, list of texts | `text` | one item per line; lines trimmed, empty lines dropped; no item clears |
+  | toggles | `choice` | one select listing the declared keys with their `keyLabels`; more than 25 keys are split into selects of at most 25, each saved into the full record |
   | channel | `channel` or `category` | `category` when the type filter is only categories |
-  | group | `group` | split into chunks of 5 fields to respect the modal limit |
+  | group | `group` | split into chunks of 5 fields to respect the modal limit; a group save writes only the members changed from their prefill |
 
 - **Rationale**: spec decision "Discord screen strategy" — no rewrite, existing users unaffected.
 - **Risk**: modules with many fields may exceed the editor card's component limit

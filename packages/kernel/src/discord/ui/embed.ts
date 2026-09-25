@@ -1,4 +1,5 @@
 import { EmbedBuilder } from "discord.js";
+import { truncateText } from "@/discord/ui/truncate-text";
 
 /** Discord hard limit on the number of fields per embed. */
 const MAX_EMBED_FIELDS = 25;
@@ -35,8 +36,8 @@ export function appendBoundedFields(
 		if (shown >= MAX_EMBED_FIELDS) {
 			break;
 		}
-		const name = truncate(field.name, MAX_FIELD_NAME);
-		const value = truncate(field.value, MAX_FIELD_VALUE);
+		const name = truncateText(field.name, MAX_FIELD_NAME);
+		const value = truncateText(field.value, MAX_FIELD_VALUE);
 		if (usedChars + name.length + value.length > MAX_EMBED_TOTAL - EMBED_TOTAL_SAFETY_MARGIN) {
 			break;
 		}
@@ -49,13 +50,6 @@ export function appendBoundedFields(
 	if (hidden > 0) {
 		embed.setFooter({ text: overflowFooter(hidden) });
 	}
-}
-
-function truncate(text: string, max: number): string {
-	if (text.length <= max) {
-		return text;
-	}
-	return `${text.slice(0, max - 1)}…`;
 }
 
 /** Build a plain titled embed. */

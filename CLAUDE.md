@@ -49,6 +49,13 @@ Already defined once, reuse them:
 | Discord's 25-choice cap | `MAX_AUTOCOMPLETE_CHOICES` (`@/discord/command/autocomplete-limits`), `MAX_SELECT_OPTIONS` |
 | Colour names and aliases | `@/color`, `@/discord/ui/color-aliases` |
 | Sending a reply whatever the interaction state | `sendEmbed` (`@/discord/command/send-embed`) |
+| A translator bound to one locale | `TranslateKey` (`@/i18n/translator`) |
+| The language every catalog provides | `SOURCE_LOCALE` (`@/i18n/locale`) |
+| Cutting text to a Discord limit | `truncateText` (`@/discord/ui/truncate-text`) |
+| The display order of a settings declaration | `displayOrder` (`@/settings/field-order`) |
+| Reading a stored settings value on the settings screen | `@/discord/components/settings-editor/from-declaration-stored` |
+| A duration as `1h30m`, and back | `formatDuration`, `parseDuration` (`@/settings/duration`) |
+| A `Logger` double in tests | `createFakeLogger` (`tests/support/fake-logger.ts`) |
 
 Discord limits (component counts, text lengths, choice caps) are constants in the kernel,
 never a literal number at the call site.

@@ -55,7 +55,7 @@ export function createSandbox(config: SandboxConfig, logger: Logger): Sandbox {
 
 	const modules: readonly BotModule[] = [
 		createBasicsModule({ guildIds, logger }),
-		createDemoModule({ guildIds, translator, settings: () => settings }),
+		createDemoModule({ guildIds, translator, logger, settings: () => settings }),
 	];
 	for (const module of modules) {
 		if (module.translations) {
