@@ -289,7 +289,7 @@ export function settingsEditorFromDeclaration<D extends SettingsDeclaration>(
 ): Promise<
   Pick<
     SettingsEditorOptions<unknown, never, string>,
-    "fields" | "levels" | "initial" | "currentValue" | "save" | "saveGroup" | "reset"
+    "fields" | "levels" | "initial" | "currentValue" | "displayValue" | "save" | "saveGroup" | "reset"
   >
 >;
 ```
@@ -299,5 +299,8 @@ lays the declaration out as `fields` plus nested `levels` when one card cannot h
 `context.translator` translates the texts shown in place of a value (a secret's "set" /
 "not set", an unavailable channel, role or member). The caller spreads the result into
 `mountSettingsEditor` with its own `ids`, `chrome`, `translator`, `clock` and `logger`.
-Existing direct users of `mountSettingsEditor` are
+`displayValue` gives the text a card-layout screen shows under each entry as "Current: …": a
+channel, role or member as its Discord mention, an enum value or toggle as its label, a secret as
+set / not set only (never its value), anything unset as "Not set". `mountSettingsEditor` takes it
+as an optional hook, so existing direct users of `mountSettingsEditor` are
 unaffected.

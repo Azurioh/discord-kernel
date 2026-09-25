@@ -21,6 +21,7 @@ import {
 	MAX_CARD_BUTTON_LEVEL_ENTRIES,
 } from "@/discord/components/settings-editor/settings-editor-card.view";
 import type { SettingsEditorField } from "@/discord/components/settings-editor/settings-editor-fields";
+import { SETTINGS_EDITOR_MESSAGES } from "@/discord/i18n";
 import { type Button, createButton } from "@/discord/interaction/button";
 import type { Locale } from "@/i18n/locale";
 import type { Translator } from "@/i18n/translator";
@@ -483,6 +484,85 @@ describe("createCardEditorView", () => {
 
 			const row = blocks.find((block) => block.type === ComponentType.ActionRow);
 			expect(row?.components?.map((c) => c.custom_id)).toEqual(["confirm", "cancel"]);
+		});
+	});
+
+	describe("the displayValue hook", () => {
+		/** Interpolates params after the key, so an assertion sees both. */
+		const interpolating = {
+			translate: (_locale: Locale, key: string, params?: Record<string, string>) =>
+				params === undefined ? key : `${key}|${Object.values(params).join("|")}`,
+		} as unknown as Translator;
+
+		const GROUP_FIELDS: readonly SettingsEditorField<Field>[] = [
+			...ROOT_FIELDS,
+			{
+				key: "declare",
+				labelKey: "group.label",
+				hintKey: "group.hint",
+				kind: "group",
+				fields: [
+					{
+						key: "current",
+						labelKey: "member.label",
+						hintKey: "member.hint",
+						kind: "text",
+						style: "short",
+						maxLength: 10,
+					},
+				],
+			},
+		];
+
+		function sectionTexts(
+			displayValue: ((subject: string, field: Field) => string | null) | undefined,
+			fields: readonly SettingsEditorField<Field>[] = ROOT_FIELDS,
+		): string[] {
+			const { buttons, chrome } = makeButtons(false);
+			const view = createCardEditorView<string, never, Field>(
+				fields,
+				undefined,
+				buttons,
+				fieldButtonsFor(fields),
+				chrome,
+				interpolating,
+				LOCALE,
+				DRESSING,
+				displayValue,
+			);
+			const shown = state([ROOT_LEVEL_KEY], { subject: "subject-1" });
+			return containerBlocks(asCard(view.render(shown)).card.apply(shown))
+				.filter((block) => block.type === ComponentType.Section)
+				.map((block) => block.components?.[0]?.content ?? "");
+		}
+
+		it("adds the current value under the hint when the hook is present", () => {
+			const texts = sectionTexts((subject, key) => `${subject}:${key}`);
+			expect(texts).toEqual([
+				`**title.label**\ntitle.hint\n${SETTINGS_EDITOR_MESSAGES.currentValue}|subject-1:title`,
+			]);
+		});
+
+		it("leaves the entry unchanged without the hook, or when it answers null", () => {
+			expect(sectionTexts(undefined)).toEqual(["**title.label**\ntitle.hint"]);
+			expect(sectionTexts(() => null)).toEqual(["**title.label**\ntitle.hint"]);
+		});
+
+		it("shows each member of a group with its label", () => {
+			const texts = sectionTexts(
+				(_subject, key) => (key === "current" ? "42" : null),
+				GROUP_FIELDS,
+			);
+			expect(texts[1]).toBe(
+				`**group.label**\ngroup.hint\n${SETTINGS_EDITOR_MESSAGES.currentValue}|member.label: 42`,
+			);
+		});
+
+		it("truncates a long value with an ellipsis", () => {
+			const [text] = sectionTexts(() => "x".repeat(2000));
+			const line = text?.split("\n")[2] ?? "";
+			expect(line.length).toBeLessThan(400);
+			expect(line.endsWith("…")).toBe(true);
 		});
 	});
 });

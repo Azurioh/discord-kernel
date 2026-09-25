@@ -52,6 +52,8 @@ export const SETTINGS_EDITOR_MESSAGES = {
 	openLevelButton: "core.settings-editor.open-level-button",
 	/** The line under an entry whose declaration describes it no further. */
 	entryHint: "core.settings-editor.entry-hint",
+	/** A card entry's current value, under its hint. Takes `{value}`. */
+	currentValue: "core.settings-editor.current-value",
 	/** The entry a screen with more entries than one card holds moves the rest behind. */
 	moreEntries: "core.settings-editor.more-entries",
 	moreEntriesHint: "core.settings-editor.more-entries-hint",
@@ -180,6 +182,10 @@ export const CORE_CATALOG: KeyedCatalog<
 	[SETTINGS_EDITOR_MESSAGES.entryHint]: {
 		en: "Edit this setting.",
 		fr: "Modifiez ce paramètre.",
+	},
+	[SETTINGS_EDITOR_MESSAGES.currentValue]: {
+		en: "Current: {value}",
+		fr: "Actuel : {value}",
 	},
 	[SETTINGS_EDITOR_MESSAGES.moreEntries]: {
 		en: "More settings",

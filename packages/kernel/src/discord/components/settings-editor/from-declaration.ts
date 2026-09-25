@@ -2,6 +2,7 @@ import {
 	type DeclarationControl,
 	declarationControls,
 } from "@/discord/components/settings-editor/from-declaration-controls";
+import { controlDisplay } from "@/discord/components/settings-editor/from-declaration-display";
 import { layoutDeclaration } from "@/discord/components/settings-editor/from-declaration-layout";
 import {
 	type DeclarationSubject,
@@ -32,7 +33,7 @@ import type { RequestContext, SettingsService } from "@/settings/settings-servic
 /** What the adapter hands `mountSettingsEditor`; the caller adds its own ids, chrome, clock and logger. */
 type DeclarationEditorOptions = Pick<
 	SettingsEditorOptions<unknown, never, string>,
-	"fields" | "levels" | "initial" | "currentValue" | "save" | "saveGroup" | "reset"
+	"fields" | "levels" | "initial" | "currentValue" | "displayValue" | "save" | "saveGroup" | "reset"
 >;
 
 /** A settings patch, keyed by field. */
@@ -92,6 +93,8 @@ export async function settingsEditorFromDeclaration<D extends SettingsDeclaratio
 		initial: await reload(scope),
 		currentValue: (subject: DeclarationSubject, key: string) =>
 			controlValue({ translate: scope.translate, subject, control: controlAt({ scope, key }) }),
+		displayValue: (subject: DeclarationSubject, key: string) =>
+			controlDisplay({ translate: scope.translate, subject, control: controlAt({ scope, key }) }),
 		save: (subject: DeclarationSubject, key: string, submission: SettingsEditorSubmission) =>
 			saveControl({ scope, subject, control: controlAt({ scope, key }), submission }),
 		saveGroup: (

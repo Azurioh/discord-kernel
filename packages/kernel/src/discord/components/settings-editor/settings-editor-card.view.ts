@@ -23,6 +23,7 @@ import { SETTINGS_EDITOR_MESSAGES } from "@/discord/i18n";
 import { type Button, createActionRow } from "@/discord/interaction/button";
 import { type CardBlock, type CardDef, createCard } from "@/discord/ui/card";
 import { EMBED_COLORS } from "@/discord/ui/colors";
+import { truncateText } from "@/discord/ui/truncate-text";
 import type { Locale } from "@/i18n/locale";
 import type { Translator } from "@/i18n/translator";
 
@@ -73,6 +74,23 @@ export const MAX_CARD_BUTTON_LEVEL_ENTRIES = 20;
 const ENTRY_ACTIONS_RESERVE = 2;
 
 /**
+ * The most characters an entry's "Current: …" line may take. Well under the
+ * 4000 a card's text may hold in total: ten entries each showing a long value
+ * must still leave room for the preview and the chrome around them.
+ */
+const MAX_CURRENT_VALUE_LENGTH = 200;
+
+/** Separates a group's members on its one "Current: …" line. */
+const GROUP_MEMBER_SEPARATOR = " · ";
+
+/** A value's own line breaks, folded so it stays on the one line it is given. */
+const LINE_BREAKS = /\s*\r?\n\s*/g;
+
+function oneLine(value: string): string {
+	return value.replace(LINE_BREAKS, " ");
+}
+
+/**
  * The button a menu entry's own `Section` carries, derived from the field's
  * key rather than declared alongside it — the same relationship `ids.field`
  * already has to the select it used to name, one level of indirection lower.
@@ -106,6 +124,7 @@ export function createCardEditorView<S, A, F extends string>(
 	translator: Translator,
 	locale: Locale,
 	dressing: SettingsEditorDressing,
+	displayValue?: (subject: S, field: F) => string | null,
 ): InteractiveView<SettingsEditorState<S, A>> {
 	const screenTitle = translator.translate(locale, chrome.titleKey);
 
@@ -163,14 +182,50 @@ export function createCardEditorView<S, A, F extends string>(
 	}
 
 	/**
+	 * What an entry currently holds, as the text after the "Current:" prefix:
+	 * the hook's own answer for a single field, one `label: value` per member
+	 * holding one for a group, nothing for a level. `null` when there is
+	 * nothing to show — no hook, or a hook answering `null` throughout.
+	 */
+	function currentText(field: SettingsEditorField<F>, subject: S): string | null {
+		if (displayValue === undefined || field.kind === "level") {
+			return null;
+		}
+		if (field.kind !== "group") {
+			return displayValue(subject, field.key);
+		}
+		const members = field.fields.flatMap((member) => {
+			const value = displayValue(subject, member.key);
+			return value === null ? [] : [`${translator.translate(locale, member.labelKey)}: ${value}`];
+		});
+		return members.length === 0 ? null : members.join(GROUP_MEMBER_SEPARATOR);
+	}
+
+	/** {@link currentText}, prefixed and cut to {@link MAX_CURRENT_VALUE_LENGTH}; none when it is `null`. */
+	function currentLines(field: SettingsEditorField<F>, subject: S): string[] {
+		const value = currentText(field, subject);
+		if (value === null) {
+			return [];
+		}
+		const line = translator.translate(locale, SETTINGS_EDITOR_MESSAGES.currentValue, {
+			value: oneLine(value),
+		});
+		return [truncateText(line, MAX_CURRENT_VALUE_LENGTH)];
+	}
+
+	/**
 	 * One menu entry, as the `Section` that replaces it: its label as the title,
-	 * its hint as the line under it, and the button `mountSettingsEditor`
+	 * its hint as the line under it, what it currently holds under that when the
+	 * screen declares `displayValue`, and the button `mountSettingsEditor`
 	 * registered for it as the accessory — the very button that opens its modal
 	 * or descends into it, reached by a click instead of a pick.
 	 */
-	function entrySection(field: SettingsEditorField<F>): CardBlock<SettingsEditorState<S, A>> {
+	function entrySection(
+		field: SettingsEditorField<F>,
+		subject: S,
+	): CardBlock<SettingsEditorState<S, A>> {
 		const title = translator.translate(locale, field.labelKey);
-		const lines = [translator.translate(locale, field.hintKey)];
+		const lines = [translator.translate(locale, field.hintKey), ...currentLines(field, subject)];
 		const action = fieldButtons.get(field.key);
 		return action === undefined
 			? { kind: "entry", title, lines }
@@ -290,7 +345,7 @@ export function createCardEditorView<S, A, F extends string>(
 		const entries: CardBlock<SettingsEditorState<S, A>>[] =
 			level.entryLayout === "buttons"
 				? buttonRows(levelButtons(level, state))
-				: level.fields.map((field) => entrySection(field));
+				: level.fields.map((field) => entrySection(field, state.subject));
 
 		return [
 			{ kind: "text", content: subtext(heading(state)) },

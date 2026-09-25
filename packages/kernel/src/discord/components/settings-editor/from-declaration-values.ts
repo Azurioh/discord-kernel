@@ -65,12 +65,13 @@ export function controlValue(params: {
 }
 
 /** `set` for a secret the surface reads as set, `not set` otherwise. */
-function secretStateKey(value: unknown): string {
+export function secretStateKey(value: unknown): string {
 	const isSet = typeof value === "object" && value !== null && "isSet" in value && value.isSet;
 	return isSet === true ? SETTINGS_MESSAGES.secretSet : SETTINGS_MESSAGES.secretNotSet;
 }
 
-function isToggledOn(params: { value: unknown; key: string }): boolean {
+/** Whether `key` is on in a toggles value. */
+export function isToggledOn(params: { value: unknown; key: string }): boolean {
 	const { value, key } = params;
 	return typeof value === "object" && value !== null && Reflect.get(value, key) === true;
 }

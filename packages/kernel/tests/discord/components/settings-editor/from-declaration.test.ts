@@ -1034,4 +1034,124 @@ describe("settingsEditorFromDeclaration", () => {
 			]);
 		});
 	});
+
+	describe("displayValue", () => {
+		function shown(adapter: Adapter, subject: unknown, key: string): string | null {
+			if (adapter.displayValue === undefined) {
+				throw new Error("The adapter must provide displayValue");
+			}
+			return adapter.displayValue(subject, key);
+		}
+
+		it("shows a channel, a category, a role and a member as Discord mentions", async () => {
+			const { adapter, subject } = await setup(mappingSettings, {
+				logChannel: TEXT_CHANNEL_ID,
+				ticketCategory: CATEGORY_CHANNEL,
+				staffRole: STAFF_ROLE,
+				owner: OWNER,
+			});
+			expect(shown(adapter, subject, "logChannel")).toBe(`<#${TEXT_CHANNEL_ID}>`);
+			expect(shown(adapter, subject, "ticketCategory")).toBe(`<#${CATEGORY_CHANNEL}>`);
+			expect(shown(adapter, subject, "staffRole")).toBe(`<@&${STAFF_ROLE}>`);
+			expect(shown(adapter, subject, "owner")).toBe(`<@${OWNER}>`);
+		});
+
+		it.each([
+			["logChannel", DELETED_CHANNEL_ID],
+			["staffRole", DELETED_ROLE_ID],
+			["owner", LEFT_MEMBER],
+		])("shows a stored %s missing from the guild as unavailable", async (key, id) => {
+			const { adapter, subject } = await setup(mappingSettings, { [key]: id });
+			expect(shown(adapter, subject, key)).toBe(SETTINGS_MESSAGES.valueUnavailable);
+		});
+
+		it("joins a list of roles, an unavailable one included", async () => {
+			const { adapter, subject } = await setup(mappingSettings, {
+				helpers: [STAFF_ROLE, DELETED_ROLE_ID],
+			});
+			expect(shown(adapter, subject, "helpers")).toBe(
+				`<@&${STAFF_ROLE}>, ${SETTINGS_MESSAGES.valueUnavailable}`,
+			);
+		});
+
+		it("shows an enum as its choice label and a boolean as its translated option", async () => {
+			const { adapter, subject } = await setup(mappingSettings, { enabled: true, region: "na" });
+			expect(shown(adapter, subject, "region")).toBe("mapping.region.na");
+			expect(shown(adapter, subject, "enabled")).toBe(SETTINGS_MESSAGES.booleanTrue);
+			const { adapter: other, subject: defaults } = await setup(mappingSettings);
+			expect(shown(other, defaults, "enabled")).toBe(SETTINGS_MESSAGES.booleanFalse);
+		});
+
+		it("shows a set secret as set, never its value", async () => {
+			const { adapter, subject } = await setup(mappingSettings, { apiKey: "s3cr3t" });
+			const text = shown(adapter, subject, "apiKey");
+			expect(text).toBe(SETTINGS_MESSAGES.secretSet);
+			expect(text).not.toContain("s3cr3t");
+		});
+
+		it("shows an unset secret as not set", async () => {
+			const { adapter, subject } = await setup(mappingSettings);
+			expect(shown(adapter, subject, "apiKey")).toBe(SETTINGS_MESSAGES.secretNotSet);
+		});
+
+		it("shows a duration formatted, a colour as its hex and numbers as they are", async () => {
+			const { adapter, subject } = await setup(mappingSettings, {
+				cooldown: 5400,
+				count: 7,
+				ratio: 0.25,
+			});
+			expect(shown(adapter, subject, "cooldown")).toBe("1h30m");
+			expect(shown(adapter, subject, "accent")).toBe("#5865f2");
+			expect(shown(adapter, subject, "count")).toBe("7");
+			expect(shown(adapter, subject, "ratio")).toBe("0.25");
+		});
+
+		it("shows a text as is, cut with an ellipsis when long", async () => {
+			const { adapter, subject } = await setup(mappingSettings, { title: "Hello" });
+			expect(shown(adapter, subject, "title")).toBe("Hello");
+			const long = await setup(mappingSettings, { title: "x".repeat(200) });
+			const text = shown(long.adapter, long.subject, "title") ?? "";
+			expect(text.length).toBeLessThan(200);
+			expect(text.endsWith("…")).toBe(true);
+		});
+
+		it("shows an unset value as not set", async () => {
+			const { adapter, subject } = await setup(mappingSettings);
+			expect(shown(adapter, subject, "title")).toBe(SETTINGS_MESSAGES.valueNotSet);
+			expect(shown(adapter, subject, "staffRole")).toBe(SETTINGS_MESSAGES.valueNotSet);
+			expect(shown(adapter, subject, "ratio")).toBe(SETTINGS_MESSAGES.valueNotSet);
+		});
+
+		it("joins a list of typed items", async () => {
+			const typedLists = defineSettings({
+				id: "typed-lists-shown",
+				version: 1,
+				labels: { title: "typed-lists-shown.title" },
+				fields: {
+					thresholds: field.list(field.integer({ min: 1 }), { label: "t.thresholds" }),
+					keywords: field.list(field.text(), { label: "t.keywords" }),
+				},
+			});
+			const { adapter, subject } = await setup(typedLists, {
+				thresholds: [1, 5],
+				keywords: ["ticket", "help"],
+			});
+			expect(shown(adapter, subject, "thresholds")).toBe("1, 5");
+			expect(shown(adapter, subject, "keywords")).toBe("ticket, help");
+		});
+
+		it("shows the labels of the toggles that are on, or none", async () => {
+			const { adapter, subject } = await setup(togglesSettings, { features: { alpha: true } });
+			const [control] = choiceControls(adapter);
+			expect(shown(adapter, subject, control?.key ?? "")).toBe("toggled.alpha, toggled.beta");
+			const off = await setup(togglesSettings, { features: { beta: false } });
+			expect(shown(off.adapter, off.subject, control?.key ?? "")).toBe(SETTINGS_MESSAGES.valueNone);
+		});
+
+		it("follows the subject a save returns", async () => {
+			const { adapter, subject } = await setup(mappingSettings);
+			const written = await submit(adapter, subject, "count", { value: "9" });
+			expect(shown(adapter, written.subject, "count")).toBe("9");
+		});
+	});
 });
