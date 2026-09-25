@@ -22,6 +22,9 @@ export interface Translator {
 	resolve(locale: Locale, text: LocalizedText): string;
 }
 
+/** Translates one catalog key into a locale already chosen by the caller. */
+export type TranslateKey = (key: string) => string;
+
 export interface TranslatorOptions {
 	readonly defaultLocale: Locale;
 	readonly logger: Logger;

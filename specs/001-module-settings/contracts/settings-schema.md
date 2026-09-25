@@ -72,6 +72,9 @@ web dashboard. Standard keywords carry everything a generic JSON Schema form can
 - `x-kernel.suggest` ∈ `none` (omitted), `static`, `dynamic`, `guild`. `dynamic` means the
   surface must call the suggestion endpoint of the future HTTP API; `guild` means built-in
   channel/role/user suggestions.
+- `x-kernel.choices` accompanies `suggest: "static"` on a `text` or `integer` field: the declared
+  suggestions as `[{ "const": <value>, "title": <translated label> }]`, in declared order. They
+  suggest values without restricting them (an `enum` restricts its values through `oneOf`).
 - Secret properties: `writeOnly: true`; never `default`, `examples`, `const` or `enum`.
 - `locale` is the resolved locale actually used (after fallback).
 - All `title`/`description` strings are already translated; missing keys in the requested locale

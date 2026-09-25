@@ -13,6 +13,9 @@ import type { SettingsIssueCode } from "@/settings/settings-validation-error";
 /** A Discord snowflake: 17 to 20 digits. */
 const SNOWFLAKE_PATTERN = /^\d{17,20}$/;
 
+/** A stored colour: `#rrggbb`, lowercase. */
+const STORED_COLOR_PATTERN = /^#[0-9a-f]{6}$/;
+
 /** Custom Zod issue parameter carrying the kernel issue code. */
 const ISSUE_CODE_PARAM = "settingsCode";
 
@@ -72,6 +75,50 @@ export function pruneStoredValue(params: { field: AnyField; value: unknown }): u
 	return Object.fromEntries(Object.entries(value).filter(([key]) => keys.includes(key)));
 }
 
+/** One JSON Schema object, open to in-place annotation. */
+export type JsonSchemaNode = Record<string, unknown>;
+
+/**
+ * Describe the stored values of a set of fields as a JSON Schema draft 2020-12
+ * object: each field's kind and constraints, a field without `required` being
+ * optional, and no undeclared key. The field's own texts and hints are added
+ * by `annotate`, called once for each field and each list item on the schema
+ * that describes it.
+ *
+ * @param params.fields - the fields, by key.
+ * @param params.annotate - adds a field's annotations to its schema, in place.
+ * @returns the JSON Schema document, with `$schema`.
+ */
+export function fieldsJsonSchema(params: {
+	fields: Readonly<Record<string, AnyField>>;
+	annotate: (field: AnyField, schema: JsonSchemaNode) => void;
+}): JsonSchemaNode {
+	const described = new Map<object, AnyField>();
+	const shape: Record<string, z.ZodType> = {};
+	for (const [key, declared] of Object.entries(params.fields)) {
+		const schema = declared.required ? schemaOf(declared) : schemaOf(declared).optional();
+		described.set(schema, declared);
+		if (declared.spec.kind === "list") {
+			described.set(schemaOf(declared.spec.item), declared.spec.item);
+		}
+		shape[key] = schema;
+	}
+	return z.toJSONSchema(z.object(shape), {
+		target: "draft-2020-12",
+		override: ({ zodSchema, jsonSchema }) => {
+			const declared = described.get(zodSchema);
+			if (declared === undefined) {
+				return;
+			}
+			if (declared.spec.kind === "list") {
+				// Duplicates are rejected by a refinement, which Zod cannot describe.
+				jsonSchema.uniqueItems = true;
+			}
+			params.annotate(declared, jsonSchema);
+		},
+	});
+}
+
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -90,6 +137,10 @@ function schemaOf(target: AnyField): z.ZodType {
  * Length checks (text length, list size) are gated behind a bare type check
  * with `pipe`: Zod keeps running them after a type failure whenever the input
  * has a `length`, which would report a length issue on top of `type`.
+ *
+ * Every schema ends on the stored form of its value, never on a transform:
+ * {@link fieldsJsonSchema} describes that output, and a transform has no JSON
+ * Schema equivalent.
  */
 function compileSchema(target: AnyField): z.ZodType {
 	const { spec } = target;
@@ -99,7 +150,7 @@ function compileSchema(target: AnyField): z.ZodType {
 		case "user":
 			return z.string().regex(SNOWFLAKE_PATTERN);
 		case "color":
-			return z.string().transform(toStoredColor);
+			return z.string().transform(toStoredColor).pipe(z.string().regex(STORED_COLOR_PATTERN));
 		case "duration":
 			return z.preprocess(toSeconds, withBounds(z.int().min(0), spec));
 		case "enum":
@@ -131,10 +182,18 @@ function compileSchema(target: AnyField): z.ZodType {
 			return z
 				.record(z.string(), z.unknown())
 				.superRefine(checkToggles(spec.keys))
-				.transform((toggles) => ({ ...(target.default as object), ...toggles }));
+				.transform((toggles) => ({ ...(target.default as object), ...toggles }))
+				.pipe(storedToggles(spec.keys));
 		default:
 			return unhandledFieldKind(spec);
 	}
+}
+
+/** Stored toggles: a boolean per declared key, a missing key taking its default. */
+function storedToggles(
+	keys: readonly string[],
+): z.ZodObject<Record<string, z.ZodOptional<z.ZodBoolean>>, z.core.$strict> {
+	return z.strictObject(Object.fromEntries(keys.map((key) => [key, z.boolean().optional()])));
 }
 
 function withBounds(schema: z.ZodNumber, bounds: BoundsOptions): z.ZodNumber {
