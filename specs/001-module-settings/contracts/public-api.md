@@ -105,14 +105,17 @@ above 4000; a list `maxItems` above 25 or an item kind lists cannot hold (`color
 ```ts
 export function createSettingsRegistry(input: {
   declarations: readonly SettingsDeclaration[];
-  translations: TranslationRegistry; // must already contain the modules' catalogs
+  translations: TranslationRegistry; // must already contain the modules' catalogs and SETTINGS_CATALOG
+  modules?: readonly ModuleEnablement[]; // the registered modules (a BotModule fits); none by default
 }): SettingsRegistry;
 ```
 
 ```ts
 export interface SettingsRegistry {
-  /** Every declaration, in registration order. */
+  /** The kernel's own declaration first, then the modules' in registration order. */
   readonly declarations: readonly SettingsDeclaration[];
+  /** The kernel's own declaration, built from `input.modules`. */
+  readonly kernel: KernelSettings;
   get(id: string): SettingsDeclaration | undefined;
 }
 ```
@@ -127,8 +130,18 @@ included) and `toggles` `keyLabels`, each checked with `TranslationRegistry.has`
 same way it collects `translations`. The registry always includes the kernel's own declaration:
 
 ```ts
-export const kernelSettings: SettingsDeclaration; // id "kernel": { modules: field.toggles (keys = registered module names), locale?: Locale }
+export const KERNEL_SETTINGS_ID = "kernel";
+export interface ModuleEnablement { readonly name: string; readonly defaultEnabled?: boolean }
+/** id "kernel": { modules: field.toggles (keys = module names, default = defaultEnabled ?? true), locale?: Locale } */
+export function kernelSettings(modules: readonly ModuleEnablement[]): KernelSettings;
+export type KernelSettings = ReturnType<typeof kernelSettings>;
 ```
+
+`kernelSettings` is a factory, not a constant: module names are only known at composition.
+`createSettingsRegistry` calls it with `input.modules` and registers the result first, checking
+its catalog keys (`KERNEL_SETTINGS_MESSAGES`, in `SETTINGS_CATALOG`) like any declaration. Code
+that needs the kernel declaration reads `registry.kernel`; two modules sharing a name fail the
+boot with a `SettingsDeclarationError`. A module declaration of id `kernel` is a duplicate id.
 
 ## System settings, gating and status
 
