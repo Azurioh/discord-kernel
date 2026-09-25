@@ -1,10 +1,10 @@
 import type { ChatInputCommandInteraction } from "discord.js";
 import {
 	COLLECTOR_IDLE_MS,
-	createStateStore,
 	mountInteractiveMessageCollector,
-	toMessageEditOptions,
 } from "@/discord/components/interactive-message/interactive-message-collector";
+import { toMessageEditOptions } from "@/discord/components/interactive-message/message-edit-options";
+import { createStateStore } from "@/discord/components/interactive-message/state-store";
 import { createPageState, pageCount } from "@/discord/components/paginator/page-state";
 import {
 	createPaginatorButtons,

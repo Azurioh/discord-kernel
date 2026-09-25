@@ -203,9 +203,17 @@
 			"types": "./dist/discord/components/interactive-message/interactive-message-collector.d.ts",
 			"default": "./dist/discord/components/interactive-message/interactive-message-collector.js"
 		},
+		"./discord/components/interactive-message/message-edit-options": {
+			"types": "./dist/discord/components/interactive-message/message-edit-options.d.ts",
+			"default": "./dist/discord/components/interactive-message/message-edit-options.js"
+		},
 		"./discord/components/interactive-message/mount-interactive-message": {
 			"types": "./dist/discord/components/interactive-message/mount-interactive-message.d.ts",
 			"default": "./dist/discord/components/interactive-message/mount-interactive-message.js"
+		},
+		"./discord/components/interactive-message/state-store": {
+			"types": "./dist/discord/components/interactive-message/state-store.d.ts",
+			"default": "./dist/discord/components/interactive-message/state-store.js"
 		},
 		"./discord/components/paginator/index": {
 			"types": "./dist/discord/components/paginator/index.d.ts",
