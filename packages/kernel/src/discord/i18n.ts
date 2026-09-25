@@ -1,4 +1,4 @@
-import type { Catalog } from "@/i18n/catalog";
+import type { KeyedCatalog, MessageKey } from "@/i18n/catalog";
 
 /** Catalog keys for the framework's own feedback, under the `core.` namespace. */
 export const CORE_MESSAGES = {
@@ -57,7 +57,9 @@ export const SETTINGS_EDITOR_MESSAGES = {
  * fallbacks and the default cooldown notice. Registered by the composition root
  * before any module catalog.
  */
-export const CORE_CATALOG: Catalog = {
+export const CORE_CATALOG: KeyedCatalog<
+	MessageKey<typeof CORE_MESSAGES> | MessageKey<typeof SETTINGS_EDITOR_MESSAGES>
+> = {
 	[CORE_MESSAGES.presenterSuccessTitle]: { en: "Success", fr: "Succès" },
 	[CORE_MESSAGES.presenterWarningTitle]: { en: "Warning", fr: "Avertissement" },
 	[CORE_MESSAGES.presenterErrorTitle]: { en: "Error", fr: "Erreur" },

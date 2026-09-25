@@ -1,4 +1,4 @@
-import type { Catalog } from "@/i18n/catalog";
+import type { KeyedCatalog, MessageKey } from "@/i18n/catalog";
 import type { SettingsIssueCode } from "@/settings/settings-validation-error";
 
 /**
@@ -8,7 +8,7 @@ import type { SettingsIssueCode } from "@/settings/settings-validation-error";
  * Placeholders: `min` / `minLength` / `minItems` take `{min}`, `max` /
  * `maxLength` / `maxItems` take `{max}`; the others take none.
  */
-export const SETTINGS_ISSUE_MESSAGES: Readonly<Record<SettingsIssueCode, string>> = {
+export const SETTINGS_ISSUE_MESSAGES = {
 	required: "core.settings.issue.required",
 	type: "core.settings.issue.type",
 	min: "core.settings.issue.min",
@@ -22,7 +22,7 @@ export const SETTINGS_ISSUE_MESSAGES: Readonly<Record<SettingsIssueCode, string>
 	notFound: "core.settings.issue.not-found",
 	unknownChoice: "core.settings.issue.unknown-choice",
 	unknownField: "core.settings.issue.unknown-field",
-};
+} as const satisfies Readonly<Record<SettingsIssueCode, string>>;
 
 /** Catalog keys for the settings feature's own wording outside validation. */
 export const SETTINGS_MESSAGES = {
@@ -41,7 +41,9 @@ export const SETTINGS_MESSAGES = {
  * The settings feature's strings, registered by the composition root alongside
  * the core catalog.
  */
-export const SETTINGS_CATALOG: Catalog = {
+export const SETTINGS_CATALOG: KeyedCatalog<
+	MessageKey<typeof SETTINGS_ISSUE_MESSAGES> | MessageKey<typeof SETTINGS_MESSAGES>
+> = {
 	[SETTINGS_ISSUE_MESSAGES.required]: {
 		en: "This setting is required.",
 		fr: "Ce paramètre est obligatoire.",
