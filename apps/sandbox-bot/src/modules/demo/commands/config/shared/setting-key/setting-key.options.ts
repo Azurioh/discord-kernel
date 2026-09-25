@@ -1,4 +1,5 @@
 import { createStringOption } from "@azurioh/discord-kernel/discord/command/options";
+import type { MessageKey } from "@azurioh/discord-kernel/i18n/catalog";
 import type { Translator } from "@azurioh/discord-kernel/i18n/translator";
 import {
 	createSettingKeyAutocomplete,
@@ -7,7 +8,6 @@ import {
 import { DEMO_CATALOG } from "@/modules/demo/i18n/demo.catalog";
 import type { DEMO_MESSAGES } from "@/modules/demo/i18n/demo.messages";
 import { localizedDescription } from "@/shared/discord/localized-description";
-import type { MessageKey } from "@/shared/i18n/module-catalog";
 
 /** A subcommand that adds nothing to the declared keys. */
 const NO_EXTRA_CHOICES: ExtraSettingKeyChoices = () => [];
