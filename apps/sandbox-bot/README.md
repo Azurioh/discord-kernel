@@ -186,8 +186,8 @@ are untouched. The composition root registers each module's commands,
 components and events with the module's name, which is what the kernel's
 `ModuleGate` checks. `admin` is never gated: its commands are registered without
 a module name, so turning every module off can never lock you out of `/server`.
-The language picked there is stored with the server's settings; replies still
-follow the member's Discord client language, as described below.
+The language picked there applies when a member's Discord client language is not
+one the bot supports, as described below.
 
 `/config` and `/server` are guild-only and need *Manage Server*, both as a
 visibility filter and as a guard. Values to try with `/config set`:
@@ -205,5 +205,7 @@ visibility filter and as a guard. Values to try with `/config set`:
 | `pingRoles` | `["123456789012345678"]` (IDs quoted inside a JSON list) |
 
 The bot also logs when it is ready, when it joins a guild and every settings
-change. Your Discord client language (English or French) picks the reply
-language.
+change. The reply language is, in order: your Discord client language when the
+bot supports it (English or French), the language picked in `/server`, the
+server's Discord language, then English. The composition root plugs this order in
+as the kernel's `createGuildLocaleResolver`; a bot can pass its own resolver instead.
