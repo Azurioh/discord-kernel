@@ -16,8 +16,16 @@ check fails when a rule is broken, so a red gate points back here.
 ## Gate
 
 A change is done only when these pass from the repository root with **zero errors and zero
-warnings**: `pnpm typecheck`, `pnpm lint`, `pnpm knip`, `pnpm test`, `pnpm build`.
+warnings** (`pnpm lint` fails on any Biome warning): `pnpm typecheck`, `pnpm lint`, `pnpm knip`, `pnpm test`, `pnpm build`.
 Write the failing test first, then the code.
+
+## Node version
+
+- `.node-version` is the version to develop and run CI with (fnm, nvm and `setup-node` read it).
+- Each package's `engines.node` is its minimum. `engineStrict: true` in `pnpm-workspace.yaml`
+  makes `pnpm install` fail below it, instead of only warning.
+- The published kernel keeps the oldest supported LTS as its minimum; raise it only in a major
+  release. A private app (the sandbox) may require a newer Node when it needs a runtime feature.
 
 ## Rules checked by tools
 
@@ -109,6 +117,16 @@ Moving or renaming an exported symbol breaks consumers who import that subpath:
   appears in an exported type.
 - `packages/kernel/src/settings` imports nothing from `discord.js` (a test enforces it).
 - Never ignore an error silently: log it or rethrow it.
+
+### Persistence
+
+- The kernel never imports a database driver. It declares ports (`SettingsStore`) and an
+  in-memory twin, nothing more.
+- Every store is an adapter over a port, living in the bot (or an opt-in sibling package once
+  two bots share it), and its test file runs the port's contract suite
+  (`runSettingsStoreContract`). An adapter that does not pass it is not done.
+- The composition root is the only code that picks an adapter; everything else depends on the
+  port.
 
 ### Text and translations
 

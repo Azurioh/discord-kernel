@@ -1,27 +1,67 @@
 import { fileURLToPath } from "node:url";
-import { optionalEnv, requireEnv } from "@azurioh/discord-kernel/config/env";
+import { enumEnv, optionalEnv, requireEnv } from "@azurioh/discord-kernel/config/env";
 
-/** Where settings live when `SETTINGS_FILE` is not set: `.data/` in this app, gitignored. */
-const DEFAULT_SETTINGS_FILE = fileURLToPath(new URL("../.data/settings.json", import.meta.url));
+/** The `SettingsStore` adapters the sandbox can boot with, picked by `SETTINGS_STORE`. */
+const SETTINGS_STORE_ADAPTERS = ["json", "sqlite"] as const;
+
+/** Where settings live when no path is set: `.data/` in this app, gitignored. */
+const DEFAULT_SETTINGS_FILES = {
+	json: fileURLToPath(new URL("../.data/settings.json", import.meta.url)),
+	sqlite: fileURLToPath(new URL("../.data/settings.sqlite", import.meta.url)),
+} as const;
+
+/** The variable that overrides each adapter's file. */
+const SETTINGS_FILE_VARIABLES = {
+	json: "SETTINGS_FILE",
+	sqlite: "SETTINGS_SQLITE_FILE",
+} as const;
+
+/** Which adapter persists settings, and the file it works on. */
+export interface SettingsStoreConfig {
+	readonly adapter: (typeof SETTINGS_STORE_ADAPTERS)[number];
+	readonly file: string;
+}
 
 export interface SandboxConfig {
 	readonly token: string;
 	readonly clientId: string;
 	/** Every command is registered to this guild only, so updates are instant. */
 	readonly devGuildId: string;
-	readonly settingsFile: string;
+	readonly settingsStore: SettingsStoreConfig;
 }
 
 /**
  * Read the sandbox configuration from the environment.
  *
  * @throws MissingEnvError when a required variable is missing or empty.
+ * @throws InvalidEnvError when `SETTINGS_STORE` names no known adapter.
  */
 export function loadConfig(): SandboxConfig {
+	const adapter = enumEnv("SETTINGS_STORE", SETTINGS_STORE_ADAPTERS, "json");
 	return {
 		token: requireEnv("DISCORD_TOKEN_DEV"),
 		clientId: requireEnv("DISCORD_CLIENT_ID_DEV"),
 		devGuildId: requireEnv("DISCORD_GUILD_ID_DEV"),
-		settingsFile: optionalEnv("SETTINGS_FILE") ?? DEFAULT_SETTINGS_FILE,
+		settingsStore: {
+			adapter,
+			file: optionalEnv(SETTINGS_FILE_VARIABLES[adapter]) ?? DEFAULT_SETTINGS_FILES[adapter],
+		},
+	};
+}
+
+/** Where `pnpm copy-settings` reads the JSON store and writes the SQLite one. */
+export interface SettingsCopyConfig {
+	readonly json: string;
+	readonly sqlite: string;
+}
+
+/**
+ * Read the two store files the copy works on, from the same variables the bot
+ * uses. Needs no Discord credential: the copy never connects.
+ */
+export function loadSettingsCopyConfig(): SettingsCopyConfig {
+	return {
+		json: optionalEnv(SETTINGS_FILE_VARIABLES.json) ?? DEFAULT_SETTINGS_FILES.json,
+		sqlite: optionalEnv(SETTINGS_FILE_VARIABLES.sqlite) ?? DEFAULT_SETTINGS_FILES.sqlite,
 	};
 }

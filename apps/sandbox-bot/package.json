@@ -6,13 +6,14 @@
 	"license": "MIT",
 	"type": "module",
 	"engines": {
-		"node": ">=22.12.0"
+		"node": ">=24.15.0"
 	},
 	"scripts": {
 		"build:kernel": "pnpm --filter @azurioh/discord-kernel build",
 		"dev": "pnpm run build:kernel && tsx --env-file-if-exists=.env src/main.ts | pino-pretty",
 		"dev:watch": "pnpm run build:kernel && tsx watch --env-file-if-exists=.env src/main.ts | pino-pretty",
 		"register": "pnpm run build:kernel && tsx --env-file-if-exists=.env src/register.ts | pino-pretty",
+		"copy-settings": "pnpm run build:kernel && tsx --env-file-if-exists=.env src/copy-settings.ts | pino-pretty",
 		"typecheck": "pnpm run build:kernel && tsc -p tsconfig.json",
 		"test": "pnpm run build:kernel && vitest run"
 	},

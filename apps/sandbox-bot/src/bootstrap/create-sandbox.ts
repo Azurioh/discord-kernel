@@ -18,12 +18,12 @@ import {
 	SETTINGS_CATALOG,
 } from "@azurioh/discord-kernel/settings";
 import { Client, GatewayIntentBits } from "discord.js";
+import { createSettingsStore } from "@/bootstrap/create-settings-store";
 import { PAGINATOR_CATALOG } from "@/components/paginator/i18n/paginator.catalog";
 import type { SandboxConfig } from "@/config";
 import { createBasicsModule } from "@/modules/basics/basics.module";
 import { createDemoModule } from "@/modules/demo/demo.module";
 import { createEmbedPresenter } from "@/shared/discord/embed-presenter";
-import { createJsonFileSettingsStore } from "@/shared/settings/json-file-settings-store";
 
 /** The wired bot: a client with every listener bound, and the commands to deploy. */
 export interface Sandbox {
@@ -72,7 +72,7 @@ export function createSandbox(config: SandboxConfig, logger: Logger): Sandbox {
 			declarations: modules.flatMap((module) => module.settings ?? []),
 			translations,
 		}),
-		store: createJsonFileSettingsStore(config.settingsFile),
+		store: createSettingsStore(config.settingsStore),
 		guilds: createDiscordGuildDirectory(client),
 		notifier,
 		translator,
