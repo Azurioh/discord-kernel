@@ -53,6 +53,20 @@ adapters; the rest of the bot sees the port. Both adapters pass the kernel's
 `runSettingsStoreContract`. The SQLite adapter needs Node 24.15+, the first
 release where `node:sqlite` loads without an `ExperimentalWarning`.
 
+To switch an existing bot from JSON to SQLite without losing any guild's
+settings, copy the records first, then restart with `SETTINGS_STORE=sqlite`:
+
+```sh
+pnpm --filter sandbox-bot copy-settings
+```
+
+It reads `SETTINGS_FILE` and writes `SETTINGS_SQLITE_FILE` (the defaults above
+when unset), keeps each record's values, revision and author, and never
+overwrites a record the SQLite store already holds: those are listed as
+`skipped` in the log line. Running it twice is harmless. The copy goes through
+the `SettingsStore` port only (`src/shared/settings/copy-settings-records.ts`),
+so the same function moves settings between any two adapters.
+
 ## Project layout
 
 Every piece of a module has one predictable place, so a real bot built on the

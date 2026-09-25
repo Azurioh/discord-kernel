@@ -48,3 +48,20 @@ export function loadConfig(): SandboxConfig {
 		},
 	};
 }
+
+/** Where `pnpm copy-settings` reads the JSON store and writes the SQLite one. */
+export interface SettingsCopyConfig {
+	readonly json: string;
+	readonly sqlite: string;
+}
+
+/**
+ * Read the two store files the copy works on, from the same variables the bot
+ * uses. Needs no Discord credential: the copy never connects.
+ */
+export function loadSettingsCopyConfig(): SettingsCopyConfig {
+	return {
+		json: optionalEnv(SETTINGS_FILE_VARIABLES.json) ?? DEFAULT_SETTINGS_FILES.json,
+		sqlite: optionalEnv(SETTINGS_FILE_VARIABLES.sqlite) ?? DEFAULT_SETTINGS_FILES.sqlite,
+	};
+}

@@ -1,6 +1,6 @@
 import { InvalidEnvError } from "@azurioh/discord-kernel/config/errors";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { loadConfig } from "@/config";
+import { loadConfig, loadSettingsCopyConfig } from "@/config";
 
 beforeEach(() => {
 	vi.stubEnv("DISCORD_TOKEN_DEV", "token");
@@ -49,5 +49,26 @@ describe("loadConfig", () => {
 		vi.stubEnv("SETTINGS_STORE", "postgres");
 
 		expect(() => loadConfig()).toThrow(InvalidEnvError);
+	});
+});
+
+describe("loadSettingsCopyConfig", () => {
+	it("copies between the two default files, without needing a Discord token", () => {
+		vi.stubEnv("DISCORD_TOKEN_DEV", "");
+
+		expect(loadSettingsCopyConfig()).toEqual({
+			json: expect.stringMatching(/\.data\/settings\.json$/),
+			sqlite: expect.stringMatching(/\.data\/settings\.sqlite$/),
+		});
+	});
+
+	it("follows SETTINGS_FILE and SETTINGS_SQLITE_FILE", () => {
+		vi.stubEnv("SETTINGS_FILE", "/tmp/custom.json");
+		vi.stubEnv("SETTINGS_SQLITE_FILE", "/tmp/custom.sqlite");
+
+		expect(loadSettingsCopyConfig()).toEqual({
+			json: "/tmp/custom.json",
+			sqlite: "/tmp/custom.sqlite",
+		});
 	});
 });
