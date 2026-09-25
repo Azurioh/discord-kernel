@@ -1,4 +1,5 @@
 import type { Translator } from "@azurioh/discord-kernel/i18n/translator";
+import type { Logger } from "@azurioh/discord-kernel/logger";
 import type { BotModule } from "@azurioh/discord-kernel/module/module";
 import type { SettingsService } from "@azurioh/discord-kernel/settings";
 import { createConfigCommand } from "@/modules/demo/commands/config/config.command";
@@ -13,6 +14,7 @@ export interface DemoModuleDeps {
 	 */
 	readonly settings: () => SettingsService;
 	readonly translator: Translator;
+	readonly logger: Logger;
 }
 
 /**

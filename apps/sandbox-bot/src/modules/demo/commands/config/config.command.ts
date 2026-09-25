@@ -6,8 +6,10 @@ import {
 } from "@azurioh/discord-kernel/discord/command/permission-guard";
 import type { SlashCommand } from "@azurioh/discord-kernel/discord/command/types";
 import type { Translator } from "@azurioh/discord-kernel/i18n/translator";
+import type { Logger } from "@azurioh/discord-kernel/logger";
 import type { SettingsService } from "@azurioh/discord-kernel/settings";
 import { PermissionFlagsBits } from "discord.js";
+import { createEditSubcommand } from "@/modules/demo/commands/config/edit/edit.definition";
 import { createResetSubcommand } from "@/modules/demo/commands/config/reset/reset.definition";
 import { createSetSubcommand } from "@/modules/demo/commands/config/set/set.definition";
 import { createShowSubcommand } from "@/modules/demo/commands/config/show/show.definition";
@@ -20,6 +22,7 @@ export interface ConfigCommandDeps {
 	/** Resolved on each use: the service is built after the modules declared their settings. */
 	readonly settings: () => SettingsService;
 	readonly translator: Translator;
+	readonly logger: Logger;
 }
 
 /**
@@ -37,6 +40,7 @@ export function createConfigCommand(deps: ConfigCommandDeps): SlashCommand {
 		guard: allOf(guildOnlyGuard, createPermissionGuard([PermissionFlagsBits.ManageGuild])),
 		subcommands: {
 			show: createShowSubcommand(deps.settings),
+			edit: createEditSubcommand(deps.settings, deps.translator, deps.logger),
 			set: createSetSubcommand(deps.settings, deps.translator),
 			reset: createResetSubcommand(deps.settings, deps.translator),
 		},

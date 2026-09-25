@@ -2,6 +2,8 @@
 export const DEMO_MESSAGES = {
 	configDescription: "demo.config.description",
 	showDescription: "demo.config.show.description",
+	editDescription: "demo.config.edit.description",
+	editIntro: "demo.config.edit.intro",
 	setDescription: "demo.config.set.description",
 	setKeyDescription: "demo.config.set.key-description",
 	setValueDescription: "demo.config.set.value-description",
