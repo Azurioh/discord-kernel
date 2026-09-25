@@ -10,6 +10,7 @@ import { CORE_MESSAGES } from "@/discord/i18n";
 import type { Presenter } from "@/discord/presenter";
 import type { Translator } from "@/i18n/translator";
 import { SETTINGS_MESSAGES } from "@/settings/messages";
+import { createFakeLocaleResolver } from "../../support/fake-locale-resolver";
 import { createFakeLogger } from "../../support/fake-logger";
 import { createFakeModuleGate } from "../../support/fake-module-gate";
 
@@ -218,6 +219,60 @@ describe("ComponentRouter module gate (S15)", () => {
 			"fr",
 			CORE_MESSAGES.guardPermissionDenied,
 			expect.anything(),
+		);
+	});
+});
+
+describe("ComponentRouter reply language (S17)", () => {
+	it("denies a missing permission in the locale of the bot's resolver", async () => {
+		const deps = { ...makeDeps(), localeResolver: createFakeLocaleResolver("fr") };
+		const router = new ComponentRouter(deps).register({
+			customId: "ban",
+			authorize: requiresPermissions(PermissionFlagsBits.BanMembers),
+			handle: vi.fn(),
+		});
+		const interaction = fakeButton("ban", PermissionFlagsBits.SendMessages);
+
+		await router.handle(interaction as never);
+
+		expect(deps.localeResolver.resolve).toHaveBeenCalledWith(interaction);
+		expect(deps.presenter.denial).toHaveBeenCalledWith(CORE_MESSAGES.guardPermissionDenied, "fr");
+	});
+
+	it("says a module is disabled in the locale of the bot's resolver", async () => {
+		const deps = {
+			...makeDeps(),
+			gate: createFakeModuleGate({ "100000000000000001": ["tickets"] }),
+			localeResolver: createFakeLocaleResolver("en"),
+		};
+		const router = new ComponentRouter(deps).register(
+			{ customId: "ticket", authorize: openToAnyone("test double"), handle: vi.fn() },
+			"tickets",
+		);
+
+		await router.handle({
+			...fakeButton("ticket", null),
+			guildId: "100000000000000001",
+			locale: "fr",
+		} as never);
+
+		expect(deps.presenter.denial).toHaveBeenCalledWith(SETTINGS_MESSAGES.moduleDisabled, "en");
+	});
+
+	it("hands the resolver to the handlers through the runtime", async () => {
+		const localeResolver = createFakeLocaleResolver("fr");
+		const handle = vi.fn();
+		const router = new ComponentRouter({ ...makeDeps(), localeResolver }).register({
+			customId: "open",
+			authorize: openToAnyone("test double"),
+			handle,
+		});
+
+		await router.handle(fakeButton("open", null) as never);
+
+		expect(handle).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({ localeResolver }),
 		);
 	});
 });

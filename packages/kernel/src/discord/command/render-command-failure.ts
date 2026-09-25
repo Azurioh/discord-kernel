@@ -2,7 +2,7 @@ import type { CommandInteraction } from "discord.js";
 import { sendEmbed } from "@/discord/command/send-embed";
 import type { CommandRuntime } from "@/discord/command/types";
 import { CORE_MESSAGES } from "@/discord/i18n";
-import { interactionLocale } from "@/discord/interaction/interaction-locale";
+import { replyLocale } from "@/discord/interaction/reply-locale";
 import { BusinessError } from "@/errors/business-error";
 import { errorMessage } from "@/errors/error-message";
 import { createIncidentRef } from "@/errors/incident-ref";
@@ -35,7 +35,7 @@ export async function renderCommandFailure(
 ): Promise<void> {
 	const { presenter, logger, translator } = runtime;
 	const { error, ephemeral } = failure;
-	const locale = interactionLocale(interaction, translator);
+	const locale = await replyLocale(interaction, runtime);
 	if (error instanceof BusinessError) {
 		const text = resolveBusinessMessage(error, translator, locale);
 		const embed =

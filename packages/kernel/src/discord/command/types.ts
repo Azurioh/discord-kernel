@@ -3,6 +3,7 @@ import type {
 	ChatInputCommandInteraction,
 	ContextMenuCommandInteraction,
 } from "discord.js";
+import type { LocaleResolver } from "@/discord/interaction/locale-resolver";
 import type { Presenter } from "@/discord/presenter";
 import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
@@ -16,6 +17,11 @@ export interface CommandRuntime {
 	readonly presenter: Presenter;
 	readonly logger: Logger;
 	readonly translator: Translator;
+	/**
+	 * Where the pipeline reads the reply language. Without one, it uses the
+	 * interaction's own locales (`interactionLocale`).
+	 */
+	readonly localeResolver?: LocaleResolver;
 }
 
 /**

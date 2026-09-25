@@ -1,19 +1,19 @@
 import type { EmbedBuilder } from "discord.js";
-import { interactionLocale } from "@/discord/interaction/interaction-locale";
+import type { LocaleSubject } from "@/discord/interaction/locale-resolver";
+import { type ReplyLocaleDeps, replyLocale } from "@/discord/interaction/reply-locale";
 import type { Presenter } from "@/discord/presenter";
-import type { Translator } from "@/i18n/translator";
 import { SETTINGS_MESSAGES } from "@/settings/messages";
 
 /**
  * The answer to an interaction with a module disabled on its guild: the
  * translated "disabled on this server" message, as a denial in the reply
- * language of the interaction.
+ * language the router's `LocaleResolver` gives (or the interaction's own).
  */
-export function moduleDisabledEmbed(
-	interaction: { readonly locale: string; readonly guildLocale: string | null },
-	deps: { readonly presenter: Presenter; readonly translator: Translator },
-): EmbedBuilder {
-	const locale = interactionLocale(interaction, deps.translator);
+export async function moduleDisabledEmbed(
+	interaction: LocaleSubject,
+	deps: ReplyLocaleDeps & { readonly presenter: Presenter },
+): Promise<EmbedBuilder> {
+	const locale = await replyLocale(interaction, deps);
 	const message = deps.translator.translate(locale, SETTINGS_MESSAGES.moduleDisabled);
 	return deps.presenter.denial(message, locale);
 }

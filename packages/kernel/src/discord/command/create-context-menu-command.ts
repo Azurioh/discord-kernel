@@ -17,7 +17,7 @@ import type { Guard } from "@/discord/command/guard";
 import { passesGuard } from "@/discord/command/passes-guard";
 import { renderCommandFailure } from "@/discord/command/render-command-failure";
 import type { CommandRuntime, ContextMenuCommand } from "@/discord/command/types";
-import { interactionLocale } from "@/discord/interaction/interaction-locale";
+import { replyLocale } from "@/discord/interaction/reply-locale";
 import { type PermissionBit, resolvePermissions } from "@/discord/permissions";
 import type { LocalizedText } from "@/i18n/translator";
 
@@ -120,11 +120,10 @@ async function dispatch<K extends keyof ContextMenuTarget>(
 	ephemeral: boolean,
 	runtime: CommandRuntime,
 ): Promise<void> {
-	const locale = interactionLocale(interaction, runtime.translator);
-
 	if (!(await passesGuard(interaction, def.guard, runtime))) {
 		return;
 	}
+	const locale = await replyLocale(interaction, runtime);
 
 	try {
 		if (def.defer) {

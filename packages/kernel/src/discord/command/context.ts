@@ -7,6 +7,7 @@ import type { Options, Values } from "@/discord/command/options";
 import { sendEmbed } from "@/discord/command/send-embed";
 import { interactionLocale } from "@/discord/interaction/interaction-locale";
 import type { Presenter } from "@/discord/presenter";
+import type { Locale } from "@/i18n/locale";
 import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 
@@ -22,6 +23,10 @@ export interface Context<O extends Options> extends CommandResponders {
 	reply(embed: EmbedBuilder): Promise<void>;
 }
 
+/**
+ * @param locale - the reply language the pipeline already resolved (through
+ * the bot's `LocaleResolver`); omitted, the interaction's own locales are used.
+ */
 export function createContext<O extends Options>(
 	interaction: ChatInputCommandInteraction,
 	options: Values<O>,
@@ -29,8 +34,8 @@ export function createContext<O extends Options>(
 	presenter: Presenter,
 	logger: Logger,
 	translator: Translator,
+	locale: Locale = interactionLocale(interaction, translator),
 ): Context<O> {
-	const locale = interactionLocale(interaction, translator);
 	return {
 		...createCommandResponders(interaction, locale, ephemeral, { presenter, logger, translator }),
 		interaction,

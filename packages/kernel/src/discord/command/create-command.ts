@@ -15,7 +15,7 @@ import { renderCommandFailure } from "@/discord/command/render-command-failure";
 import { routeKey } from "@/discord/command/route-key";
 import type { CommandRuntime, SlashCommand } from "@/discord/command/types";
 import { CORE_MESSAGES } from "@/discord/i18n";
-import { interactionLocale } from "@/discord/interaction/interaction-locale";
+import { replyLocale } from "@/discord/interaction/reply-locale";
 import { type PermissionBit, resolvePermissions } from "@/discord/permissions";
 import type { LocalizedText } from "@/i18n/translator";
 
@@ -213,6 +213,7 @@ async function executeRoute(
 			presenter,
 			logger,
 			translator,
+			await replyLocale(interaction, runtime),
 		);
 		await route.invoke(ctx);
 	} catch (error) {
@@ -253,7 +254,7 @@ async function dispatchGrouped(
 	const route = routes.get(label);
 
 	if (!route) {
-		const locale = interactionLocale(interaction, runtime.translator);
+		const locale = await replyLocale(interaction, runtime);
 		await interaction.reply({
 			embeds: [
 				runtime.presenter.error(

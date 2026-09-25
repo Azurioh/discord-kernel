@@ -7,6 +7,7 @@ import type {
 	SlashCommand,
 } from "@/discord/command/types";
 import type { InteractionDispatcher } from "@/discord/interaction/interaction-router";
+import type { LocaleResolver } from "@/discord/interaction/locale-resolver";
 import type { Presenter } from "@/discord/presenter";
 import { isModuleDisabled } from "@/discord/settings/is-module-disabled";
 import { moduleDisabledEmbed } from "@/discord/settings/module-disabled-embed";
@@ -24,6 +25,12 @@ export interface CommandRouterDeps {
 	 * on this server" message instead (FR-036).
 	 */
 	gate?: ModuleGate;
+	/**
+	 * Where every reply of the pipeline reads its language (e.g.
+	 * `createGuildLocaleResolver`, or the bot's own). Without one, the
+	 * interaction's own locales are used.
+	 */
+	localeResolver?: LocaleResolver;
 }
 
 /**
@@ -44,6 +51,7 @@ export class CommandRouter implements InteractionDispatcher {
 			presenter: deps.presenter,
 			logger: deps.logger,
 			translator: deps.translator,
+			localeResolver: deps.localeResolver,
 		};
 	}
 
@@ -139,7 +147,7 @@ export class CommandRouter implements InteractionDispatcher {
 		if (disabled) {
 			await sendEmbed(
 				interaction,
-				moduleDisabledEmbed(interaction, this.deps),
+				await moduleDisabledEmbed(interaction, this.deps),
 				true,
 				this.deps.logger,
 			);

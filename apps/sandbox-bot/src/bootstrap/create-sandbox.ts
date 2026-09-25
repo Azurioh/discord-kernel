@@ -7,6 +7,7 @@ import { EventRouter } from "@azurioh/discord-kernel/discord/events/event-router
 import { CORE_CATALOG } from "@azurioh/discord-kernel/discord/i18n";
 import { InteractionRouter } from "@azurioh/discord-kernel/discord/interaction/interaction-router";
 import { createDiscordGuildDirectory } from "@azurioh/discord-kernel/discord/settings/discord-guild-directory";
+import { createGuildLocaleResolver } from "@azurioh/discord-kernel/discord/settings/guild-locale-resolver";
 import { TranslationRegistry } from "@azurioh/discord-kernel/i18n/catalog";
 import { createTranslator } from "@azurioh/discord-kernel/i18n/translator";
 import type { Logger } from "@azurioh/discord-kernel/logger";
@@ -67,11 +68,12 @@ export function createSandbox(config: SandboxConfig, logger: Logger): Sandbox {
 	notifier.subscribe((event) => {
 		logger.info({ ...event }, "Settings changed");
 	});
+	const registry = createSettingsRegistry({
+		declarations: modules.flatMap((module) => module.settings ?? []),
+		translations,
+	});
 	const settings = createSettingsService({
-		registry: createSettingsRegistry({
-			declarations: modules.flatMap((module) => module.settings ?? []),
-			translations,
-		}),
+		registry,
 		store: createSettingsStore(config.settingsStore),
 		guilds: createDiscordGuildDirectory(client),
 		notifier,
@@ -80,7 +82,9 @@ export function createSandbox(config: SandboxConfig, logger: Logger): Sandbox {
 		logger,
 	});
 
-	const runtime = { presenter, logger, translator };
+	// Replies follow the guild's language setting (FR-038); a bot may pass its own resolver.
+	const localeResolver = createGuildLocaleResolver({ service: settings, registry, translator });
+	const runtime = { presenter, logger, translator, localeResolver };
 	const commands = new CommandRouter(runtime).registerAll(
 		modules.flatMap((module) => module.commands ?? []),
 	);
