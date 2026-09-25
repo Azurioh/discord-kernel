@@ -71,6 +71,9 @@ Already defined once, reuse them:
 | The kernel's own settings (module toggles, guild language) | `registry.kernel`, built by `kernelSettings` (`@/settings/system/kernel-settings`) |
 | Cached settings reads | `service.get` (cached via `@/settings/cache`); never read the store directly |
 | A `ModuleGate` double in tests | `createFakeModuleGate` (`tests/support/fake-module-gate.ts`) |
+| The reply language of an interaction on a kernel reply path | `replyLocale` (`@/discord/interaction/reply-locale`) over the `LocaleResolver` port (`@/discord/interaction/locale-resolver`) |
+| The guild's language setting as a resolver (FR-038) | `createGuildLocaleResolver` (`@/discord/settings/guild-locale-resolver`) |
+| A `LocaleResolver` double in tests | `createFakeLocaleResolver` (`tests/support/fake-locale-resolver.ts`) |
 
 Discord limits (component counts, text lengths, choice caps) are constants in the kernel,
 never a literal number at the call site.
@@ -120,6 +123,7 @@ Moving or renaming an exported symbol breaks consumers who import that subpath:
 
 ### Types and boundaries
 
+- A value the kernel reads at render time goes through a resolver port, never a global.
 - Zod is imported only in `packages/kernel/src/settings/fields/zod-schema.ts`, and no Zod type
   appears in an exported type.
 - `packages/kernel/src/settings` imports nothing from `discord.js` (a test enforces it).

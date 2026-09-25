@@ -17,6 +17,14 @@ from this file; update it when a decision changes.
   data** and rendered by every surface (Discord, HTTP API, web dashboard).
 - Every guild configures the bot independently: settings, enabled modules and language are
   guild-scoped, with defaults.
+- **Default configuration, overridable per guild and per bot.** Every value the kernel itself
+  uses when it replies or renders is read through a **per-guild resolver port** with a default
+  implementation built from the bot's configuration; a bot or a module can supply its own. The
+  kernel never reads such a value from a global or hard-wires a settings lookup into a reply
+  path. First instance: the reply language (`LocaleResolver`, default
+  `createGuildLocaleResolver`). Next candidate: embed colours, to be done with the `View` and
+  `createBot` specs (a colour resolver the presenter reads); `brandColor` is **not** added to
+  the kernel's settings declaration.
 
 ## Target architecture
 
