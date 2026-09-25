@@ -335,6 +335,10 @@
 			"types": "./dist/discord/settings/guild-locale-resolver.d.ts",
 			"default": "./dist/discord/settings/guild-locale-resolver.js"
 		},
+		"./discord/settings/require-configured": {
+			"types": "./dist/discord/settings/require-configured.d.ts",
+			"default": "./dist/discord/settings/require-configured.js"
+		},
 		"./discord/ui/card": {
 			"types": "./dist/discord/ui/card.d.ts",
 			"default": "./dist/discord/ui/card.js"

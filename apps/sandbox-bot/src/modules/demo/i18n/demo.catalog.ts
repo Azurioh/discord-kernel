@@ -68,6 +68,22 @@ export const DEMO_CATALOG: KeyedCatalog<
 		fr: "Tous les paramètres de la démo sont revenus à leur valeur par défaut.",
 	},
 	[DEMO_MESSAGES.allFields]: { en: "All settings", fr: "Tous les paramètres" },
+	[DEMO_MESSAGES.demoLogDescription]: {
+		en: "Post a test message in the demo log channel",
+		fr: "Publier un message de test dans le salon de journalisation de la démo",
+	},
+	[DEMO_MESSAGES.demoLogPost]: {
+		en: "Test message from {member}: the demo log channel works.",
+		fr: "Message de test de {member} : le salon de journalisation de la démo fonctionne.",
+	},
+	[DEMO_MESSAGES.demoLogPosted]: {
+		en: "Posted a test message in {channel}.",
+		fr: "Un message de test a été publié dans {channel}.",
+	},
+	[DEMO_MESSAGES.demoLogUnavailable]: {
+		en: "The log channel cannot receive messages from the bot. Check its permissions there.",
+		fr: "Le salon de journalisation ne peut pas recevoir de message du bot. Vérifiez ses permissions dans ce salon.",
+	},
 
 	[DEMO_SETTINGS_MESSAGES.title]: { en: "Demo", fr: "Démo" },
 	[DEMO_SETTINGS_MESSAGES.description]: {

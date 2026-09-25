@@ -42,7 +42,7 @@ describe("createSandbox", () => {
 		expect(registeredCommands(spy)).toEqual(
 			expect.arrayContaining([
 				{ names: ["ping", "roll", "pages"], moduleName: "basics" },
-				{ names: ["config"], moduleName: "demo" },
+				{ names: ["config", "demo-log"], moduleName: "demo" },
 			]),
 		);
 	});

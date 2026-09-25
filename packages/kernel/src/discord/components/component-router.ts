@@ -5,6 +5,8 @@ import {
 	MessageFlags,
 	type ModalSubmitInteraction,
 } from "discord.js";
+import type { Guard } from "@/discord/command/guard";
+import { passesGuard } from "@/discord/command/passes-guard";
 import { CORE_MESSAGES } from "@/discord/i18n";
 import type { InteractionDispatcher } from "@/discord/interaction/interaction-router";
 import type { LocaleResolver } from "@/discord/interaction/locale-resolver";
@@ -79,6 +81,13 @@ export interface ComponentHandler {
 	readonly customId: string;
 	/** Who may act on this component. Required: see {@link ComponentAuthorization}. */
 	readonly authorize: ComponentAuthorization;
+	/**
+	 * A check run after `authorize` and before the handler, as a command's
+	 * guard is: on a denial the member gets its message (ephemeral) and the
+	 * handler never runs. A guard over `BaseInteraction`, such as
+	 * `requireConfigured`, fits both a command and a component.
+	 */
+	readonly guard?: Guard<RoutableInteraction>;
 	handle(interaction: RoutableInteraction, runtime: ComponentRuntime): Promise<void> | void;
 }
 
@@ -169,6 +178,9 @@ export class ComponentRouter implements InteractionDispatcher {
 		// Before the handler runs, so a declared permission cannot be bypassed by a
 		// handler that forgot to check it.
 		if (!(await this.passesAuthorization(interaction, handler))) {
+			return true;
+		}
+		if (!(await passesGuard(interaction, handler.guard, this.runtime))) {
 			return true;
 		}
 		try {

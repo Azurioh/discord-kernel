@@ -134,8 +134,8 @@ export const SETTINGS_CATALOG: KeyedCatalog<
 		fr: "Cette fonctionnalité est désactivée sur ce serveur.",
 	},
 	[SETTINGS_MESSAGES.moduleNotConfigured]: {
-		en: "This feature is not configured on this server yet.",
-		fr: "Cette fonctionnalité n'est pas encore configurée sur ce serveur.",
+		en: "This feature is not configured on this server yet: an administrator must set it up first.",
+		fr: "Cette fonctionnalité n'est pas encore configurée sur ce serveur : un administrateur doit d'abord la configurer.",
 	},
 	[SETTINGS_MESSAGES.moduleNotConfiguredMissing]: {
 		en: "Missing settings: {fields}.",

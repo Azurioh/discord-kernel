@@ -12,6 +12,7 @@ import type { SettingsChangedNotifier } from "@/settings/ports/settings-changed-
 import type { SettingsStore, StoredSettings } from "@/settings/ports/settings-store";
 import type { SettingsRegistry } from "@/settings/registry";
 import { type SettingsIssue, SettingsValidationError } from "@/settings/settings-validation-error";
+import { type SettingsStatus, settingsStatus } from "@/settings/status";
 import type { SettingsValues, SurfaceValues } from "@/settings/types";
 import { validateSettings } from "@/settings/validate";
 
@@ -48,6 +49,13 @@ export interface SettingsService {
 		declaration: D,
 		guildId: string,
 	): Promise<SurfaceValues<D>>;
+
+	/**
+	 * Configuration status (FR-040): the required fields without default the
+	 * guild left unset, read through the same cache as {@link get}, so a write
+	 * shows at once. A stored value that fails validation counts as unset.
+	 */
+	status(declaration: SettingsDeclaration, guildId: string): Promise<SettingsStatus>;
 
 	/**
 	 * Validate a submission without writing: the same checks as {@link set},
@@ -212,6 +220,10 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
 					: [key, value],
 			);
 			return Object.fromEntries(surface) as SurfaceValues<D>;
+		},
+
+		async status(declaration: SettingsDeclaration, guildId: string): Promise<SettingsStatus> {
+			return settingsStatus(declaration, await get(declaration, guildId));
 		},
 
 		async validate<D extends SettingsDeclaration>(
