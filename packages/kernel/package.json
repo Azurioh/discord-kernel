@@ -175,9 +175,17 @@
 			"types": "./dist/discord/command/types.d.ts",
 			"default": "./dist/discord/command/types.js"
 		},
+		"./discord/components/component-access": {
+			"types": "./dist/discord/components/component-access.d.ts",
+			"default": "./dist/discord/components/component-access.js"
+		},
 		"./discord/components/component-router": {
 			"types": "./dist/discord/components/component-router.d.ts",
 			"default": "./dist/discord/components/component-router.js"
+		},
+		"./discord/components/create-component-handler": {
+			"types": "./dist/discord/components/create-component-handler.d.ts",
+			"default": "./dist/discord/components/create-component-handler.js"
 		},
 		"./discord/components/interactive-message/index": {
 			"types": "./dist/discord/components/interactive-message/index.d.ts",

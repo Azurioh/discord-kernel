@@ -1,12 +1,12 @@
 import { EmbedBuilder, PermissionFlagsBits, PermissionsBitField } from "discord.js";
 import { describe, expect, it, vi } from "vitest";
 import {
-	ComponentRouter,
 	checkedByHandler,
-	createComponentHandler,
 	openToAnyone,
 	requiresPermissions,
-} from "@/discord/components/component-router";
+} from "@/discord/components/component-access";
+import { ComponentRouter } from "@/discord/components/component-router";
+import { createComponentHandler } from "@/discord/components/create-component-handler";
 import type { Presenter } from "@/discord/presenter";
 import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";

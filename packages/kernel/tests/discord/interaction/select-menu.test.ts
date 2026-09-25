@@ -1,6 +1,6 @@
 import { ChannelType } from "discord.js";
 import { describe, expect, it } from "vitest";
-import { openToAnyone } from "@/discord/components/component-router";
+import { openToAnyone } from "@/discord/components/component-access";
 import {
 	createChannelSelect,
 	createRoleSelect,
