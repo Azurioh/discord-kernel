@@ -5,7 +5,10 @@ import { EventRouter } from "@azurioh/discord-kernel/discord/events/event-router
 import { afterEach, describe, expect, it, type MockInstance, vi } from "vitest";
 import { createSandbox } from "@/bootstrap/create-sandbox";
 import type { SandboxConfig } from "@/config";
+import * as adminModule from "@/modules/admin/admin.module";
 import { createPinoLogger } from "@/shared/logging/pino-logger";
+
+vi.mock("@/modules/admin/admin.module", { spy: true });
 
 const logger = createPinoLogger("test", { write: () => undefined });
 
@@ -69,5 +72,14 @@ describe("createSandbox", () => {
 		void client.destroy();
 
 		expect(commands.get("server")).toBeDefined();
+	});
+
+	it("offers a toggle only for the modules the gate can disable", () => {
+		const { client } = createSandbox(CONFIG, logger);
+		void client.destroy();
+
+		const deps = vi.mocked(adminModule.createAdminModule).mock.lastCall?.[0];
+		const spec = deps?.kernelSettings().fields.modules.spec;
+		expect(spec?.kind === "toggles" ? spec.keys : undefined).toEqual(["basics", "demo"]);
 	});
 });
