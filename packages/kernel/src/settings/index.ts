@@ -60,6 +60,7 @@ export {
 	kernelSettings,
 	type ModuleEnablement,
 } from "@/settings/system/kernel-settings";
+export { createModuleGate, type ModuleGate } from "@/settings/system/module-gate";
 export type {
 	FieldValue,
 	SecretState,

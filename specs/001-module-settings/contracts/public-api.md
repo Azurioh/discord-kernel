@@ -149,7 +149,16 @@ boot with a `SettingsDeclarationError`. A module declaration of id `kernel` is a
 export interface ModuleGate {
   isEnabled(moduleName: string, guildId: string): Promise<boolean>;
 }
-export function createModuleGate(service: SettingsService): ModuleGate;
+/**
+ * Reads registry.kernel (built from the modules at composition) through the service's cache
+ * (R15). A module name the kernel declaration does not know is never gated. A failed read is
+ * logged and lets the module run: a store outage must not switch every module off.
+ */
+export function createModuleGate(deps: {
+  service: SettingsService;
+  registry: SettingsRegistry;
+  logger: Logger;
+}): ModuleGate;
 
 // Routers (command, component, event) accept an optional `gate?: ModuleGate`.
 
