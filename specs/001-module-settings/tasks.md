@@ -26,7 +26,7 @@ US3+US4 (P2), US7+US8+US9 (P2), US5+US6 (P3), polish.
 
 ## Phase 1: Setup
 
-- [ ] T001 Add runtime dependency `zod@4.6.5` with `pnpm add zod@4.6.5`, and dev dependencies `ajv` and `@changesets/cli` (latest, verified with `npm view`) with `pnpm add -D`; do not hand-edit `packages/kernel/package.json`
+- [X] T001 Add runtime dependency `zod@4.6.5` with `pnpm add zod@4.6.5`, and dev dependencies `ajv` and `@changesets/cli` (latest, verified with `npm view`) with `pnpm add -D`; do not hand-edit `packages/kernel/package.json`
 - [X] T002 Initialise changesets with `pnpm changeset init`, set `"access": "public"` and `"baseBranch": "main"` in `.changeset/config.json`
 
 ---
@@ -102,8 +102,8 @@ US3+US4 (P2), US7+US8+US9 (P2), US5+US6 (P3), polish.
 **Goal**: translated JSON Schema draft 2020-12 per module.
 **Independent test**: S7, S8 (describe half).
 
-- [ ] T034 [P] [US4] Write failing tests for `describe`: output validates against the draft 2020-12 meta-schema with `ajv/dist/2020`; `describe(sample, "fr")` has 0 untranslated strings; `describe(sample, "xx")` is entirely English and reports `x-kernel.locale: "en"`; per-key fallback when one French key is missing; secrets have `writeOnly: true` and no `default`/`examples`; every property has `x-kernel.kind`; a `toggles` field is `type: "object"` with one `boolean` property per declared key (translated `keyLabels` as each property's `title`, per-key default under `default`) and `additionalProperties: false`; every declared hint appears translated under `x-kernel` (`group`, `order`, `unit`, `hint`, `advanced`) or as the standard keyword (`examples`, `description`), module `icon` and ordered `groups` appear at the top level; `access` never appears; matches the shape in `contracts/settings-schema.md` — in `packages/kernel/tests/settings/describe.test.ts`
-- [ ] T035 [US4] Implement `describe` with `z.toJSONSchema(schema, { target: "draft-2020-12", override })`, translated annotations from the descriptors (not Zod's global registry) and the `x-kernel` keyword (the `toggles` kind as an object of booleans with `additionalProperties: false`, see T034), in `packages/kernel/src/settings/describe.ts`, and expose it as `service.describe`
+- [X] T034 [P] [US4] Write failing tests for `describe`: output validates against the draft 2020-12 meta-schema with `ajv/dist/2020`; `describe(sample, "fr")` has 0 untranslated strings; `describe(sample, "xx")` is entirely English and reports `x-kernel.locale: "en"`; per-key fallback when one French key is missing; secrets have `writeOnly: true` and no `default`/`examples`; every property has `x-kernel.kind`; a `toggles` field is `type: "object"` with one `boolean` property per declared key (translated `keyLabels` as each property's `title`, per-key default under `default`) and `additionalProperties: false`; every declared hint appears translated under `x-kernel` (`group`, `order`, `unit`, `hint`, `advanced`) or as the standard keyword (`examples`, `description`), module `icon` and ordered `groups` appear at the top level; `access` never appears; matches the shape in `contracts/settings-schema.md` — in `packages/kernel/tests/settings/describe.test.ts`
+- [X] T035 [US4] Implement `describe` with `z.toJSONSchema(schema, { target: "draft-2020-12", override })`, translated annotations from the descriptors (not Zod's global registry) and the `x-kernel` keyword (the `toggles` kind as an object of booleans with `additionalProperties: false`, see T034), in `packages/kernel/src/settings/describe.ts`, and expose it as `service.describe`
 
 ---
 

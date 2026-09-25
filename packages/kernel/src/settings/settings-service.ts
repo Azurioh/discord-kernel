@@ -3,6 +3,7 @@ import { ConflictError, ValidationError } from "@/errors/business-error";
 import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 import type { SettingsDeclaration } from "@/settings/define-settings";
+import { describeSettings, type SettingsSchema } from "@/settings/describe";
 import { parseFieldValue, pruneStoredValue } from "@/settings/fields/zod-schema";
 import { SETTINGS_ISSUE_MESSAGES } from "@/settings/messages";
 import type { GuildDirectory } from "@/settings/ports/guild-directory";
@@ -93,6 +94,14 @@ export interface SettingsService {
 		keys: readonly string[] | "all",
 		ctx: RequestContext,
 	): Promise<void>;
+
+	/**
+	 * Describe a module's settings for surfaces other than Discord (FR-030), as
+	 * a JSON Schema with every text translated.
+	 *
+	 * @param locale - any locale string; an unsupported one falls back to English.
+	 */
+	describe(declaration: SettingsDeclaration, locale: string): SettingsSchema;
 }
 
 interface SettingsServiceDeps {
@@ -113,7 +122,7 @@ interface SettingsServiceDeps {
  * @returns the service shared by module logic and every configuration surface.
  */
 export function createSettingsService(deps: SettingsServiceDeps): SettingsService {
-	const { store, guilds, notifier, clock, logger } = deps;
+	const { store, guilds, notifier, translator, clock, logger } = deps;
 
 	async function get<D extends SettingsDeclaration>(
 		declaration: D,
@@ -266,6 +275,10 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
 				changedKeys: resetKeys,
 				ctx,
 			});
+		},
+
+		describe(declaration: SettingsDeclaration, locale: string): SettingsSchema {
+			return describeSettings({ declaration, locale, translator });
 		},
 	};
 }

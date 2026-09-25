@@ -7,6 +7,7 @@ export {
 	type SettingsMigration,
 	type SettingsUi,
 } from "@/settings/define-settings";
+export type { JsonValue, SettingsSchema } from "@/settings/describe";
 export { type FieldBuilder, type FieldBuilders, field } from "@/settings/fields/builders";
 export type {
 	AnyField,
