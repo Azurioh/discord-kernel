@@ -117,7 +117,7 @@ US3+US4 (P2), US7+US8+US9 (P2), US5+US6 (P3), polish.
 - [X] T038 [US7] Write failing tests then implement `createModuleGate(service)` in `packages/kernel/tests/settings/system/module-gate.test.ts` and `packages/kernel/src/settings/system/module-gate.ts` (S16)
 - [X] T039 [US7] Write failing tests then add an optional `gate?: ModuleGate` to the command router: a command of a disabled module on a guild does not run and replies with the translated "disabled on this server" message; other guilds unaffected — in `packages/kernel/tests/discord/command/router.test.ts` and `packages/kernel/src/discord/command/router.ts` (S15)
 - [X] T040 [P] [US7] Same as T039 for components in `packages/kernel/tests/discord/components/component-router.test.ts` and `packages/kernel/src/discord/components/component-router.ts`
-- [ ] T041 [P] [US7] Same as T039 for guild-bound events (handler silently skipped for that guild) in `packages/kernel/tests/discord/events/event-router.test.ts` and `packages/kernel/src/discord/events/event-router.ts`
+- [X] T041 [P] [US7] Same as T039 for guild-bound events (handler silently skipped for that guild) in `packages/kernel/tests/discord/events/event-router.test.ts` and `packages/kernel/src/discord/events/event-router.ts`
 
 ---
 

@@ -1,9 +1,10 @@
-import type { Client, ClientEvents } from "discord.js";
+import { type Client, type ClientEvents, Guild } from "discord.js";
 import { describe, expect, it, vi } from "vitest";
 import { createEvent } from "@/discord/events/create-event";
 import { EventRouter } from "@/discord/events/event-router";
 import type { EventListener } from "@/discord/events/types";
 import { createFakeLogger } from "../../support/fake-logger";
+import { createFakeModuleGate } from "../../support/fake-module-gate";
 
 interface Binding {
 	name: keyof ClientEvents;
@@ -109,5 +110,85 @@ describe("EventRouter", () => {
 			{ event: "guildCreate", err: "plain rejection" },
 			"Event handler failed",
 		);
+	});
+});
+
+describe("EventRouter module gate (S15)", () => {
+	const GUILD_A = "100000000000000001";
+	const GUILD_B = "100000000000000002";
+
+	function gatedRouter() {
+		return new EventRouter(createFakeLogger(), createFakeModuleGate({ [GUILD_A]: ["tickets"] }));
+	}
+
+	async function emit<K extends keyof ClientEvents>(
+		bindings: Binding[],
+		index: number,
+		...args: unknown[]
+	): Promise<void> {
+		await takeListener(bindings, index)(...(args as ClientEvents[K]));
+	}
+
+	it("skips a module's handler for a guild where the module is disabled, silently", async () => {
+		const { client, bindings } = createFakeClient();
+		const execute = vi.fn();
+		const logger = createFakeLogger();
+		new EventRouter(logger, createFakeModuleGate({ [GUILD_A]: ["tickets"] }))
+			.register(createEvent({ name: "messageCreate", execute }), "tickets")
+			.bind(client);
+
+		await emit(bindings, 0, { guildId: GUILD_A });
+		await emit(bindings, 0, { guildId: GUILD_B });
+
+		expect(execute).toHaveBeenCalledTimes(1);
+		expect(execute).toHaveBeenCalledWith({ guildId: GUILD_B });
+		expect(logger.error).not.toHaveBeenCalled();
+	});
+
+	it("finds the guild of a Guild argument or of an argument's guild", async () => {
+		const { client, bindings } = createFakeClient();
+		const joined = vi.fn();
+		const member = vi.fn();
+		gatedRouter()
+			.registerAll(
+				[
+					createEvent({ name: "guildCreate", execute: joined }),
+					createEvent({ name: "guildMemberAdd", execute: member }),
+				],
+				"tickets",
+			)
+			.bind(client);
+		const guildA = Object.assign(Object.create(Guild.prototype), { id: GUILD_A });
+
+		await emit(bindings, 0, guildA);
+		await emit(bindings, 1, { guild: { id: GUILD_A } });
+		await emit(bindings, 1, { guild: { id: GUILD_B } });
+
+		expect(joined).not.toHaveBeenCalled();
+		expect(member).toHaveBeenCalledTimes(1);
+	});
+
+	it("runs a module's handler for an event bound to no guild", async () => {
+		const { client, bindings } = createFakeClient();
+		const execute = vi.fn();
+		gatedRouter()
+			.register(createEvent({ name: "clientReady", execute }), "tickets")
+			.bind(client);
+
+		await emit(bindings, 0, { user: { id: "1" } });
+
+		expect(execute).toHaveBeenCalledTimes(1);
+	});
+
+	it("runs a handler registered without a module on every guild", async () => {
+		const { client, bindings } = createFakeClient();
+		const execute = vi.fn();
+		gatedRouter()
+			.register(createEvent({ name: "messageCreate", execute }))
+			.bind(client);
+
+		await emit(bindings, 0, { guildId: GUILD_A });
+
+		expect(execute).toHaveBeenCalledTimes(1);
 	});
 });
