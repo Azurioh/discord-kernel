@@ -1,3 +1,4 @@
+import type { TranslateKey } from "@/i18n/translator";
 import {
 	type AnyField,
 	type FieldChoice,
@@ -5,9 +6,6 @@ import {
 	unhandledFieldKind,
 } from "@/settings/fields/field";
 import type { JsonSchemaNode } from "@/settings/fields/zod-schema";
-
-/** Translates one catalog key into the described locale. */
-export type TranslateKey = (key: string) => string;
 
 /**
  * Add a field's translated texts and hints to the JSON Schema of its stored

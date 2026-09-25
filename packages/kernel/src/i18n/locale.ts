@@ -7,6 +7,9 @@ export const SUPPORTED_LOCALES = ["en", "fr"] as const;
 
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 
+/** The language every catalog entry provides (`CatalogEntry.en`): the last fallback of any lookup. */
+export const SOURCE_LOCALE: Locale = "en";
+
 /**
  * Map a raw Discord locale string (`en-US`, `en-GB`, `fr`, `de`…) to a
  * supported base language. Regional variants collapse to their base tag, so

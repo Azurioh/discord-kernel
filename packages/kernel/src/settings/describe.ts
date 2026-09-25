@@ -1,7 +1,7 @@
-import { resolveLocale } from "@/i18n/locale";
-import type { Translator } from "@/i18n/translator";
+import { resolveLocale, SOURCE_LOCALE } from "@/i18n/locale";
+import type { TranslateKey, Translator } from "@/i18n/translator";
 import type { SettingsDeclaration, SettingsGroup } from "@/settings/define-settings";
-import { annotateField, type TranslateKey } from "@/settings/describe-field";
+import { annotateField } from "@/settings/describe-field";
 import { fieldsJsonSchema, type JsonSchemaNode } from "@/settings/fields/zod-schema";
 
 /** Rank of a group with no preferred position or no order: after every ranked one. */
@@ -9,9 +9,6 @@ const UNRANKED = Number.MAX_SAFE_INTEGER;
 
 /** URN prefix of a described module: `urn:discord-kernel:settings:<id>:v<version>`. */
 const SCHEMA_ID_PREFIX = "urn:discord-kernel:settings";
-
-/** The locale every catalog entry provides, used for unsupported locales. */
-const FALLBACK_LOCALE = "en";
 
 /** A JSON value, as a JSON Schema document holds. */
 export type JsonValue =
@@ -42,7 +39,7 @@ export function describeSettings(params: {
 	translator: Translator;
 }): SettingsSchema {
 	const { declaration, translator } = params;
-	const locale = resolveLocale([params.locale], FALLBACK_LOCALE);
+	const locale = resolveLocale([params.locale], SOURCE_LOCALE);
 	const translate: TranslateKey = (key) => translator.translate(locale, key);
 	const { $schema, ...fields } = fieldsJsonSchema({
 		fields: declaration.fields,
