@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ConflictError } from "@/errors/business-error";
 import { defineSettings, type SettingsMigration } from "@/settings/define-settings";
 import { field } from "@/settings/fields/builders";
+import { migrateStored } from "@/settings/migrate";
 import type { SettingsChangedEvent } from "@/settings/ports/settings-changed-notifier";
 import type { StoredSettings } from "@/settings/ports/settings-store";
 import { createReadOnlySettingsService } from "./fixtures/read-only-settings-service";
@@ -148,6 +149,22 @@ describe("lazy settings migration", () => {
 
 		expect((await service.getForSurface(declaration, GUILD)).warnLimit).toBe(9);
 		expect(await service.status(declaration, GUILD)).toStrictEqual({ missing: [] });
+	});
+
+	it("hands the migration a copy, so a migration that mutates its input changes no record", async () => {
+		const mutating: SettingsMigration = (fromVersion, raw) => {
+			const values = raw as Record<string, unknown>;
+			values.warnLimit = values.maxWarnings;
+			delete values.maxWarnings;
+			return renameMaxWarnings(fromVersion, { ...values });
+		};
+		const original = stored({ maxWarnings: 7 });
+		const declaration = warningsV2(mutating);
+
+		const outcome = migrateStored(declaration, original);
+
+		expect(outcome).toStrictEqual({ ok: true, values: { warnLimit: 7 } });
+		expect(original.values).toStrictEqual({ maxWarnings: 7 });
 	});
 
 	describe("when the migration fails", () => {

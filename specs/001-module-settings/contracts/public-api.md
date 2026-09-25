@@ -288,7 +288,17 @@ export interface SettingsService {
    * Module logic read: every declared field, secrets included. A field with no
    * valid stored value reads as its default (or undefined). A stored value that
    * fails its field is logged at `error` level. Never writes, except a lazy
-   * migration (T050). Cached in process per (guildId, moduleId) until this
+   * migration (T050, R6): a record stored under an older version goes through
+   * `migrate(storedVersion, copyOfValues)`, is validated, and is written back
+   * once under the declared version with expectedRevision = stored revision (no
+   * `updatedBy`; a change event without `changedBy`). A ConflictError on that
+   * write (another shard migrated first) is not surfaced: the record is read
+   * again. A migration that throws, returns no plain object or yields an
+   * invalid field writes nothing and is logged (guildId, moduleId, fromVersion,
+   * toVersion); the guild reads defaults for the fields it cannot read. A
+   * record of a newer version is never written (FR-019). `set` and `reset`
+   * migrate in memory first and merge onto the migrated values; `status`
+   * reads through `get`. Cached in process per (guildId, moduleId) until this
    * service writes them, the notifier reports a change of them, or 60 s pass
    * (R15); `getForSurface` reads through the same cache.
    */
