@@ -8,16 +8,18 @@ import {
 	MessageFlags,
 	type User,
 } from "discord.js";
+import {
+	type CommandResponders,
+	createCommandResponders,
+} from "@/discord/command/command-responders";
 import { ContextMenuTargetError } from "@/discord/command/errors";
 import type { Guard } from "@/discord/command/guard";
 import { passesGuard } from "@/discord/command/passes-guard";
 import { renderCommandFailure } from "@/discord/command/render-command-failure";
-import { sendEmbed } from "@/discord/command/send-embed";
 import type { CommandRuntime, ContextMenuCommand } from "@/discord/command/types";
 import { interactionLocale } from "@/discord/interaction/interaction-locale";
 import { type PermissionBit, resolvePermissions } from "@/discord/permissions";
-import type { Locale } from "@/i18n/locale";
-import type { LocalizedText, TranslationParams } from "@/i18n/translator";
+import type { LocalizedText } from "@/i18n/translator";
 
 /**
  * Context-menu commands: the entries a user reaches by right-clicking a member
@@ -36,17 +38,10 @@ export interface ContextMenuTarget {
 	readonly message: Message;
 }
 
-export interface ContextMenuContext<K extends keyof ContextMenuTarget> {
+export interface ContextMenuContext<K extends keyof ContextMenuTarget> extends CommandResponders {
 	readonly interaction: ContextMenuCommandInteraction;
 	/** The right-clicked member or message. */
 	readonly target: ContextMenuTarget[K];
-	/** Reply language: user's client locale → guild locale → configured default. */
-	readonly locale: Locale;
-	/** Translate a catalog key for this interaction's locale. */
-	t(key: string, params?: TranslationParams): string;
-	confirm(message: string): Promise<void>;
-	error(message: string): Promise<void>;
-	deny(message: string): Promise<void>;
 }
 
 export interface ContextMenuCommandDef<K extends keyof ContextMenuTarget> {
@@ -125,8 +120,7 @@ async function dispatch<K extends keyof ContextMenuTarget>(
 	ephemeral: boolean,
 	runtime: CommandRuntime,
 ): Promise<void> {
-	const { presenter, logger, translator } = runtime;
-	const locale = interactionLocale(interaction, translator);
+	const locale = interactionLocale(interaction, runtime.translator);
 
 	if (!(await passesGuard(interaction, def.guard, runtime))) {
 		return;
@@ -137,16 +131,9 @@ async function dispatch<K extends keyof ContextMenuTarget>(
 			await interaction.deferReply(ephemeral ? { flags: MessageFlags.Ephemeral } : {});
 		}
 		await def.handler({
+			...createCommandResponders(interaction, locale, ephemeral, runtime),
 			interaction,
 			target: resolveTarget(interaction, def.target),
-			locale,
-			t: (key, params) => translator.translate(locale, key, params),
-			confirm: (message) =>
-				sendEmbed(interaction, presenter.confirmation(message, locale), ephemeral, logger),
-			error: (message) =>
-				sendEmbed(interaction, presenter.error(message, locale), ephemeral, logger),
-			deny: (message) =>
-				sendEmbed(interaction, presenter.denial(message, locale), ephemeral, logger),
 		});
 	} catch (error) {
 		await renderCommandFailure(
