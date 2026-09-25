@@ -1,21 +1,30 @@
-import { type CommandInteraction, MessageFlags } from "discord.js";
+import {
+	type CommandInteraction,
+	type MessageComponentInteraction,
+	MessageFlags,
+	type ModalSubmitInteraction,
+} from "discord.js";
 import type { Guard } from "@/discord/command/guard";
-import type { CommandRuntime } from "@/discord/command/types";
-import { replyLocale } from "@/discord/interaction/reply-locale";
+import { type ReplyLocaleDeps, replyLocale } from "@/discord/interaction/reply-locale";
+import type { Presenter } from "@/discord/presenter";
 
 /**
- * Run a command's guard, if it has one. On a denial, answer with the guard's
- * own message (ephemeral) and return `false`, so the handler never runs.
+ * Run a command's or a component's guard, if it has one. The guard gets the
+ * reply dependencies, to word its denial in the reply language. On a denial,
+ * answer with the guard's own message (ephemeral) and return `false`, so the
+ * handler never runs.
  */
-export async function passesGuard(
-	interaction: CommandInteraction,
-	guard: Guard | undefined,
-	runtime: CommandRuntime,
+export async function passesGuard<
+	I extends CommandInteraction | MessageComponentInteraction | ModalSubmitInteraction,
+>(
+	interaction: I,
+	guard: Guard<I> | undefined,
+	runtime: ReplyLocaleDeps & { readonly presenter: Presenter },
 ): Promise<boolean> {
 	if (!guard) {
 		return true;
 	}
-	const result = await guard.check(interaction);
+	const result = await guard.check(interaction, runtime);
 	if (result.ok) {
 		return true;
 	}

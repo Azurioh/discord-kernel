@@ -74,6 +74,9 @@ Already defined once, reuse them:
 | The reply language of an interaction on a kernel reply path | `replyLocale` (`@/discord/interaction/reply-locale`) over the `LocaleResolver` port (`@/discord/interaction/locale-resolver`) |
 | The guild's language setting as a resolver (FR-038) | `createGuildLocaleResolver` (`@/discord/settings/guild-locale-resolver`) |
 | A `LocaleResolver` double in tests | `createFakeLocaleResolver` (`tests/support/fake-locale-resolver.ts`) |
+| The required settings a guild left unset | `service.status(declaration, guildId)` (`@/settings/status`, cached) |
+| Blocking a command or component until its module is configured | `requireConfigured` (`@/discord/settings/require-configured`) as its `guard` |
+| Running a command's or component's guard and answering its denial | `passesGuard` (`@/discord/command/passes-guard`) |
 
 Discord limits (component counts, text lengths, choice caps) are constants in the kernel,
 never a literal number at the call site.

@@ -143,7 +143,13 @@ command and component routers. Event handlers send no kernel reply, so no event 
 **Independent test**: S18.
 
 - [X] T044 [P] [US9] Write failing tests then implement `service.status(declaration, guildId)` → `{ missing }` (required, no default, unset) in `packages/kernel/tests/settings/status.test.ts` and `packages/kernel/src/settings/status.ts`
-- [ ] T045 [US9] Write failing tests then implement `requireConfigured(declaration, service)` as a command `Guard` (from `packages/kernel/src/discord/command/guard.ts`) and the component-side check: blocked with the translated "not configured" message; missing field labels shown only to members with `ManageGuild`; passes immediately after the value is set, no restart — in `packages/kernel/tests/discord/settings/require-configured.test.ts` and `packages/kernel/src/discord/settings/require-configured.ts`
+- [X] T045 [US9] Write failing tests then implement `requireConfigured(declaration, service)` as a command `Guard` (from `packages/kernel/src/discord/command/guard.ts`) and the component-side check: blocked with the translated "not configured" message; missing field labels shown only to members with `ManageGuild`; passes immediately after the value is set, no restart — in `packages/kernel/tests/discord/settings/require-configured.test.ts` and `packages/kernel/src/discord/settings/require-configured.ts`
+
+As built: `Guard` became `Guard<I = CommandInteraction>` and `check` receives the pipeline's
+reply dependencies as an optional second argument, so `requireConfigured` (a
+`Guard<BaseInteraction>`) words the missing labels in the `LocaleResolver`'s language. The
+component side is a new optional `guard` on `ComponentHandler`, run by the same `passesGuard`
+after `authorize`. Outside a guild the guard denies like `guildOnlyGuard`.
 
 ---
 

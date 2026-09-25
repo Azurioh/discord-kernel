@@ -183,12 +183,41 @@ call keeps compiling and behaving as before.
 ```ts
 export interface SettingsService {
   // … see below, plus:
-  status(declaration: SettingsDeclaration, guildId: string): Promise<{ missing: readonly string[] }>;
+  status(declaration: SettingsDeclaration, guildId: string): Promise<SettingsStatus>;
+}
+/** `@azurioh/discord-kernel/settings` */
+export interface SettingsStatus {
+  /** Required fields without default the guild left unset (or stored invalid), declared order. */
+  readonly missing: readonly string[];
 }
 
-// discord ring
-export function requireConfigured(declaration: SettingsDeclaration, service: SettingsService): Guard;
+// discord ring: `@azurioh/discord-kernel/discord/settings/require-configured`
+export function requireConfigured(
+  declaration: SettingsDeclaration,
+  service: SettingsService,
+): Guard<BaseInteraction>;
+
+// `@azurioh/discord-kernel/discord/command/guard`: Guard became generic, with the pipeline's
+// reply dependencies as an optional second argument of `check`.
+export interface Guard<I extends BaseInteraction = CommandInteraction> {
+  readonly check: (interaction: I, runtime?: ReplyLocaleDeps) => GuardResult | Promise<GuardResult>;
+}
+// `@azurioh/discord-kernel/discord/components/component-router`
+export interface ComponentHandler {
+  // … plus: run after `authorize`, before `handle`; a denial is answered ephemerally.
+  readonly guard?: Guard<RoutableInteraction>;
+}
 ```
+
+`status` reads through the service's cache, so a write (which invalidates it) shows at once.
+`requireConfigured` (FR-041) is one guard for both paths: a command's `guard` (alone or in
+`allOf`) and a component handler's `guard`. Until `status` is empty it denies with the
+translated `core.settings.module.not-configured`; a member holding `ManageGuild` (R17) also reads
+`core.settings.module.not-configured-missing` with the missing fields' translated labels, in
+the reply language the pipeline's `LocaleResolver` gives. Outside a guild it denies with
+`core.guard.guild-only`, like `guildOnlyGuard`, and reads nothing. The `Guard` change is
+additive: `Guard` alone still means `Guard<CommandInteraction>`, and a `check` that takes one
+argument still fits.
 
 ### Reply language (`@azurioh/discord-kernel/discord/interaction/locale-resolver`, `…/discord/settings/guild-locale-resolver`)
 
