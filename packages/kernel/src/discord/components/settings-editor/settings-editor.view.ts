@@ -12,6 +12,8 @@ import type {
 import {
 	canReturn,
 	currentLevelKey,
+	indexLevels,
+	levelTrail,
 	ROOT_LEVEL_KEY,
 	type SettingsEditorLevel,
 	type SettingsEditorPath,
@@ -457,16 +459,11 @@ export function createEditorView<S, A, F extends string>(
 	const screenTitle = translator.translate(locale, chrome.titleKey);
 	const intro =
 		chrome.introKey === undefined ? null : translator.translate(locale, chrome.introKey);
-	// Separates the levels in the heading trail.
-	const BREADCRUMB_SEPARATOR = " › ";
 	const body = [intro, chrome.legend].filter(
 		(part): part is string => part !== undefined && part !== null,
 	);
 
-	// The root is a level like any other, named after the screen itself, so
-	// rendering never special-cases "no depth declared".
-	const root: SettingsEditorLevel<F> = { key: ROOT_LEVEL_KEY, titleKey: chrome.titleKey, fields };
-	const allLevels: readonly SettingsEditorLevel<F>[] = [root, ...(levels ?? [])];
+	const allLevels = indexLevels({ key: ROOT_LEVEL_KEY, titleKey: chrome.titleKey, fields }, levels);
 
 	// A level's fields are authored, not accumulated: passing more than a menu can
 	// hold is a mistake in the declaration, and Discord would reject the whole
@@ -475,7 +472,7 @@ export function createEditorView<S, A, F extends string>(
 	//
 	// Lists that *grow* — a guild's ticket types, its permission grants — are the
 	// screen's own to page, through `extraRows`. See research D7.
-	for (const level of allLevels) {
+	for (const level of allLevels.all) {
 		if (level.fields.length > MAX_SELECT_OPTIONS) {
 			throw new Error(
 				`Settings editor level "${level.key}" declares ${level.fields.length} entries; a select menu holds ${MAX_SELECT_OPTIONS}. Split it into a deeper level.`,
@@ -498,17 +495,10 @@ export function createEditorView<S, A, F extends string>(
 		}
 	}
 
-	// A path entry naming no declared level cannot happen — only a level field
-	// puts one there — but falling back to the root keeps a corrupted state
-	// showing a usable screen rather than an empty one.
-	function levelAt(key: string): SettingsEditorLevel<F> {
-		return allLevels.find((level) => level.key === key) ?? root;
-	}
-
 	// One menu per level, built once: the options of a level never vary with the
 	// state, only which level is showing does.
 	const menus = new Map(
-		allLevels.map((level) => [
+		allLevels.all.map((level) => [
 			level.key,
 			createStringSelect({
 				id: ids.field,
@@ -526,14 +516,10 @@ export function createEditorView<S, A, F extends string>(
 		return menus.get(currentLevelKey(state.path)) ?? menus.get(ROOT_LEVEL_KEY);
 	}
 
-	/**
-	 * Where the reader is, as a trail rather than only the current name: a level
-	 * called "Roles" says nothing on its own about which type it belongs to.
-	 */
 	function heading(state: SettingsEditorState<S, A>): string {
-		return state.path
-			.map((key) => translator.translate(locale, levelAt(key).titleKey))
-			.join(BREADCRUMB_SEPARATOR);
+		return levelTrail(state.path, allLevels, (level) =>
+			translator.translate(locale, level.titleKey),
+		);
 	}
 
 	/**

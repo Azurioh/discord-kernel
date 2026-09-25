@@ -65,3 +65,44 @@ export function pushLevel(path: SettingsEditorPath, key: string): SettingsEditor
 export function popLevel(path: SettingsEditorPath): SettingsEditorPath {
 	return canReturn(path) ? path.slice(0, -1) : path;
 }
+
+/** Separates the levels in a screen's heading trail. */
+const BREADCRUMB_SEPARATOR = " › ";
+
+/** Every level a screen declares, root first, and how to find one by key. */
+export interface SettingsEditorLevels<F extends string> {
+	readonly all: readonly SettingsEditorLevel<F>[];
+	/**
+	 * The level `key` names. A path entry naming no declared level cannot happen
+	 * — only a level field puts one there — but falling back to the root keeps a
+	 * corrupted state showing a usable screen rather than an empty one.
+	 */
+	at(key: string): SettingsEditorLevel<F>;
+}
+
+/**
+ * Index a screen's levels. The root is a level like any other, named after the
+ * screen itself, so rendering never special-cases "no depth declared".
+ */
+export function indexLevels<F extends string>(
+	root: SettingsEditorLevel<F>,
+	levels: readonly SettingsEditorLevel<F>[] | undefined,
+): SettingsEditorLevels<F> {
+	const all = [root, ...(levels ?? [])];
+	return {
+		all,
+		at: (key) => all.find((level) => level.key === key) ?? root,
+	};
+}
+
+/**
+ * Where the reader is, as a trail rather than only the current name: a level
+ * called "Roles" says nothing on its own about which type it belongs to.
+ */
+export function levelTrail<F extends string>(
+	path: SettingsEditorPath,
+	levels: SettingsEditorLevels<F>,
+	titleOf: (level: SettingsEditorLevel<F>) => string,
+): string {
+	return path.map((key) => titleOf(levels.at(key))).join(BREADCRUMB_SEPARATOR);
+}
