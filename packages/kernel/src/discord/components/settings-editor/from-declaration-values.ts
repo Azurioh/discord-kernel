@@ -10,10 +10,12 @@ import {
 import type { DeclarationSubject } from "@/discord/components/settings-editor/from-declaration-subject";
 import type { SettingsEditorGroupMemberSubmission } from "@/discord/components/settings-editor/settings-editor-field-modal";
 import {
-	isPickerField,
 	pickedFieldValue,
-	type SettingsEditorFieldValue,
 	textFieldValue,
+} from "@/discord/components/settings-editor/settings-editor-field-values";
+import {
+	isPickerField,
+	type SettingsEditorFieldValue,
 } from "@/discord/components/settings-editor/settings-editor-fields";
 import type { TranslateKey } from "@/i18n/translator";
 import { formatDuration } from "@/settings/duration";

@@ -37,6 +37,7 @@ import {
 	type ValueCase,
 	valueCasesSettings,
 } from "../../../settings/fixtures/value-cases";
+import { createFakeLogger } from "../../../support/fake-logger";
 
 const GUILD = "100000000000000001";
 const ADMIN = "200000000000000001";
@@ -80,19 +81,6 @@ const directory = createInMemoryGuildDirectory({
 		members: [{ id: OWNER, name: "Owner" }],
 	},
 });
-
-function makeLogger(): Logger {
-	const logger = {
-		trace: vi.fn(),
-		debug: vi.fn(),
-		info: vi.fn(),
-		warn: vi.fn(),
-		error: vi.fn(),
-		fatal: vi.fn(),
-		child: () => logger,
-	};
-	return logger as unknown as Logger;
-}
 
 type Adapter = Awaited<ReturnType<typeof settingsEditorFromDeclaration>>;
 type EditorField = SettingsEditorField<string>;
@@ -274,7 +262,7 @@ async function createStore(declaration: SettingsDeclaration, stored?: Record<str
 }
 
 function createService(params: { store: SettingsStore; guilds: GuildDirectory }) {
-	const logger = makeLogger();
+	const logger = createFakeLogger();
 	return createSettingsService({
 		registry: {} as SettingsRegistry,
 		store: params.store,

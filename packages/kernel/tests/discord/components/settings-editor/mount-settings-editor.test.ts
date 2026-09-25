@@ -335,7 +335,7 @@ describe("mountSettingsEditor: a card layout's displayValue hook", () => {
 			} as unknown as Translator,
 			locale: LOCALE,
 			clock: CLOCK,
-			logger: makeLogger(),
+			logger: createFakeLogger(),
 		});
 		expect(renderedText(editReply.mock.calls[0]?.[0])).toContain("value-before");
 
