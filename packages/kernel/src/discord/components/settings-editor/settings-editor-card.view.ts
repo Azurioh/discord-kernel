@@ -1,3 +1,4 @@
+import { subtext, TimestampStyles, time } from "discord.js";
 import type { InteractiveView } from "@/discord/components/interactive-message/interactive-message-collector";
 import {
 	canReturn,
@@ -158,8 +159,7 @@ export function createCardEditorView<S, A, F extends string>(
 	 * an embed's timestamp already did.
 	 */
 	function signature(): string {
-		const unixSeconds = Math.floor(dressing.clock.now().getTime() / 1000);
-		return `-# ${screenTitle} • <t:${unixSeconds}:t>`;
+		return subtext(`${screenTitle} • ${time(dressing.clock.now(), TimestampStyles.ShortTime)}`);
 	}
 
 	/**
@@ -293,7 +293,7 @@ export function createCardEditorView<S, A, F extends string>(
 				: level.fields.map((field) => entrySection(field));
 
 		return [
-			{ kind: "text", content: `-# ${heading(state)}` },
+			{ kind: "text", content: subtext(heading(state)) },
 			notice,
 			...(chrome.extraBlocks?.(state, confirmingReset) ?? []),
 			{ kind: "separator" },
