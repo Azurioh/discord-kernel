@@ -13,7 +13,7 @@ import type { RequestContext } from "@azurioh/discord-kernel/settings";
 export function requestContext<O extends Options>(ctx: Context<O>): RequestContext {
 	const { guildId, user } = ctx.interaction;
 	if (guildId === null) {
-		throw new ValidationError("/config needs a guild", { key: CORE_MESSAGES.guardGuildOnly });
+		throw new ValidationError("This command needs a guild", { key: CORE_MESSAGES.guardGuildOnly });
 	}
 	return { guildId, userId: user.id, locale: ctx.locale };
 }
