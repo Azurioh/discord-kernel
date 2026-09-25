@@ -1,5 +1,6 @@
 import type { Client } from "discord.js";
 import type { DiscordEvent, EventListener } from "@/discord/events/types";
+import { errorMessage } from "@/errors/error-message";
 import type { Logger } from "@/logger";
 
 /**
@@ -11,10 +12,7 @@ function createEventListener(event: DiscordEvent, logger: Logger): EventListener
 		try {
 			await event.execute(...args);
 		} catch (error) {
-			logger.error(
-				{ event: event.name, err: error instanceof Error ? error.message : String(error) },
-				"Event handler failed",
-			);
+			logger.error({ event: event.name, err: errorMessage(error) }, "Event handler failed");
 		}
 	};
 }

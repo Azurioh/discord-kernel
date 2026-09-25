@@ -1,4 +1,5 @@
 import cron from "node-cron";
+import { errorMessage } from "@/errors/error-message";
 import type { Logger } from "@/logger";
 import {
 	AmbiguousJobScheduleError,
@@ -62,10 +63,6 @@ export interface Scheduler {
 	isValidCron(expression: string): boolean;
 	rescheduleCron(jobName: string, expression: string): boolean;
 	stop(): void;
-}
-
-function describeError(error: unknown): string {
-	return error instanceof Error ? error.message : String(error);
 }
 
 /**
@@ -233,7 +230,7 @@ export class CronScheduler implements Scheduler {
 		try {
 			await job.run();
 		} catch (error) {
-			this.logger.error({ job: job.name, err: describeError(error) }, "Scheduled job failed");
+			this.logger.error({ job: job.name, err: errorMessage(error) }, "Scheduled job failed");
 		}
 	}
 

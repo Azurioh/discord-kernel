@@ -7,16 +7,16 @@ import {
 	type SlashCommandSubcommandBuilder,
 } from "discord.js";
 import { resolveRouteOptions, respondWithSuggestions } from "@/discord/command/autocomplete";
-import { type Context, createContext, sendEmbed } from "@/discord/command/context";
+import { type Context, createContext } from "@/discord/command/context";
 import type { Guard } from "@/discord/command/guard";
 import type { Options, Values } from "@/discord/command/options";
+import { passesGuard } from "@/discord/command/passes-guard";
+import { renderCommandFailure } from "@/discord/command/render-command-failure";
 import { routeKey } from "@/discord/command/route-key";
 import type { CommandRuntime, SlashCommand } from "@/discord/command/types";
 import { CORE_MESSAGES } from "@/discord/i18n";
+import { interactionLocale } from "@/discord/interaction/interaction-locale";
 import { type PermissionBit, resolvePermissions } from "@/discord/permissions";
-import { BusinessError } from "@/errors/business-error";
-import { createIncidentRef } from "@/errors/incident-ref";
-import { type Locale, resolveLocale } from "@/i18n/locale";
 import type { LocalizedText } from "@/i18n/translator";
 
 export interface SubcommandDef<O extends Options> {
@@ -120,17 +120,6 @@ interface SubcommandContainer {
 	): unknown;
 }
 
-/** Resolve the reply locale for an interaction handled outside `createContext`. */
-function interactionLocale(
-	interaction: ChatInputCommandInteraction,
-	runtime: CommandRuntime,
-): Locale {
-	return resolveLocale(
-		[interaction.locale, interaction.guildLocale],
-		runtime.translator.defaultLocale,
-	);
-}
-
 /**
  * The root-level settings, split out of {@link CommandDef} so applying them does
  * not drag the option generic `O` along (a `CommandDef<O>` is not assignable to
@@ -204,29 +193,6 @@ function ephemeralReplyOptions(ephemeral: boolean): { flags?: MessageFlags.Ephem
 	return {};
 }
 
-/** Run a guard if present; reply with a denial and return `false` when it fails. */
-async function passesGuard(
-	interaction: ChatInputCommandInteraction,
-	guard: Guard | undefined,
-	runtime: CommandRuntime,
-): Promise<boolean> {
-	if (!guard) {
-		return true;
-	}
-	const result = await guard.check(interaction);
-	if (!result.ok) {
-		const locale = interactionLocale(interaction, runtime);
-		await interaction.reply({
-			embeds: [
-				runtime.presenter.denial(runtime.translator.resolve(locale, result.message), locale),
-			],
-			flags: MessageFlags.Ephemeral,
-		});
-		return false;
-	}
-	return true;
-}
-
 /** Read options, optionally defer, build the context and invoke the handler. */
 async function executeRoute(
 	interaction: ChatInputCommandInteraction,
@@ -250,7 +216,17 @@ async function executeRoute(
 		);
 		await route.invoke(ctx);
 	} catch (error) {
-		await renderError(interaction, route, label, error, runtime);
+		await renderCommandFailure(
+			interaction,
+			{
+				error,
+				ephemeral: route.ephemeral,
+				fallbackError: route.fallbackError,
+				logFields: { subcommand: label },
+				logMessage: "Command handler failed",
+			},
+			runtime,
+		);
 	}
 }
 
@@ -277,7 +253,7 @@ async function dispatchGrouped(
 	const route = routes.get(label);
 
 	if (!route) {
-		const locale = interactionLocale(interaction, runtime);
+		const locale = interactionLocale(interaction, runtime.translator);
 		await interaction.reply({
 			embeds: [
 				runtime.presenter.error(
@@ -294,51 +270,6 @@ async function dispatchGrouped(
 		return;
 	}
 	await executeRoute(interaction, route, label, runtime);
-}
-
-async function renderError(
-	interaction: ChatInputCommandInteraction,
-	route: CompiledSubcommand,
-	label: string,
-	error: unknown,
-	runtime: CommandRuntime,
-): Promise<void> {
-	const { presenter, logger, translator } = runtime;
-	const locale = interactionLocale(interaction, runtime);
-	if (error instanceof BusinessError) {
-		const text = error.translation
-			? translator.translate(locale, error.translation.key, error.translation.params)
-			: error.message;
-		const embed =
-			error.severity === "warning"
-				? presenter.warning(text, locale)
-				: presenter.error(text, locale);
-		await sendEmbed(interaction, embed, route.ephemeral, logger);
-		return;
-	}
-
-	const ref = createIncidentRef();
-	logger.error(
-		{
-			command: interaction.commandName,
-			subcommand: label,
-			userId: interaction.user.id,
-			ref,
-			err: error instanceof Error ? error.message : String(error),
-			stack: error instanceof Error ? error.stack : undefined,
-		},
-		"Command handler failed",
-	);
-	await sendEmbed(
-		interaction,
-		presenter.systemError(
-			translator.resolve(locale, route.fallbackError ?? { key: CORE_MESSAGES.genericError }),
-			ref,
-			locale,
-		),
-		route.ephemeral,
-		logger,
-	);
 }
 
 /**

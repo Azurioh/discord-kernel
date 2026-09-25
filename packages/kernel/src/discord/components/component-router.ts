@@ -6,10 +6,11 @@ import {
 	type ModalSubmitInteraction,
 } from "discord.js";
 import { CORE_MESSAGES } from "@/discord/i18n";
+import { interactionLocale } from "@/discord/interaction/interaction-locale";
 import type { InteractionDispatcher } from "@/discord/interaction/interaction-router";
 import { formatPermissions, missingPermissions, type PermissionBit } from "@/discord/permissions";
 import type { Presenter } from "@/discord/presenter";
-import { type Locale, resolveLocale } from "@/i18n/locale";
+import { errorMessage } from "@/errors/error-message";
 import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 
@@ -165,7 +166,7 @@ export class ComponentRouter implements InteractionDispatcher {
 			this.deps.logger.error(
 				{
 					customId: interaction.customId,
-					err: error instanceof Error ? error.message : String(error),
+					err: errorMessage(error),
 				},
 				"Component handler failed",
 			);
@@ -194,7 +195,7 @@ export class ComponentRouter implements InteractionDispatcher {
 			return true;
 		}
 
-		const locale = this.localeOf(interaction);
+		const locale = interactionLocale(interaction, this.deps.translator);
 		const message = this.deps.translator.translate(locale, CORE_MESSAGES.guardPermissionDenied, {
 			missing: formatPermissions(missing),
 		});
@@ -203,12 +204,5 @@ export class ComponentRouter implements InteractionDispatcher {
 			flags: MessageFlags.Ephemeral,
 		});
 		return false;
-	}
-
-	private localeOf(interaction: RoutableInteraction): Locale {
-		return resolveLocale(
-			[interaction.locale, interaction.guildLocale],
-			this.deps.translator.defaultLocale,
-		);
 	}
 }
