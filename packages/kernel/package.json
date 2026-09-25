@@ -103,6 +103,10 @@
 			"types": "./dist/discord/channel-exporter.d.ts",
 			"default": "./dist/discord/channel-exporter.js"
 		},
+		"./discord/command/all-required": {
+			"types": "./dist/discord/command/all-required.d.ts",
+			"default": "./dist/discord/command/all-required.js"
+		},
 		"./discord/command/autocomplete-dispatcher": {
 			"types": "./dist/discord/command/autocomplete-dispatcher.d.ts",
 			"default": "./dist/discord/command/autocomplete-dispatcher.js"
@@ -254,6 +258,10 @@
 		"./discord/interaction/modal": {
 			"types": "./dist/discord/interaction/modal.d.ts",
 			"default": "./dist/discord/interaction/modal.js"
+		},
+		"./discord/interaction/select-bounds": {
+			"types": "./dist/discord/interaction/select-bounds.d.ts",
+			"default": "./dist/discord/interaction/select-bounds.js"
 		},
 		"./discord/interaction/select-menu": {
 			"types": "./dist/discord/interaction/select-menu.d.ts",

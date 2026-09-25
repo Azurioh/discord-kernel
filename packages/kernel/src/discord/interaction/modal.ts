@@ -14,6 +14,7 @@ import {
 	TextInputStyle,
 	UserSelectMenuBuilder,
 } from "discord.js";
+import { applySelectBounds } from "@/discord/interaction/select-bounds";
 
 export type TextFieldStyleName = "short" | "paragraph";
 
@@ -264,16 +265,7 @@ function createStringSelect(name: string, field: SelectFieldDef): StringSelectMe
 		.setCustomId(name)
 		.setRequired(field.required ?? true)
 		.addOptions(field.options.map(createSelectOption));
-	if (field.placeholder !== undefined) {
-		select.setPlaceholder(field.placeholder);
-	}
-	if (field.minValues !== undefined) {
-		select.setMinValues(field.minValues);
-	}
-	if (field.maxValues !== undefined) {
-		select.setMaxValues(field.maxValues);
-	}
-	return select;
+	return applySelectBounds(select, field);
 }
 
 function createRoleSelect(name: string, field: RoleFieldDef): RoleSelectMenuBuilder {
@@ -281,16 +273,7 @@ function createRoleSelect(name: string, field: RoleFieldDef): RoleSelectMenuBuil
 	if (field.defaultRoleIds !== undefined) {
 		select.setDefaultRoles(...field.defaultRoleIds);
 	}
-	if (field.placeholder !== undefined) {
-		select.setPlaceholder(field.placeholder);
-	}
-	if (field.minValues !== undefined) {
-		select.setMinValues(field.minValues);
-	}
-	if (field.maxValues !== undefined) {
-		select.setMaxValues(field.maxValues);
-	}
-	return select;
+	return applySelectBounds(select, field);
 }
 
 function createUserSelect(name: string, field: UserFieldDef): UserSelectMenuBuilder {
@@ -298,16 +281,7 @@ function createUserSelect(name: string, field: UserFieldDef): UserSelectMenuBuil
 	if (field.defaultUserIds !== undefined) {
 		select.setDefaultUsers(...field.defaultUserIds);
 	}
-	if (field.placeholder !== undefined) {
-		select.setPlaceholder(field.placeholder);
-	}
-	if (field.minValues !== undefined) {
-		select.setMinValues(field.minValues);
-	}
-	if (field.maxValues !== undefined) {
-		select.setMaxValues(field.maxValues);
-	}
-	return select;
+	return applySelectBounds(select, field);
 }
 
 function createChannelSelect(name: string, field: ChannelFieldDef): ChannelSelectMenuBuilder {
@@ -320,16 +294,7 @@ function createChannelSelect(name: string, field: ChannelFieldDef): ChannelSelec
 	if (field.defaultChannelIds !== undefined) {
 		select.setDefaultChannels(...field.defaultChannelIds);
 	}
-	if (field.placeholder !== undefined) {
-		select.setPlaceholder(field.placeholder);
-	}
-	if (field.minValues !== undefined) {
-		select.setMinValues(field.minValues);
-	}
-	if (field.maxValues !== undefined) {
-		select.setMaxValues(field.maxValues);
-	}
-	return select;
+	return applySelectBounds(select, field);
 }
 
 function createLabel(name: string, field: FieldDef): LabelBuilder {
