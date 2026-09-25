@@ -1,12 +1,7 @@
 import { ValidationError } from "@/errors/business-error";
 import type { SettingsDeclaration } from "@/settings/define-settings";
-import {
-	type AnyField,
-	type DynamicSuggestions,
-	type FieldSpec,
-	type Suggestions,
-	unhandledFieldKind,
-} from "@/settings/fields/field";
+import { fieldSearch } from "@/settings/field-search";
+import { type AnyField, type FieldSpec, unhandledFieldKind } from "@/settings/fields/field";
 import { type FieldValueIssue, parseFieldValue } from "@/settings/fields/zod-schema";
 import { isPlainObject } from "@/settings/is-plain-object";
 import { SETTINGS_ISSUE_MESSAGES } from "@/settings/messages";
@@ -210,7 +205,8 @@ async function checkReferences(params: ValueCheck): Promise<FieldValueIssue[]> {
 /** The guild check, or the strict check, one value needs; `undefined` when it passes. */
 async function checkValue(params: ValueCheck): Promise<SettingsIssueCode | undefined> {
 	const { scope, declaration, entry, values, spec, value } = params;
-	if ((spec.kind === "text" || spec.kind === "integer") && isStrictSearch(spec.suggest)) {
+	const search = fieldSearch(spec);
+	if (search?.strict === true) {
 		const label = await dynamicLabel({
 			scope: {
 				...scope.ports,
@@ -223,19 +219,12 @@ async function checkValue(params: ValueCheck): Promise<SettingsIssueCode | undef
 					values: withoutKey(await values(), entry.key),
 				},
 			},
-			suggest: spec.suggest,
+			suggest: search,
 			value,
 		});
 		return label === undefined ? "unknownChoice" : undefined;
 	}
 	return checkEntity({ guilds: scope.ports.guilds, guildId: scope.guildId, spec, value });
-}
-
-/** Whether a field's suggestions are a search that must know every value written. */
-function isStrictSearch(
-	suggest: Suggestions<string> | Suggestions<number> | undefined,
-): suggest is DynamicSuggestions<string> | DynamicSuggestions<number> {
-	return suggest !== undefined && !("choices" in suggest) && suggest.strict === true;
 }
 
 /** The other values: a search is told what else is entered, not its own field's value. */

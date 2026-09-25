@@ -32,7 +32,8 @@ type EntryKind = DeclarationControl["entry"]["kind"];
  * @param params.control - the control shown.
  * @param params.subject - the screen's current subject.
  * @param params.translate - translates the texts shown in place of a value.
- * @returns the text shown after the entry's "Current:" prefix.
+ * @returns the text shown after the entry's "Current:" prefix. A searchable
+ * field shows its search's label of the value, or the value itself.
  */
 export function controlDisplay(params: {
 	control: DeclarationControl;
@@ -68,6 +69,9 @@ export function controlDisplay(params: {
 			return pickedDisplay({ control, subject, translate, value });
 		case "toggles":
 			return togglesDisplay({ control, translate, value, keys: shape.keys });
+		case "search":
+		case "other":
+			return truncateText(subject.labels[control.fieldKey] ?? String(value), MAX_TEXT_SHOWN);
 		default:
 			return shape satisfies never;
 	}

@@ -530,7 +530,7 @@ function pickerFieldDef<F extends string>(
 				kind: "select",
 				...shared,
 				options: field.choices.map((choice) => ({
-					label: translator.translate(locale, choice.labelKey),
+					label: translator.translate(locale, choice.labelKey, choice.labelParams),
 					value: choice.value,
 					...(choice.descriptionKey === undefined
 						? {}

@@ -80,6 +80,9 @@ Already defined once, reuse them:
 | The required settings a guild left unset | `service.status(declaration, guildId)` (`@/settings/status`, cached) |
 | Blocking a command or component until its module is configured | `requireConfigured` (`@/discord/settings/require-configured`) as its `guard` |
 | Running a command's or component's guard and answering its denial | `passesGuard` (`@/discord/command/passes-guard`) |
+| A field's suggestions (autocomplete, settings screen) and a value's label | `service.suggest`, `service.label` (`@/settings/suggest` behind them); never filter choices or search the guild by hand |
+| Running a suggestion search within its 2.5 s budget | `timedSearch`, `SUGGESTION_TIMEOUT_MS` (`@/settings/timed-search`) |
+| The server-side search a field declares | `fieldSearch` (`@/settings/field-search`) |
 
 Discord limits (component counts, text lengths, choice caps) are constants in the kernel,
 never a literal number at the call site.

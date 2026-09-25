@@ -57,6 +57,14 @@ export const SETTINGS_EDITOR_MESSAGES = {
 	/** The entry a screen with more entries than one card holds moves the rest behind. */
 	moreEntries: "core.settings-editor.more-entries",
 	moreEntriesHint: "core.settings-editor.more-entries-hint",
+	/**
+	 * An option whose text is not a catalog key: a search result, already in
+	 * the reader's language. Takes `{label}` and shows it as is.
+	 */
+	choiceLabel: "core.settings-editor.choice-label",
+	/** The free entry beside a searchable setting's list, for a value the list does not offer. */
+	otherValue: "core.settings-editor.other-value",
+	otherValueHelper: "core.settings-editor.other-value-helper",
 } as const;
 
 /**
@@ -194,5 +202,11 @@ export const CORE_CATALOG: KeyedCatalog<
 	[SETTINGS_EDITOR_MESSAGES.moreEntriesHint]: {
 		en: "The settings that do not fit on this page.",
 		fr: "Les paramètres qui ne tiennent pas sur cette page.",
+	},
+	[SETTINGS_EDITOR_MESSAGES.choiceLabel]: { en: "{label}", fr: "{label}" },
+	[SETTINGS_EDITOR_MESSAGES.otherValue]: { en: "Other value", fr: "Autre valeur" },
+	[SETTINGS_EDITOR_MESSAGES.otherValueHelper]: {
+		en: "A value the list above does not offer; it replaces the pick. Leave empty to keep the pick.",
+		fr: "Une valeur absente de la liste ci-dessus ; elle remplace le choix. Laissez vide pour garder le choix.",
 	},
 };

@@ -332,12 +332,33 @@ export interface SettingsService {
    */
   reset<D extends SettingsDeclaration>(declaration: D, guildId: string, keys: readonly string[] | "all", ctx: RequestContext): Promise<void>;
 
-  // Added by later tasks:
+  /**
+   * Suggestions for one field (FR-021 to FR-026), in the command
+   * autocomplete's `Choice` format, so an autocomplete resolver can return
+   * them as is. Channel/role/user fields search the GuildDirectory (no author
+   * code); enum and static choices are translated to ctx.locale (unsupported
+   * locales fall back to the translator's default) and kept when their name
+   * or value contains the query, case-insensitive; a dynamic `resolve` gets
+   * the query and ctx (ctx.values = the other values currently entered). A
+   * list suggests for its item; other kinds suggest nothing. At most 25
+   * results (the first kept). A search slower than SUGGESTION_TIMEOUT_MS
+   * (2.5 s) or failing yields [] and a logger.warn; the timer is cleared as
+   * soon as the race settles.
+   * @throws ValidationError when fieldKey is not declared (a malformed request,
+   * like a patch that is not an object; not a SettingsValidationError).
+   */
+  suggest<D extends SettingsDeclaration>(declaration: D, fieldKey: string, query: string, ctx: RequestContext & { readonly values: Readonly<Record<string, unknown>> }): Promise<readonly Choice[]>;
 
-  /** Suggestions for one field: ≤ 25 results, 2.5 s budget, never throws. */
-  suggest<D extends SettingsDeclaration>(declaration: D, fieldKey: string, query: string, ctx: RequestContext & { values: Record<string, unknown> }): Promise<readonly Choice[]>;
-
-  /** Readable label of a stored value (for display). */
+  /**
+   * Readable label of one value, in ctx.locale (FR-022): an entity's name on
+   * the guild, a static choice's translated label, a dynamic search's
+   * `label(value)`, or, without `label`, the name of the result of
+   * `resolve(String(value))` whose value is exactly `value`. A list reads
+   * `value` as one item. The search's ctx.values are the guild's current
+   * values as a surface reads them. `undefined` when unknown, gone, or when
+   * the search timed out or failed (logged at warn).
+   * @throws ValidationError when fieldKey is not declared.
+   */
   label<D extends SettingsDeclaration>(declaration: D, fieldKey: string, value: unknown, ctx: RequestContext): Promise<string | undefined>;
 
   /** Translated JSON Schema description of one module (FR-030). */
@@ -355,6 +376,28 @@ Validation issues (`SettingsIssue`: `{ field, code, translation }`) name the fie
 `Choice` (`{ readonly name: string; readonly value: string | number }`) is exported from
 `@azurioh/discord-kernel/settings` and re-exported from the command options module for
 backward compatibility.
+
+**Strict fields (FR-023, S10).** `validate` and `set` accept a value of a strict dynamic field
+only when `label(value) !== undefined` (the same rule `service.label` applies to that field);
+otherwise the field fails with `unknownChoice` (`key[index]` for a list item). The search sees
+the guild's current values with the submitted ones over them, the field's own value and
+secrets left out, read only when a strict search runs. A strict search that times out or
+throws knows nothing: the value is **rejected** (never stored unchecked) and the failure is
+logged at `warn`. A non-strict search is never called on write.
+
+`SUGGESTION_TIMEOUT_MS` (2500) is exported from `@azurioh/discord-kernel/settings`.
+
+**Discord screen (FR-026a).** `settingsEditorFromDeclaration` maps a text/integer field with a
+dynamic search to a `choice` control whose options are the first 25 results of
+`suggest(key, "")` (read when the screen opens; the current value leads the list when the
+results miss it). Options carry the result's name through `SettingsEditorChoice.labelParams`
+(new optional property) under the catalog key `core.settings-editor.choice-label`. A strict
+field is that select alone. A non-strict field also gets an "Other value" text entry (key
+`<field>#other`) in the same modal: a single field outside any group opens a modal of its own
+(entry key `<field>#search`), a field of a group keeps both controls in one of the group's
+modals. A typed value replaces the pick and is validated on save by `service.set`. A search
+that yields nothing (empty, timed out or failed) leaves the field as a typed entry. The card
+shows the search's label as the current value. `mountSettingsEditor`'s API is unchanged.
 
 ## Ports and in-memory twins
 
