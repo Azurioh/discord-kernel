@@ -111,6 +111,10 @@
 			"types": "./dist/discord/command/autocomplete-dispatcher.d.ts",
 			"default": "./dist/discord/command/autocomplete-dispatcher.js"
 		},
+		"./discord/command/autocomplete-limits": {
+			"types": "./dist/discord/command/autocomplete-limits.d.ts",
+			"default": "./dist/discord/command/autocomplete-limits.js"
+		},
 		"./discord/command/autocomplete": {
 			"types": "./dist/discord/command/autocomplete.d.ts",
 			"default": "./dist/discord/command/autocomplete.js"
