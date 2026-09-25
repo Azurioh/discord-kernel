@@ -2,6 +2,8 @@ import type { InteractiveView } from "@/discord/components/interactive-message/i
 import {
 	canReturn,
 	currentLevelKey,
+	indexLevels,
+	levelTrail,
 	ROOT_LEVEL_KEY,
 	type SettingsEditorLevel,
 } from "@/discord/components/settings-editor/navigation";
@@ -105,28 +107,21 @@ export function createCardEditorView<S, A, F extends string>(
 	dressing: SettingsEditorDressing,
 ): InteractiveView<SettingsEditorState<S, A>> {
 	const screenTitle = translator.translate(locale, chrome.titleKey);
-	// Separates the levels in the breadcrumb trail.
-	const BREADCRUMB_SEPARATOR = " › ";
 
-	// The root is a level like any other, named after the screen itself, so
-	// rendering never special-cases "no depth declared" — the same bargain
-	// `createEditorView` strikes for the embeds layout. Its own `entryLayout`
-	// is the chrome's, mirroring `SettingsEditorLevel.entryLayout` for the one
-	// level that is never itself a `SettingsEditorLevel`.
-	const root: SettingsEditorLevel<F> = {
-		key: ROOT_LEVEL_KEY,
-		titleKey: chrome.titleKey,
-		fields,
-		entryLayout: chrome.entryLayout,
-	};
-	const allLevels: readonly SettingsEditorLevel<F>[] = [root, ...(levels ?? [])];
+	// The root's own `entryLayout` is the chrome's, mirroring
+	// `SettingsEditorLevel.entryLayout` for the one level that is never itself a
+	// `SettingsEditorLevel`.
+	const allLevels = indexLevels(
+		{ key: ROOT_LEVEL_KEY, titleKey: chrome.titleKey, fields, entryLayout: chrome.entryLayout },
+		levels,
+	);
 
 	// A level's fields are authored, not accumulated: passing more entries than a
 	// card can carry is a mistake in the declaration, and Discord would reject
 	// the whole message rather than show the first ones that fit. Failing here
 	// names the level; failing at render time would only say the message was
 	// invalid.
-	for (const level of allLevels) {
+	for (const level of allLevels.all) {
 		// A `"buttons"` level spends its budget on rows of `ActionRow`s rather
 		// than `Section`s, so it is checked against its own, higher cap instead
 		// of the `"sections"` one — failing here names the level rather than the
@@ -150,18 +145,10 @@ export function createCardEditorView<S, A, F extends string>(
 		}
 	}
 
-	function levelAt(key: string): SettingsEditorLevel<F> {
-		return allLevels.find((level) => level.key === key) ?? root;
-	}
-
-	/**
-	 * Where the reader is, as a trail rather than only the current name: a level
-	 * called "Roles" says nothing on its own about which type it belongs to.
-	 */
 	function heading(state: SettingsEditorState<S, A>): string {
-		return state.path
-			.map((key) => translator.translate(locale, levelAt(key).titleKey))
-			.join(BREADCRUMB_SEPARATOR);
+		return levelTrail(state.path, allLevels, (level) =>
+			translator.translate(locale, level.titleKey),
+		);
 	}
 
 	/**
@@ -288,7 +275,7 @@ export function createCardEditorView<S, A, F extends string>(
 		state: SettingsEditorState<S, A>,
 	): readonly (CardBlock<SettingsEditorState<S, A>> | null)[] {
 		const confirmingReset = state.confirming === SETTINGS_EDITOR_RESET_CONFIRMING;
-		const level = levelAt(currentLevelKey(state.path));
+		const level = allLevels.at(currentLevelKey(state.path));
 
 		const notice: CardBlock<SettingsEditorState<S, A>> | null = confirmingReset
 			? {
