@@ -244,16 +244,6 @@ export interface SettingsEditorFieldValue {
 	readonly picked: readonly string[];
 }
 
-/** A text override, as the modal editing it opens on. */
-export function textFieldValue(value: string | null): SettingsEditorFieldValue {
-	return { text: value, uploaded: false, picked: [] };
-}
-
-/** A picker override, as the modal editing it opens on — prefilled from what it already holds. */
-export function pickedFieldValue(ids: readonly string[]): SettingsEditorFieldValue {
-	return { text: null, uploaded: false, picked: ids };
-}
-
 /** Discord's own cap on a modal text input, whatever the embed itself would take. */
 export const MAX_MODAL_INPUT_LENGTH = 4000;
 
