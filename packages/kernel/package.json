@@ -115,6 +115,10 @@
 			"types": "./dist/discord/command/autocomplete.d.ts",
 			"default": "./dist/discord/command/autocomplete.js"
 		},
+		"./discord/command/command-responders": {
+			"types": "./dist/discord/command/command-responders.d.ts",
+			"default": "./dist/discord/command/command-responders.js"
+		},
 		"./discord/command/context": {
 			"types": "./dist/discord/command/context.d.ts",
 			"default": "./dist/discord/command/context.js"

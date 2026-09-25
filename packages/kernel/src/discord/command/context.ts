@@ -1,10 +1,13 @@
 import type { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
+import {
+	type CommandResponders,
+	createCommandResponders,
+} from "@/discord/command/command-responders";
 import type { Options, Values } from "@/discord/command/options";
 import { sendEmbed } from "@/discord/command/send-embed";
 import { interactionLocale } from "@/discord/interaction/interaction-locale";
 import type { Presenter } from "@/discord/presenter";
-import type { Locale } from "@/i18n/locale";
-import type { TranslationParams, Translator } from "@/i18n/translator";
+import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 
 /**
@@ -13,17 +16,10 @@ import type { Logger } from "@/logger";
  * translate helper bound to it, and convenience responders that route through
  * the injected {@link Presenter}.
  */
-export interface Context<O extends Options> {
+export interface Context<O extends Options> extends CommandResponders {
 	readonly interaction: ChatInputCommandInteraction;
 	readonly options: Values<O>;
-	/** Reply language: user's client locale → guild locale → configured default. */
-	readonly locale: Locale;
-	/** Translate a catalog key for this interaction's locale. */
-	t(key: string, params?: TranslationParams): string;
 	reply(embed: EmbedBuilder): Promise<void>;
-	confirm(message: string): Promise<void>;
-	error(message: string): Promise<void>;
-	deny(message: string): Promise<void>;
 }
 
 export function createContext<O extends Options>(
@@ -36,14 +32,9 @@ export function createContext<O extends Options>(
 ): Context<O> {
 	const locale = interactionLocale(interaction, translator);
 	return {
+		...createCommandResponders(interaction, locale, ephemeral, { presenter, logger, translator }),
 		interaction,
 		options,
-		locale,
-		t: (key, params) => translator.translate(locale, key, params),
 		reply: (embed) => sendEmbed(interaction, embed, ephemeral, logger),
-		confirm: (message) =>
-			sendEmbed(interaction, presenter.confirmation(message, locale), ephemeral, logger),
-		error: (message) => sendEmbed(interaction, presenter.error(message, locale), ephemeral, logger),
-		deny: (message) => sendEmbed(interaction, presenter.denial(message, locale), ephemeral, logger),
 	};
 }
