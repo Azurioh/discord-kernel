@@ -1,5 +1,6 @@
 /** The catalog keys of the basics commands: descriptions and replies. */
 export const BASICS_MESSAGES = {
+	moduleName: "basics.module.name",
 	pingDescription: "basics.ping.description",
 	pong: "basics.ping.pong",
 	rollDescription: "basics.roll.description",

@@ -166,17 +166,31 @@ other, what they share moves into a third.
 
 ## Commands
 
-| Command | What it exercises |
-| ------- | ----------------- |
-| `/ping` | A flat command replying through the presenter |
-| `/roll [sides]` | A typed integer option behind a per-user cooldown guard (10 s) |
-| `/pages` | The app's paginator component over the kernel's collector-backed one (42 items, 5 per page) |
-| `/config show` | `getForSurface`: every demo setting, secrets shown as set or not set |
-| `/config set key value` | `set`: `key` autocompletes from the declaration; `value` is JSON when it parses, text otherwise; issues are shown translated |
-| `/config reset key` | `reset` of one key, or `all` |
+Three modules: `basics`, `demo` and `admin`.
 
-`/config` is guild-only and needs *Manage Server*, both as a visibility filter and
-as a guard. Values to try with `/config set`:
+| Module | Command | What it exercises |
+| ------ | ------- | ----------------- |
+| `basics` | `/ping` | A flat command replying through the presenter |
+| `basics` | `/roll [sides]` | A typed integer option behind a per-user cooldown guard (10 s) |
+| `basics` | `/pages` | The app's paginator component over the kernel's collector-backed one (42 items, 5 per page) |
+| `demo` | `/config show` | `getForSurface`: every demo setting, secrets shown as set or not set |
+| `demo` | `/config edit` | The app's settings screen (`src/components/settings-screen/`) generated from the demo declaration |
+| `demo` | `/config set key value` | `set`: `key` autocompletes from the declaration; `value` is JSON when it parses, text otherwise; issues are shown translated |
+| `demo` | `/config reset key` | `reset` of one key, or `all` |
+| `admin` | `/server` | The same settings screen over the kernel's own declaration: which modules are enabled on the server, and the bot's language there |
+
+Modules are gated per server. Disable a module in `/server` and, on that
+server, its commands answer that the module is disabled on this server, its
+components do the same, and its gateway events are skipped; the other servers
+are untouched. The composition root registers each module's commands,
+components and events with the module's name, which is what the kernel's
+`ModuleGate` checks. `admin` is never gated: its commands are registered without
+a module name, so turning every module off can never lock you out of `/server`.
+The language picked there applies when a member's Discord client language is not
+one the bot supports, as described below.
+
+`/config` and `/server` are guild-only and need *Manage Server*, both as a
+visibility filter and as a guard. Values to try with `/config set`:
 
 | Key | Value |
 | --- | ----- |
@@ -191,5 +205,7 @@ as a guard. Values to try with `/config set`:
 | `pingRoles` | `["123456789012345678"]` (IDs quoted inside a JSON list) |
 
 The bot also logs when it is ready, when it joins a guild and every settings
-change. Your Discord client language (English or French) picks the reply
-language.
+change. The reply language is, in order: your Discord client language when the
+bot supports it (English or French), the language picked in `/server`, the
+server's Discord language, then English. The composition root plugs this order in
+as the kernel's `createGuildLocaleResolver`; a bot can pass its own resolver instead.

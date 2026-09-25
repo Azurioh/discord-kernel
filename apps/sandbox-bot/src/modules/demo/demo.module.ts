@@ -4,6 +4,7 @@ import type { BotModule } from "@azurioh/discord-kernel/module/module";
 import type { SettingsService } from "@azurioh/discord-kernel/settings";
 import { createConfigCommand } from "@/modules/demo/commands/config/config.command";
 import { DEMO_CATALOG } from "@/modules/demo/i18n/demo.catalog";
+import { DEMO_MESSAGES } from "@/modules/demo/i18n/demo.messages";
 import { demoSettings } from "@/modules/demo/settings/demo.settings";
 
 export interface DemoModuleDeps {
@@ -26,6 +27,7 @@ export interface DemoModuleDeps {
 export function createDemoModule(deps: DemoModuleDeps): BotModule {
 	return {
 		name: "demo",
+		label: DEMO_MESSAGES.moduleName,
 		commands: [createConfigCommand(deps)],
 		translations: DEMO_CATALOG,
 		settings: [demoSettings],

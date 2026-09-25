@@ -2,37 +2,37 @@ import type { Context } from "@azurioh/discord-kernel/discord/command/context";
 import type { Options } from "@azurioh/discord-kernel/discord/command/options";
 import type { Translator } from "@azurioh/discord-kernel/i18n/translator";
 import type { Logger } from "@azurioh/discord-kernel/logger";
-import type { SettingsService } from "@azurioh/discord-kernel/settings";
+import type { KernelSettings, SettingsService } from "@azurioh/discord-kernel/settings";
 import { showSettingsScreen } from "@/components/settings-screen/settings-screen.component";
-import { DEMO_MESSAGES } from "@/modules/demo/i18n/demo.messages";
-import { demoSettings } from "@/modules/demo/settings/demo.settings";
+import { ADMIN_MESSAGES } from "@/modules/admin/i18n/admin.messages";
 
 /** Prefix of the screen's custom ids. */
-const EDITOR_ID_PREFIX = "demo-config";
+const SERVER_SCREEN_ID_PREFIX = "admin-server";
 
-export interface EditHandlerDeps {
+export interface ServerHandlerDeps {
 	readonly settings: () => SettingsService;
+	readonly kernelSettings: () => KernelSettings;
 	readonly translator: Translator;
 	readonly logger: Logger;
 }
 
 /**
- * `/config edit`: show the app's settings screen over `demoSettings`. Every
- * write goes through the settings service, as `/config set` does.
+ * `/server`: show the app's settings screen over the kernel's own
+ * declaration, where the modules are toggled and the language is picked.
  *
- * @param deps - the settings service, the translator and the logger.
+ * @param deps - the settings service, the kernel declaration, the translator and the logger.
  */
-export function createEditHandler(
-	deps: EditHandlerDeps,
+export function createServerHandler(
+	deps: ServerHandlerDeps,
 ): <O extends Options>(ctx: Context<O>) => Promise<void> {
 	return async (ctx) => {
 		await showSettingsScreen(ctx, {
-			declaration: demoSettings,
+			declaration: deps.kernelSettings(),
 			settings: deps.settings(),
 			translator: deps.translator,
 			logger: deps.logger,
-			idPrefix: EDITOR_ID_PREFIX,
-			introKey: DEMO_MESSAGES.editIntro,
+			idPrefix: SERVER_SCREEN_ID_PREFIX,
+			introKey: ADMIN_MESSAGES.serverIntro,
 		});
 	};
 }
