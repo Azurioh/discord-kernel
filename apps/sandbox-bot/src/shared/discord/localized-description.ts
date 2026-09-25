@@ -1,6 +1,6 @@
 import { frenchLocalization } from "@azurioh/discord-kernel/discord/command/localization";
+import type { KeyedCatalog } from "@azurioh/discord-kernel/i18n/catalog";
 import type { LocalizationMap } from "discord.js";
-import type { ModuleCatalog } from "@/shared/i18n/module-catalog";
 
 /** A command, subcommand or option description, English first, French when the catalog has it. */
 export interface LocalizedDescription {
@@ -16,7 +16,7 @@ export interface LocalizedDescription {
  * @param key - the entry's key, from the module's `*_MESSAGES` constant.
  */
 export function localizedDescription<K extends string>(
-	catalog: ModuleCatalog<K>,
+	catalog: KeyedCatalog<K>,
 	key: K,
 ): LocalizedDescription {
 	const { en, fr } = catalog[key];
