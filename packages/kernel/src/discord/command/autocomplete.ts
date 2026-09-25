@@ -1,4 +1,5 @@
 import type { AutocompleteInteraction } from "discord.js";
+import { MAX_AUTOCOMPLETE_CHOICES } from "@/discord/command/autocomplete-limits";
 import type { CompiledSubcommand } from "@/discord/command/create-command";
 import type { Options } from "@/discord/command/options";
 import { routeKey } from "@/discord/command/route-key";
@@ -9,9 +10,6 @@ import type { Choice } from "@/settings/choice";
  * option is focused needs the same route table `createCommand` builds — the
  * dispatcher only decides that an interaction is an autocomplete request.
  */
-
-/** Discord refuses more than this many suggestions in one response. */
-const MAX_CHOICES = 25;
 
 /**
  * Answer a focused option's autocomplete request.
@@ -49,12 +47,13 @@ export async function respondWithSuggestions(
 }
 
 /**
- * Discord rejects the whole response when it carries more than 25 choices, so a
+ * Discord rejects the whole response when it carries more than
+ * {@link MAX_AUTOCOMPLETE_CHOICES} choices, so a
  * resolver returning more is trimmed rather than failing outright — a partial
  * list is still useful to the user typing.
  */
 function truncate(choices: readonly Choice[]): Choice[] {
-	return choices.slice(0, MAX_CHOICES);
+	return choices.slice(0, MAX_AUTOCOMPLETE_CHOICES);
 }
 
 /**
