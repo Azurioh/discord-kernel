@@ -181,7 +181,7 @@ export async function suggestionLabel(params: {
  * @param params.value - the value to label.
  * @returns the label, or `undefined`.
  */
-function dynamicLabel(params: {
+export function dynamicLabel(params: {
 	scope: SuggestionScope;
 	suggest: AnyDynamicSuggestions;
 	value: unknown;

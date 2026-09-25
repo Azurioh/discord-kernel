@@ -25,7 +25,7 @@ import {
 	suggestionLabel,
 } from "@/settings/suggest";
 import type { SettingsValues, SurfaceValues } from "@/settings/types";
-import { validateSettings } from "@/settings/validate";
+import { type ValidationScope, validateSettings } from "@/settings/validate";
 
 /** Who asks, for which guild and in which language. */
 export interface RequestContext {
@@ -358,6 +358,17 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
 		return Object.fromEntries(surface) as SurfaceValues<D>;
 	}
 
+	/** What a strict field's search is checked with while validating a submission. */
+	function validationScope(declaration: SettingsDeclaration, ctx: RequestContext): ValidationScope {
+		return {
+			ports,
+			guildId: ctx.guildId,
+			userId: ctx.userId,
+			locale: ctx.locale,
+			currentValues: () => getForSurface(declaration, ctx.guildId),
+		};
+	}
+
 	return {
 		get,
 
@@ -374,7 +385,8 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
 			ctx: RequestContext,
 		): Promise<ValidationResult<D>> {
 			assertSameGuild(guildId, ctx);
-			const result = await validateSettings({ declaration, guildId, patch, guilds });
+			const scope = validationScope(declaration, ctx);
+			const result = await validateSettings({ declaration, patch, scope });
 			return result as ValidationResult<D>;
 		},
 
@@ -385,7 +397,8 @@ export function createSettingsService(deps: SettingsServiceDeps): SettingsServic
 			ctx: RequestContext & { readonly expectedRevision?: number },
 		): Promise<StoredSettings> {
 			assertSameGuild(guildId, ctx);
-			const result = await validateSettings({ declaration, guildId, patch, guilds });
+			const scope = validationScope(declaration, ctx);
+			const result = await validateSettings({ declaration, patch, scope });
 			if (!result.ok) {
 				throw new SettingsValidationError(result.issues);
 			}
