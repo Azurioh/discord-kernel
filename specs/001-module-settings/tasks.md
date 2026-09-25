@@ -188,7 +188,7 @@ pick; a search yielding nothing falls back to a typed entry.
 - [X] T052 Add a test that builds the package and asserts no emitted `.d.ts` under `dist/settings` imports `zod`, and that `dependencies` contain only the allowed libraries, in `packages/kernel/tests/settings/public-surface.test.ts` (S14)
 - [X] T053 [P] Add a "Module settings" section to `packages/kernel/README.md`: declaring settings, reading, the Discord adapter, `describe`, system settings, implementing `SettingsStore` with `runSettingsStoreContract`
 - [X] T054 [P] Add a changeset describing the feature in `.changeset/`: a **major** bump, not minor, because the release also carries breaking moves of exported symbols since 0.1.0 (constitution VIII), with their migration table
-- [ ] T055 Run the full gate (`pnpm typecheck`, `pnpm lint`, `pnpm knip`, `pnpm test`) with zero errors and zero warnings, and walk through every scenario of `quickstart.md`
+- [X] T055 Run the full gate (`pnpm typecheck`, `pnpm lint`, `pnpm knip`, `pnpm test`) with zero errors and zero warnings, and walk through every scenario of `quickstart.md`
 
 ---
 
