@@ -56,6 +56,21 @@ export function runSettingsStoreContract(
 ): void {
 	const { describe, it, expect } = runner;
 
+	/**
+	 * Deleting the default record must leave `other` — the same record moved to
+	 * another guild or another module — exactly as it was written.
+	 */
+	async function expectDeleteLeavesAlone(other: StoredSettings): Promise<void> {
+		const store = await createStore();
+		await store.write(record(), { expectedRevision: null });
+		await store.write(other, { expectedRevision: null });
+
+		await store.delete(GUILD_A, MODULE_A);
+
+		expect(await store.read(GUILD_A, MODULE_A)).toBeNull();
+		expect(await store.read(other.guildId, other.moduleId)).toEqual(other);
+	}
+
 	describe("SettingsStore contract", () => {
 		it("reads null when no record exists", async () => {
 			const store = await createStore();
@@ -140,27 +155,11 @@ export function runSettingsStoreContract(
 		});
 
 		it("keeps guilds isolated", async () => {
-			const store = await createStore();
-			const inB = record({ guildId: GUILD_B, values: { maxOpen: 5 } });
-			await store.write(record(), { expectedRevision: null });
-			await store.write(inB, { expectedRevision: null });
-
-			await store.delete(GUILD_A, MODULE_A);
-
-			expect(await store.read(GUILD_A, MODULE_A)).toBeNull();
-			expect(await store.read(GUILD_B, MODULE_A)).toEqual(inB);
+			await expectDeleteLeavesAlone(record({ guildId: GUILD_B, values: { maxOpen: 5 } }));
 		});
 
 		it("keeps modules isolated", async () => {
-			const store = await createStore();
-			const inB = record({ moduleId: MODULE_B, values: { greeting: "hi" } });
-			await store.write(record(), { expectedRevision: null });
-			await store.write(inB, { expectedRevision: null });
-
-			await store.delete(GUILD_A, MODULE_A);
-
-			expect(await store.read(GUILD_A, MODULE_A)).toBeNull();
-			expect(await store.read(GUILD_A, MODULE_B)).toEqual(inB);
+			await expectDeleteLeavesAlone(record({ moduleId: MODULE_B, values: { greeting: "hi" } }));
 		});
 	});
 }
