@@ -70,6 +70,9 @@ Already defined once, reuse them:
 | The guild a gateway event concerns | `eventGuildId` (`@/discord/events/event-guild-id`) |
 | The kernel's own settings (module toggles, guild language) | `registry.kernel`, built by `kernelSettings` (`@/settings/system/kernel-settings`) |
 | Cached settings reads | `service.get` (cached via `@/settings/cache`); never read the store directly |
+| Whether a value is a plain JSON object (a patch, stored values, a toggles value) | `isPlainObject` (`@/settings/is-plain-object`) |
+| Stored values checked against a declaration (unknown keys ignored, invalid fields reported) | `decodeStored` (`@/settings/decode-stored`) |
+| Running a declaration's `migrate` on an older stored record, validated | `migrateStored` (`@/settings/migrate`); the service writes it back |
 | A `ModuleGate` double in tests | `createFakeModuleGate` (`tests/support/fake-module-gate.ts`) |
 | The reply language of an interaction on a kernel reply path | `replyLocale` (`@/discord/interaction/reply-locale`) over the `LocaleResolver` port (`@/discord/interaction/locale-resolver`) |
 | The guild's language setting as a resolver (FR-038) | `createGuildLocaleResolver` (`@/discord/settings/guild-locale-resolver`) |
