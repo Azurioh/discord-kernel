@@ -15,6 +15,7 @@ import type {
 	ComponentAuthorization,
 	ComponentHandler,
 } from "@/discord/components/component-router";
+import { applySelectBounds } from "@/discord/interaction/select-bounds";
 
 /** The builders this DSL can produce; the union an action row accepts. */
 export type AnySelectMenuBuilder =
@@ -109,15 +110,7 @@ function applyBaseOptions<B extends AnySelectMenuBuilder>(
 	forceDisabled: boolean,
 ): B {
 	builder.setCustomId(def.id);
-	if (def.placeholder !== undefined) {
-		builder.setPlaceholder(def.placeholder);
-	}
-	if (def.minValues !== undefined) {
-		builder.setMinValues(def.minValues);
-	}
-	if (def.maxValues !== undefined) {
-		builder.setMaxValues(def.maxValues);
-	}
+	applySelectBounds(builder, def);
 	builder.setDisabled(forceDisabled || (def.disabled ?? false));
 	return builder;
 }
