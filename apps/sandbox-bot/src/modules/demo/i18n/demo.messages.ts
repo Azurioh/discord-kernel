@@ -1,4 +1,4 @@
-/** The `/config` command's wording: descriptions and replies. */
+/** The `/config` and `/demo-log` commands' wording: descriptions and replies. */
 export const DEMO_MESSAGES = {
 	moduleName: "demo.module.name",
 	configDescription: "demo.config.description",
@@ -21,6 +21,10 @@ export const DEMO_MESSAGES = {
 	resetOne: "demo.config.reset-one",
 	resetAll: "demo.config.reset-all",
 	allFields: "demo.config.all-fields",
+	demoLogDescription: "demo.demo-log.description",
+	demoLogPost: "demo.demo-log.post",
+	demoLogPosted: "demo.demo-log.posted",
+	demoLogUnavailable: "demo.demo-log.unavailable",
 } as const;
 
 /** The labels, hints and choice names `demoSettings` declares. */

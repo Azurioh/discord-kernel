@@ -2,9 +2,11 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { KERNEL_SETTINGS_ID, kernelSettings } from "@azurioh/discord-kernel/settings";
+import { ChannelType, type Guild } from "discord.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSandbox, type Sandbox } from "@/bootstrap/create-sandbox";
 import type { SandboxConfig } from "@/config";
+import { demoSettings } from "@/modules/demo/settings/demo.settings";
 import { createPinoLogger } from "@/shared/logging/pino-logger";
 import { createSqliteSettingsStore } from "@/shared/settings/sqlite/sqlite-settings-store";
 
@@ -13,12 +15,14 @@ import { createSqliteSettingsStore } from "@/shared/settings/sqlite/sqlite-setti
  * service, module gate, locale resolver and command router, with only the
  * Discord interaction faked. Checks the spec's acceptance scenarios S15
  * (a disabled module answers "disabled" on that guild only), S16 (turning it
- * back on), S17 (reply language order) and that /server stays reachable.
+ * back on), S17 (reply language order), S18 (a command needing a required
+ * setting is blocked until it is set) and that /server stays reachable.
  */
 
 const GUILD = "100000000000000001";
 const OTHER_GUILD = "100000000000000002";
 const ADMIN = "200000000000000001";
+const LOG_CHANNEL = "300000000000000001";
 
 const logger = createPinoLogger("test", { write: () => undefined });
 
@@ -33,6 +37,10 @@ function slash(params: {
 	guildId: string | null;
 	locale?: string;
 	guildLocale?: string | null;
+	/** Whether the member holds Manage Server; every permission when omitted. */
+	manageGuild?: boolean;
+	/** The channel `client.channels.fetch` resolves to. */
+	channel?: unknown;
 }) {
 	const sent: Sent[] = [];
 	const record = async (payload: {
@@ -42,6 +50,7 @@ function slash(params: {
 			sent.push({ description: embed.data.description, title: embed.data.title });
 		}
 	};
+	const manageGuild = params.manageGuild ?? true;
 	const interaction = {
 		commandName: params.name,
 		commandType: 1,
@@ -51,10 +60,10 @@ function slash(params: {
 		guildLocale: params.guildLocale ?? null,
 		user: { id: ADMIN },
 		member: { permissions: { has: () => true } },
-		memberPermissions: { has: () => true, missing: () => [] },
+		memberPermissions: { has: () => manageGuild, missing: () => [] },
 		deferred: false,
 		replied: false,
-		client: { ws: { ping: 42 } },
+		client: { ws: { ping: 42 }, channels: { fetch: async () => params.channel ?? null } },
 		options: {
 			getSubcommand: () => null,
 			getSubcommandGroup: () => null,
@@ -203,5 +212,72 @@ describe("sandbox, end to end", () => {
 		expect(nothing.sent.map(({ description }) => description).join()).toMatch(
 			/disabled on this server/i,
 		);
+	});
+
+	describe("S18: /demo-log needs the demo's required log channel", () => {
+		/** A text channel the bot can post in, as `client.channels.fetch` returns it. */
+		const logChannel = {
+			id: LOG_CHANNEL,
+			isSendable: () => true,
+			send: vi.fn(async () => undefined),
+		};
+
+		/** Let the guild directory see the channel, so `service.set` accepts it. */
+		function seedGuild() {
+			const channels = new Map([
+				[LOG_CHANNEL, { id: LOG_CHANNEL, name: "logs", type: ChannelType.GuildText }],
+			]);
+			sandbox.client.guilds.cache.set(GUILD, { channels: { cache: channels } } as unknown as Guild);
+		}
+
+		const described = (sent: readonly Sent[]) => sent.map(({ description }) => description).join();
+
+		it("is blocked while unset, and only a Manage Server member reads the missing field", async () => {
+			const admin = await run({ name: "demo-log", guildId: GUILD, channel: logChannel });
+			const member = await run({
+				name: "demo-log",
+				guildId: GUILD,
+				manageGuild: false,
+				channel: logChannel,
+			});
+
+			expect(described(admin.sent)).toMatch(/not configured on this server/i);
+			expect(described(admin.sent)).toMatch(/Missing settings: Log channel\./);
+			expect(described(member.sent)).toMatch(/not configured on this server/i);
+			expect(described(member.sent)).not.toMatch(/Log channel/);
+			expect(logChannel.send).not.toHaveBeenCalled();
+		});
+
+		it("names the missing field in the reply language", async () => {
+			const { sent } = await run({ name: "demo-log", guildId: GUILD, locale: "fr" });
+
+			expect(described(sent)).toMatch(/Paramètres manquants : Salon de journalisation\./);
+		});
+
+		it("passes right after an admin sets the channel, without a restart", async () => {
+			seedGuild();
+			const blocked = await run({ name: "demo-log", guildId: GUILD, channel: logChannel });
+
+			await sandbox.settings.set(
+				demoSettings,
+				GUILD,
+				{ logChannel: LOG_CHANNEL },
+				{ guildId: GUILD, userId: ADMIN, locale: "en" },
+			);
+			const passed = await run({ name: "demo-log", guildId: GUILD, channel: logChannel });
+
+			expect(described(blocked.sent)).toMatch(/not configured/i);
+			expect(described(passed.sent)).toMatch(/Posted a test message in <#300000000000000001>/);
+			expect(logChannel.send).toHaveBeenCalledWith(expect.stringMatching(/log channel works/));
+		});
+
+		it("leaves /config usable while the module is not configured", async () => {
+			const { interaction, sent } = await run({ name: "config", guildId: GUILD });
+
+			expect(described(sent)).not.toMatch(/not configured/i);
+			expect(interaction.reply.mock.calls.length + interaction.deferReply.mock.calls.length).toBe(
+				1,
+			);
+		});
 	});
 });

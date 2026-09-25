@@ -177,6 +177,7 @@ Three modules: `basics`, `demo` and `admin`.
 | `demo` | `/config edit` | The app's settings screen (`src/components/settings-screen/`) generated from the demo declaration |
 | `demo` | `/config set key value` | `set`: `key` autocompletes from the declaration; `value` is JSON when it parses, text otherwise; issues are shown translated |
 | `demo` | `/config reset key` | `reset` of one key, or `all` |
+| `demo` | `/demo-log` | `requireConfigured`: posts a test message in the demo's log channel, blocked until that required setting is set |
 | `admin` | `/server` | The same settings screen over the kernel's own declaration: which modules are enabled on the server, and the bot's language there |
 
 Modules are gated per server. Disable a module in `/server` and, on that
@@ -188,6 +189,16 @@ components and events with the module's name, which is what the kernel's
 a module name, so turning every module off can never lock you out of `/server`.
 The language picked there applies when a member's Discord client language is not
 one the bot supports, as described below.
+
+`/demo-log` shows a command that needs its module configured. The demo's
+`logChannel` is required and has no default, so on a fresh server `/demo-log`
+answers that the feature is not configured yet; members with *Manage Server*
+also read which setting is missing (*Log channel*), everyone else only that an
+administrator must set it up. Set it (`/config set logChannel <id>` or `/config
+edit`) and the next `/demo-log` posts in that channel, no restart. The guard is
+the kernel's `requireConfigured(demoSettings, settings)`; `/config` itself is not
+guarded, so the module stays configurable. The bot needs to see and send
+messages in the channel; no extra gateway intent is needed to send.
 
 `/config` and `/server` are guild-only and need *Manage Server*, both as a
 visibility filter and as a guard. Values to try with `/config set`:
