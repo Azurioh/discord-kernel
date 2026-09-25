@@ -15,11 +15,9 @@ import {
 	type SettingsEditorFieldValue,
 	textFieldValue,
 } from "@/discord/components/settings-editor/settings-editor-fields";
+import type { TranslateKey } from "@/i18n/translator";
 import { formatDuration } from "@/settings/duration";
 import { SETTINGS_MESSAGES } from "@/settings/messages";
-
-/** Translates a catalog key into the administrator's language. */
-export type TranslateKey = (key: string) => string;
 
 /** A decimal number as typed: optional sign, digits with an optional fraction, optional exponent. */
 const DECIMAL_PATTERN = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i;

@@ -11,7 +11,6 @@ import {
 import {
 	controlValue,
 	isUnchanged,
-	type TranslateKey,
 	withSubmission,
 } from "@/discord/components/settings-editor/from-declaration-values";
 import type {
@@ -25,7 +24,7 @@ import type {
 } from "@/discord/components/settings-editor/settings-editor-field-modal";
 import { NotFoundError } from "@/errors/business-error";
 import type { Locale } from "@/i18n/locale";
-import type { Translator } from "@/i18n/translator";
+import type { TranslateKey, Translator } from "@/i18n/translator";
 import type { SettingsDeclaration } from "@/settings/define-settings";
 import { displayOrder } from "@/settings/field-order";
 import type { RequestContext, SettingsService } from "@/settings/settings-service";

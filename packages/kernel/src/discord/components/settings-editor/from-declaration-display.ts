@@ -7,8 +7,8 @@ import {
 	storedIds,
 } from "@/discord/components/settings-editor/from-declaration-stored";
 import type { DeclarationSubject } from "@/discord/components/settings-editor/from-declaration-subject";
-import type { TranslateKey } from "@/discord/components/settings-editor/from-declaration-values";
 import { truncateText } from "@/discord/ui/truncate-text";
+import type { TranslateKey } from "@/i18n/translator";
 import { formatDuration } from "@/settings/duration";
 import { SETTINGS_MESSAGES } from "@/settings/messages";
 
