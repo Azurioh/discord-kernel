@@ -259,6 +259,10 @@
 			"types": "./dist/discord/interaction/modal.d.ts",
 			"default": "./dist/discord/interaction/modal.js"
 		},
+		"./discord/interaction/select-bounds": {
+			"types": "./dist/discord/interaction/select-bounds.d.ts",
+			"default": "./dist/discord/interaction/select-bounds.js"
+		},
 		"./discord/interaction/select-menu": {
 			"types": "./dist/discord/interaction/select-menu.d.ts",
 			"default": "./dist/discord/interaction/select-menu.js"
