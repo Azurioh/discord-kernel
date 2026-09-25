@@ -50,6 +50,11 @@ export const SETTINGS_EDITOR_MESSAGES = {
 	 */
 	editFieldButton: "core.settings-editor.edit-field-button",
 	openLevelButton: "core.settings-editor.open-level-button",
+	/** The line under an entry whose declaration describes it no further. */
+	entryHint: "core.settings-editor.entry-hint",
+	/** The entry a screen with more entries than one card holds moves the rest behind. */
+	moreEntries: "core.settings-editor.more-entries",
+	moreEntriesHint: "core.settings-editor.more-entries-hint",
 } as const;
 
 /**
@@ -171,5 +176,17 @@ export const CORE_CATALOG: KeyedCatalog<
 	[SETTINGS_EDITOR_MESSAGES.openLevelButton]: {
 		en: "Open",
 		fr: "Ouvrir",
+	},
+	[SETTINGS_EDITOR_MESSAGES.entryHint]: {
+		en: "Edit this setting.",
+		fr: "Modifiez ce paramètre.",
+	},
+	[SETTINGS_EDITOR_MESSAGES.moreEntries]: {
+		en: "More settings",
+		fr: "Plus de paramètres",
+	},
+	[SETTINGS_EDITOR_MESSAGES.moreEntriesHint]: {
+		en: "The settings that do not fit on this page.",
+		fr: "Les paramètres qui ne tiennent pas sur cette page.",
 	},
 };

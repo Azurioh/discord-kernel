@@ -1,3 +1,4 @@
+export { settingsEditorFromDeclaration } from "@/discord/components/settings-editor/from-declaration";
 export {
 	mountSettingsEditor,
 	type SettingsEditorOptions,

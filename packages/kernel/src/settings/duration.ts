@@ -29,3 +29,26 @@ export function parseDuration(input: string): number | undefined {
 	}
 	return Number.isSafeInteger(seconds) ? seconds : undefined;
 }
+
+/** Unit suffixes, in the order of {@link UNIT_SECONDS}. */
+const UNIT_SUFFIXES = ["d", "h", "m", "s"] as const;
+
+/**
+ * Write whole seconds the way {@link parseDuration} reads them back, largest
+ * unit first and zero parts left out: `5400` becomes `"1h30m"`, `0` `"0s"`.
+ *
+ * @param seconds - a non-negative whole number of seconds.
+ * @returns the shortest spelling `parseDuration` turns back into `seconds`.
+ */
+export function formatDuration(seconds: number): string {
+	let remaining = seconds;
+	let text = "";
+	for (const [index, unit] of UNIT_SECONDS.entries()) {
+		const amount = Math.floor(remaining / unit);
+		remaining -= amount * unit;
+		if (amount > 0) {
+			text += `${amount}${UNIT_SUFFIXES[index]}`;
+		}
+	}
+	return text === "" ? "0s" : text;
+}

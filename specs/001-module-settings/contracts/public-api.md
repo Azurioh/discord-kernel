@@ -285,10 +285,19 @@ export function runSettingsStoreContract(
 export function settingsEditorFromDeclaration<D extends SettingsDeclaration>(
   declaration: D,
   service: SettingsService,
-  context: { guildId: string; userId: string; locale: Locale },
-): Pick<SettingsEditorOptions<unknown, unknown, unknown>, "fields" | "currentValue" | "save" | "saveGroup" | "reset">;
+  context: { guildId: string; userId: string; locale: Locale; translator: Translator },
+): Promise<
+  Pick<
+    SettingsEditorOptions<unknown, never, string>,
+    "fields" | "levels" | "initial" | "currentValue" | "save" | "saveGroup" | "reset"
+  >
+>;
 ```
 
-The caller spreads the result into `mountSettingsEditor` with its own `ids`, `chrome`,
-`translator`, `clock` and `logger`. Existing direct users of `mountSettingsEditor` are
+The adapter reads the guild's settings once (`initial`, the subject the screen opens on) and
+lays the declaration out as `fields` plus nested `levels` when one card cannot hold every entry.
+`context.translator` translates the texts shown in place of a value (a secret's "set" /
+"not set", an unavailable channel, role or member). The caller spreads the result into
+`mountSettingsEditor` with its own `ids`, `chrome`, `translator`, `clock` and `logger`.
+Existing direct users of `mountSettingsEditor` are
 unaffected.
