@@ -16,7 +16,7 @@ check fails when a rule is broken, so a red gate points back here.
 ## Gate
 
 A change is done only when these pass from the repository root with **zero errors and zero
-warnings**: `pnpm typecheck`, `pnpm lint`, `pnpm knip`, `pnpm test`, `pnpm build`.
+warnings** (`pnpm lint` fails on any Biome warning): `pnpm typecheck`, `pnpm lint`, `pnpm knip`, `pnpm test`, `pnpm build`.
 Write the failing test first, then the code.
 
 ## Rules checked by tools
