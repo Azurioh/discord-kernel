@@ -64,6 +64,13 @@ export function controlValue(params: {
 			return pickedValue({ control, subject, translate });
 		case "toggles":
 			return pickedFieldValue(shape.keys.filter((key) => isToggledOn({ value, key })));
+		case "search":
+			return pickedFieldValue(
+				typeof value === "string" || typeof value === "number" ? [String(value)] : [],
+			);
+		case "other":
+			// Opens empty: the value it would repeat is already picked in the select beside it.
+			return textFieldValue(null);
 		default:
 			return shape satisfies never;
 	}
@@ -161,9 +168,25 @@ function submittedValue(params: {
 			return ids === null ? null : [...ids];
 		case "toggles":
 			return { ...toggleRecord(params.current), ...pickedToggles({ keys: shape.keys, ids }) };
+		case "search":
+			if (ids === null || ids.length === 0) {
+				return null;
+			}
+			return shape.numeric ? singleNumber(ids) : singleId(ids);
+		case "other":
+			if (value === null) {
+				return null;
+			}
+			return shape.numeric ? typedNumber(value) : value;
 		default:
 			return shape satisfies never;
 	}
+}
+
+/** The one number picked, from its option's value; anything else is left for the service to refuse. */
+function singleNumber(ids: readonly string[]): unknown {
+	const picked = singleId(ids);
+	return typeof picked === "string" ? typedNumber(picked) : picked;
 }
 
 /** A toggles value as a record, or an empty one when the field holds none. */

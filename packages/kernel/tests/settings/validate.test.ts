@@ -1,9 +1,18 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ValidationError } from "@/errors/business-error";
+import type { Translator } from "@/i18n/translator";
+import type { Logger } from "@/logger";
+import type { Choice } from "@/settings/choice";
+import { defineSettings } from "@/settings/define-settings";
+import { field } from "@/settings/fields/builders";
+import type { SuggestionContext } from "@/settings/fields/field";
 import { createInMemoryGuildDirectory } from "@/settings/in-memory/in-memory-guild-directory";
 import { SETTINGS_ISSUE_MESSAGES } from "@/settings/messages";
+import type { GuildDirectory } from "@/settings/ports/guild-directory";
 import type { SettingsIssue } from "@/settings/settings-validation-error";
-import { validateSettings } from "@/settings/validate";
+import { SUGGESTION_TIMEOUT_MS } from "@/settings/timed-search";
+import { type ValidationScope, validateSettings } from "@/settings/validate";
+import { createFakeLogger } from "../support/fake-logger";
 import {
 	DELETED_CHANNEL,
 	DELETED_ROLE,
@@ -22,13 +31,27 @@ function makeDirectory() {
 	return createInMemoryGuildDirectory(VALUE_CASES_DIRECTORY_SEED);
 }
 
-function validatePatch(patch: unknown, guilds = makeDirectory()) {
-	return validateSettings({
-		declaration: valueCasesSettings,
+const USER = "400000000000000001";
+
+/** What stage 2 reads: the directory given, and ports no value case needs. */
+function scopeOf(
+	guilds: GuildDirectory,
+	overrides: Partial<ValidationScope> = {},
+): ValidationScope & { readonly logger: Logger } {
+	const logger = createFakeLogger();
+	return {
+		ports: { guilds, translator: {} as Translator, logger },
 		guildId: VALUE_CASES_GUILD,
-		patch,
-		guilds,
-	});
+		userId: USER,
+		locale: "en",
+		currentValues: async () => ({}),
+		...overrides,
+		logger,
+	};
+}
+
+function validatePatch(patch: unknown, guilds = makeDirectory()) {
+	return validateSettings({ declaration: valueCasesSettings, patch, scope: scopeOf(guilds) });
 }
 
 function toIssue(expected: ExpectedIssue): SettingsIssue {
@@ -143,5 +166,167 @@ describe("validateSettings", () => {
 				toIssue({ field: "thresholds[2]", code: "duplicate" }),
 			],
 		});
+	});
+});
+
+describe("validateSettings, strict searchable fields (S10)", () => {
+	const TIMEZONES: readonly Choice[] = [
+		{ name: "Paris", value: "Europe/Paris" },
+		{ name: "Tokyo", value: "Asia/Tokyo" },
+	];
+
+	/** A search over {@link TIMEZONES} by name or value prefix. */
+	async function searchZones(query: string): Promise<readonly Choice[]> {
+		return TIMEZONES.filter(
+			(zone) => String(zone.value).startsWith(query) || zone.name.startsWith(query),
+		);
+	}
+
+	function strictSettings(search: {
+		resolve: (query: string, ctx: SuggestionContext) => Promise<readonly Choice[]>;
+		label?: (value: string, ctx: SuggestionContext) => Promise<string | undefined>;
+		strict?: boolean;
+	}) {
+		return defineSettings({
+			id: "strict",
+			version: 1,
+			labels: { title: "strict.title" },
+			fields: {
+				timezone: field.text({ label: "strict.timezone", suggest: search }),
+				zones: field.list(field.text({ suggest: search }), { label: "strict.zones" }),
+				region: field.text({ label: "strict.region" }),
+				apiKey: field.secret({ label: "strict.api-key" }),
+			},
+		});
+	}
+
+	function validateStrict(
+		declaration: ReturnType<typeof strictSettings>,
+		patch: Record<string, unknown>,
+		overrides: Partial<ValidationScope> = {},
+	) {
+		const scope = scopeOf(makeDirectory(), overrides);
+		return { scope, result: validateSettings({ declaration, patch, scope }) };
+	}
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it("accepts a value the search's label names, and refuses one it does not as unknownChoice", async () => {
+		const label = vi.fn(
+			async (value: string) => TIMEZONES.find((zone) => zone.value === value)?.name,
+		);
+		const declaration = strictSettings({ resolve: searchZones, label, strict: true });
+
+		await expect(
+			validateStrict(declaration, { timezone: "Asia/Tokyo" }).result,
+		).resolves.toStrictEqual({ ok: true, values: { timezone: "Asia/Tokyo" } });
+		await expect(
+			validateStrict(declaration, { timezone: "Mars/Olympus" }).result,
+		).resolves.toStrictEqual({
+			ok: false,
+			issues: [toIssue({ field: "timezone", code: "unknownChoice" })],
+		});
+	});
+
+	it("without a label, accepts only an exact value among the results for that value", async () => {
+		const resolve = vi.fn(searchZones);
+		const declaration = strictSettings({ resolve, strict: true });
+
+		await expect(
+			validateStrict(declaration, { timezone: "Europe/Paris" }).result,
+		).resolves.toMatchObject({ ok: true });
+		expect(resolve).toHaveBeenCalledWith("Europe/Paris", expect.anything());
+		// A prefix is a result of the search, never the value itself.
+		await expect(validateStrict(declaration, { timezone: "Europe" }).result).resolves.toMatchObject(
+			{ ok: false, issues: [{ field: "timezone", code: "unknownChoice" }] },
+		);
+	});
+
+	it("checks each item of a list of a strict field", async () => {
+		const declaration = strictSettings({ resolve: searchZones, strict: true });
+
+		await expect(
+			validateStrict(declaration, { zones: ["Asia/Tokyo", "Mars/Olympus"] }).result,
+		).resolves.toStrictEqual({
+			ok: false,
+			issues: [toIssue({ field: "zones[1]", code: "unknownChoice" })],
+		});
+	});
+
+	it("accepts any value of a search that is not strict", async () => {
+		const resolve = vi.fn(searchZones);
+		const declaration = strictSettings({ resolve });
+
+		await expect(
+			validateStrict(declaration, { timezone: "Mars/Olympus" }).result,
+		).resolves.toStrictEqual({ ok: true, values: { timezone: "Mars/Olympus" } });
+		expect(resolve).not.toHaveBeenCalled();
+	});
+
+	it("hands the search the requester and the other values, current ones under submitted ones, secrets left out", async () => {
+		const resolve = vi.fn(searchZones);
+		const declaration = strictSettings({ resolve, strict: true });
+
+		await validateStrict(
+			declaration,
+			{ timezone: "Asia/Tokyo", region: "asia", apiKey: "hunter2" },
+			{ locale: "fr", currentValues: async () => ({ region: "eu", zones: ["Europe/Paris"] }) },
+		).result;
+
+		expect(resolve).toHaveBeenCalledWith("Asia/Tokyo", {
+			guildId: VALUE_CASES_GUILD,
+			userId: USER,
+			locale: "fr",
+			values: { region: "asia", zones: ["Europe/Paris"] },
+		});
+	});
+
+	it("refuses the value, and logs, when the strict search throws", async () => {
+		const declaration = strictSettings({
+			resolve: async () => {
+				throw new Error("backend down");
+			},
+			strict: true,
+		});
+		const { scope, result } = validateStrict(declaration, { timezone: "Asia/Tokyo" });
+
+		await expect(result).resolves.toMatchObject({
+			ok: false,
+			issues: [{ field: "timezone", code: "unknownChoice" }],
+		});
+		expect(scope.logger.warn).toHaveBeenCalledWith(
+			expect.objectContaining({ moduleId: "strict", field: "timezone", err: "backend down" }),
+			expect.any(String),
+		);
+	});
+
+	it("refuses the value, and logs, when the strict search runs past its budget", async () => {
+		vi.useFakeTimers();
+		const declaration = strictSettings({
+			resolve: () => new Promise((resolve) => setTimeout(() => resolve(TIMEZONES), 3_000)),
+			strict: true,
+		});
+		const { scope, result } = validateStrict(declaration, { timezone: "Asia/Tokyo" });
+
+		await vi.advanceTimersByTimeAsync(SUGGESTION_TIMEOUT_MS);
+
+		await expect(result).resolves.toMatchObject({
+			ok: false,
+			issues: [{ field: "timezone", code: "unknownChoice" }],
+		});
+		expect(scope.logger.warn).toHaveBeenCalledOnce();
+	});
+
+	it("never asks the search about a value its own validation already refused", async () => {
+		const resolve = vi.fn(searchZones);
+		const declaration = strictSettings({ resolve, strict: true });
+
+		await expect(validateStrict(declaration, { timezone: 42 }).result).resolves.toMatchObject({
+			ok: false,
+			issues: [{ field: "timezone", code: "type" }],
+		});
+		expect(resolve).not.toHaveBeenCalled();
 	});
 });

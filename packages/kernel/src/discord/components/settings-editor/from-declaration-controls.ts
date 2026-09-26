@@ -8,6 +8,7 @@ import {
 import { SETTINGS_EDITOR_MESSAGES } from "@/discord/i18n";
 import { CHANNEL_TYPE_BY_KIND } from "@/discord/settings/discord-guild-directory";
 import type { SettingsDeclaration } from "@/settings/define-settings";
+import { fieldSearch } from "@/settings/field-search";
 import {
 	type AnyField,
 	FIELD_LIMITS,
@@ -32,12 +33,18 @@ type ControlEntry = SettingsEditorGroupField<string>["fields"][number];
  * - `single`: one picked id or enum value;
  * - `many`: a list of picked ids or enum values;
  * - `toggles`: the keys of one toggles select that are on (`keys` are that
- *   select's own, at most {@link MAX_SELECT_OPTIONS}).
+ *   select's own, at most {@link MAX_SELECT_OPTIONS});
+ * - `search`: one value picked from a search's first results, a number for
+ *   an integer field;
+ * - `other`: the free entry beside a non-strict search's select, typed, a
+ *   number for an integer field; it opens empty and wins over the pick.
  */
 export type ControlShape =
 	| { readonly kind: "text" | "number" | "duration" | "secret" | "boolean" | "single" | "many" }
 	| { readonly kind: "lines"; readonly numeric: boolean }
-	| { readonly kind: "toggles"; readonly keys: readonly string[] };
+	| { readonly kind: "toggles"; readonly keys: readonly string[] }
+	| { readonly kind: "search"; readonly numeric: boolean }
+	| { readonly kind: "other"; readonly numeric: boolean };
 
 /** One control of the screen and the declared field it edits. */
 export interface DeclarationControl {
@@ -54,6 +61,12 @@ type TogglesSpec = Extract<FieldSpec, { readonly kind: "toggles" }>;
 /** Separates a split toggles field's key from the number of its select. */
 const CHUNK_SEPARATOR = "#";
 
+/** Key suffix of the free entry beside a non-strict searchable field's select. */
+export const OTHER_VALUE_SUFFIX = "#other";
+
+/** The options each searchable field's select offers, by field key: its search's first results. */
+export type SearchOptions = ReadonlyMap<string, readonly SettingsEditorChoice[]>;
+
 /** What every entry of one declared field states, whatever its control. */
 interface EntryBase {
 	readonly key: string;
@@ -64,25 +77,42 @@ interface EntryBase {
 /**
  * The controls of a declaration, in declared order: one per field, except a
  * toggles field with more keys than a select offers, which gets one control
- * per chunk of at most {@link MAX_SELECT_OPTIONS} keys.
+ * per chunk of at most {@link MAX_SELECT_OPTIONS} keys, and a non-strict
+ * searchable field, which gets its select then a free entry (FR-026a). A
+ * searchable field whose search offered nothing is typed like any other.
  *
  * @param declaration - the module's settings declaration.
+ * @param searchOptions - what each searchable field's select offers.
  * @returns every control of the screen.
  * @throws SettingsDeclarationError when a list holds an item kind lists cannot
  * hold, which only a declaration built without `defineSettings` can do.
  */
-export function declarationControls(declaration: SettingsDeclaration): DeclarationControl[] {
+export function declarationControls(
+	declaration: SettingsDeclaration,
+	searchOptions: SearchOptions,
+): DeclarationControl[] {
 	return Object.entries(declaration.fields).flatMap(([fieldKey, declared]) =>
-		fieldControls({ declarationId: declaration.id, fieldKey, declared }),
+		fieldControls({
+			declarationId: declaration.id,
+			fieldKey,
+			declared,
+			options: searchOptions.get(fieldKey) ?? [],
+		}),
 	);
+}
+
+/** Whether a control is the free entry beside a non-strict search's select. */
+export function isFreeEntry(control: DeclarationControl): boolean {
+	return control.shape.kind === "other";
 }
 
 function fieldControls(params: {
 	declarationId: string;
 	fieldKey: string;
 	declared: AnyField;
+	options: readonly SettingsEditorChoice[];
 }): DeclarationControl[] {
-	const { fieldKey, declared } = params;
+	const { fieldKey, declared, options } = params;
 	const groupId = declared.ui?.group;
 	const base: EntryBase = {
 		key: fieldKey,
@@ -92,6 +122,34 @@ function fieldControls(params: {
 	const { spec } = declared;
 	if (spec.kind === "toggles") {
 		return togglesControls({ base, groupId, spec });
+	}
+	const search = fieldSearch(spec);
+	if (search !== undefined && options.length > 0) {
+		const numeric = spec.kind === "integer";
+		const select: DeclarationControl = {
+			entry: { ...base, kind: "choice", minValues: 0, maxValues: 1, choices: options },
+			fieldKey,
+			groupId,
+			shape: { kind: "search", numeric },
+		};
+		if (search.strict === true) {
+			return [select];
+		}
+		const free = typedEntry({
+			base: {
+				key: `${fieldKey}${OTHER_VALUE_SUFFIX}`,
+				labelKey: SETTINGS_EDITOR_MESSAGES.otherValue,
+				hintKey: SETTINGS_EDITOR_MESSAGES.entryHint,
+			},
+			declared,
+			style: "short",
+			maxLength: spec.kind === "text" ? spec.maxLength : undefined,
+		});
+		const helper = { helperKey: SETTINGS_EDITOR_MESSAGES.otherValueHelper };
+		return [
+			select,
+			{ entry: { ...free, ...helper }, fieldKey, groupId, shape: { kind: "other", numeric } },
+		];
 	}
 	const single = singleControl({ ...params, base, spec });
 	return [{ ...single, fieldKey, groupId }];
@@ -304,7 +362,7 @@ function togglesControls(params: {
  * @param size - the most items one chunk holds.
  * @returns the chunks; none for no items.
  */
-export function chunked<T>(items: readonly T[], size: number): T[][] {
+function chunked<T>(items: readonly T[], size: number): T[][] {
 	const chunks: T[][] = [];
 	for (let start = 0; start < items.length; start += size) {
 		chunks.push(items.slice(start, start + size));

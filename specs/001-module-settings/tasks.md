@@ -158,9 +158,17 @@ after `authorize`. Outside a guild the guard denies like `guildOnlyGuard`.
 **Goal**: static, dynamic and guild suggestions; strict fields; Discord select.
 **Independent test**: S9, S10.
 
-- [ ] T046 [US5] Write failing tests for `service.suggest` and `service.label`: static choices translated; dynamic search capped at 25; 3 s search (fake timers) → empty after 2.5 s + `logger.warn`; throwing search → empty + `logger.warn`; `ctx.values` passed through; channel/role/user fields use `GuildDirectory` with no author code; `Choice` type from `packages/kernel/src/settings/choice.ts` (moved in T013) reused — in `packages/kernel/tests/settings/suggest.test.ts` (S9)
-- [ ] T047 [US5] Implement suggestions in `packages/kernel/src/settings/suggest.ts` and strict checking in `packages/kernel/src/settings/validate.ts` (`label(value) !== undefined`, else exact match in `resolve(String(value))` → otherwise `unknownChoice`), with a strict-field case added to `packages/kernel/tests/settings/validate.test.ts` (S10)
-- [ ] T048 [US5] Extend the adapter for searchable fields: `choice` field with the first 25 results of `resolve("")`; non-strict fields also offer free text entry validated on save (FR-026a) — tests in `packages/kernel/tests/discord/components/settings-editor/from-declaration.test.ts`, code in `packages/kernel/src/discord/components/settings-editor/from-declaration.ts`
+- [X] T046 [US5] Write failing tests for `service.suggest` and `service.label`: static choices translated; dynamic search capped at 25; 3 s search (fake timers) → empty after 2.5 s + `logger.warn`; throwing search → empty + `logger.warn`; `ctx.values` passed through; channel/role/user fields use `GuildDirectory` with no author code; `Choice` type from `packages/kernel/src/settings/choice.ts` (moved in T013) reused — in `packages/kernel/tests/settings/suggest.test.ts` (S9)
+- [X] T047 [US5] Implement suggestions in `packages/kernel/src/settings/suggest.ts` and strict checking in `packages/kernel/src/settings/validate.ts` (`label(value) !== undefined`, else exact match in `resolve(String(value))` → otherwise `unknownChoice`), with a strict-field case added to `packages/kernel/tests/settings/validate.test.ts` (S10)
+- [X] T048 [US5] Extend the adapter for searchable fields: `choice` field with the first 25 results of `resolve("")`; non-strict fields also offer free text entry validated on save (FR-026a) — tests in `packages/kernel/tests/discord/components/settings-editor/from-declaration.test.ts`, code in `packages/kernel/src/discord/components/settings-editor/from-declaration.ts`
+
+As built: `suggest`/`label` live in `src/settings/suggest.ts` behind the service; the 2.5 s race
+is `timedSearch` (`src/settings/timed-search.ts`, global timers, cleared on settle). An
+undeclared key throws `ValidationError`. A strict search that times out or throws rejects the
+value (`unknownChoice`) and logs. `validateSettings` takes a `ValidationScope` (ports, requester,
+lazy current values). On the Discord screen a non-strict searchable field is a two-control
+modal: the select of the first 25 results, then an "Other value" text entry that replaces the
+pick; a search yielding nothing falls back to a typed entry.
 
 ---
 
@@ -177,10 +185,10 @@ after `authorize`. Outside a guild the guard denies like `guildOnlyGuard`.
 ## Phase 12: Polish & cross-cutting
 
 - [X] T051 Create the public entry points `packages/kernel/src/settings/index.ts` and `packages/kernel/src/settings/testing/index.ts`, add the `./settings` and `./settings/testing` subpath exports to `packages/kernel/package.json`, and update `knip.json` entries
-- [ ] T052 Add a test that builds the package and asserts no emitted `.d.ts` under `dist/settings` imports `zod`, and that `dependencies` contain only the allowed libraries, in `packages/kernel/tests/settings/public-surface.test.ts` (S14)
-- [ ] T053 [P] Add a "Module settings" section to `packages/kernel/README.md`: declaring settings, reading, the Discord adapter, `describe`, system settings, implementing `SettingsStore` with `runSettingsStoreContract`
-- [ ] T054 [P] Add a minor changeset describing the feature in `.changeset/`
-- [ ] T055 Run the full gate (`pnpm typecheck`, `pnpm lint`, `pnpm knip`, `pnpm test`) with zero errors and zero warnings, and walk through every scenario of `quickstart.md`
+- [X] T052 Add a test that builds the package and asserts no emitted `.d.ts` under `dist/settings` imports `zod`, and that `dependencies` contain only the allowed libraries, in `packages/kernel/tests/settings/public-surface.test.ts` (S14)
+- [X] T053 [P] Add a "Module settings" section to `packages/kernel/README.md`: declaring settings, reading, the Discord adapter, `describe`, system settings, implementing `SettingsStore` with `runSettingsStoreContract`
+- [X] T054 [P] Add a changeset describing the feature in `.changeset/`: a **major** bump, not minor, because the release also carries breaking moves of exported symbols since 0.1.0 (constitution VIII), with their migration table
+- [X] T055 Run the full gate (`pnpm typecheck`, `pnpm lint`, `pnpm knip`, `pnpm test`) with zero errors and zero warnings, and walk through every scenario of `quickstart.md`
 
 ---
 

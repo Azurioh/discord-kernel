@@ -62,6 +62,7 @@ export {
 	type ModuleEnablement,
 } from "@/settings/system/kernel-settings";
 export { createModuleGate, type ModuleGate } from "@/settings/system/module-gate";
+export { SUGGESTION_TIMEOUT_MS } from "@/settings/timed-search";
 export type {
 	FieldValue,
 	SecretState,

@@ -2,6 +2,7 @@ import { ChannelType, type ModalMessageModalSubmitInteraction } from "discord.js
 import { describe, expect, it, vi } from "vitest";
 import { fixedClock } from "@/clock";
 import { settingsEditorFromDeclaration } from "@/discord/components/settings-editor/from-declaration";
+import { OTHER_VALUE_SUFFIX } from "@/discord/components/settings-editor/from-declaration-controls";
 import { MAX_SELECT_OPTIONS } from "@/discord/components/settings-editor/settings-editor.view";
 import { MAX_CARD_LEVEL_ENTRIES } from "@/discord/components/settings-editor/settings-editor-card.view";
 import type { SettingsEditorGroupSubmission } from "@/discord/components/settings-editor/settings-editor-field-modal";
@@ -14,11 +15,13 @@ import {
 	type SettingsEditorPickerField,
 	type SettingsEditorValueField,
 } from "@/discord/components/settings-editor/settings-editor-fields";
+import { SETTINGS_EDITOR_MESSAGES } from "@/discord/i18n";
 import type { Locale } from "@/i18n/locale";
 import type { Translator } from "@/i18n/translator";
+import type { Choice } from "@/settings/choice";
 import { defineSettings, type SettingsDeclaration } from "@/settings/define-settings";
 import { field } from "@/settings/fields/builders";
-import type { AnyField } from "@/settings/fields/field";
+import type { AnyField, SuggestionContext } from "@/settings/fields/field";
 import { createInMemoryGuildDirectory } from "@/settings/in-memory/in-memory-guild-directory";
 import { createInMemorySettingsStore } from "@/settings/in-memory/in-memory-settings-store";
 import { createInProcessNotifier } from "@/settings/in-memory/in-process-notifier";
@@ -1019,6 +1022,252 @@ describe("settingsEditorFromDeclaration", () => {
 				{ key: "features", value: ["tickets"] },
 				{ key: "features", value: { tickets: "on" } },
 			]);
+		});
+	});
+
+	describe("searchable fields (FR-026a)", () => {
+		/** 30 zones, `Zone/00` to `Zone/29`, named `Zone 00`…: more than one select holds. */
+		const ZONES: readonly Choice[] = Array.from({ length: 30 }, (_, index) => {
+			const number = String(index).padStart(2, "0");
+			return { name: `Zone ${number}`, value: `Zone/${number}` };
+		});
+
+		function createSearches() {
+			return {
+				zones: vi.fn(async (query: string, _ctx: SuggestionContext) =>
+					ZONES.filter((zone) => String(zone.value).startsWith(query)),
+				),
+				zoneLabel: vi.fn(
+					async (value: string, _ctx: SuggestionContext) =>
+						ZONES.find((zone) => zone.value === value)?.name,
+				),
+				cities: vi.fn(
+					async (_query: string, _ctx: SuggestionContext): Promise<readonly Choice[]> => [
+						{ name: "Paris", value: "paris" },
+						{ name: "Lyon", value: "lyon" },
+					],
+				),
+				sizes: vi.fn(
+					async (_query: string, _ctx: SuggestionContext): Promise<readonly Choice[]> => [
+						{ name: "Small", value: 1 },
+						{ name: "Large", value: 10 },
+					],
+				),
+			};
+		}
+
+		function searchableSettings(searches: ReturnType<typeof createSearches>) {
+			return defineSettings({
+				id: "searchable",
+				version: 1,
+				labels: { title: "searchable.title" },
+				groups: { place: { label: "searchable.group.place" } },
+				fields: {
+					timezone: field.text({
+						label: "searchable.timezone",
+						description: "searchable.timezone.hint",
+						suggest: { resolve: searches.zones, label: searches.zoneLabel, strict: true },
+					}),
+					city: field.text({
+						label: "searchable.city",
+						description: "searchable.city.hint",
+						suggest: { resolve: searches.cities },
+					}),
+					first: field.text({ label: "searchable.first", ui: { group: "place" } }),
+					second: field.text({ label: "searchable.second", ui: { group: "place" } }),
+					third: field.text({ label: "searchable.third", ui: { group: "place" } }),
+					fourth: field.text({ label: "searchable.fourth", ui: { group: "place" } }),
+					size: field.integer({
+						label: "searchable.size",
+						suggest: { resolve: searches.sizes },
+						ui: { group: "place" },
+					}),
+					apiKey: field.secret({ label: "searchable.api-key" }),
+				},
+			});
+		}
+
+		async function setupSearchable(stored?: Record<string, unknown>) {
+			const searches = createSearches();
+			const declaration = searchableSettings(searches);
+			return { searches, declaration, ...(await setup(declaration, stored)) };
+		}
+
+		function choiceField(adapter: Adapter, key: string): SettingsEditorChoiceField<string> {
+			const { field: entry } = editable(adapter, key);
+			if (entry.kind !== "choice") {
+				throw new Error(`"${key}" is a ${entry.kind} entry, not a choice`);
+			}
+			return entry;
+		}
+
+		/** What each option of a choice shows, as the modal translates it. */
+		function optionLabels(entry: SettingsEditorChoiceField<string>): string[] {
+			return entry.choices.map((choice) => String(choice.labelParams?.label));
+		}
+
+		it("maps a strict searchable field to a choice of the first 25 results for an empty query", async () => {
+			const { adapter, searches } = await setupSearchable({ apiKey: "hunter2" });
+			const timezone = choiceField(adapter, "timezone");
+
+			expect(timezone).toMatchObject({
+				labelKey: "searchable.timezone",
+				hintKey: "searchable.timezone.hint",
+				minValues: 0,
+				maxValues: 1,
+			});
+			expect(timezone.choices).toHaveLength(MAX_SELECT_OPTIONS);
+			expect(timezone.choices[0]).toStrictEqual({
+				value: "Zone/00",
+				labelKey: SETTINGS_EDITOR_MESSAGES.choiceLabel,
+				labelParams: { label: "Zone 00" },
+			});
+			expect(optionLabels(timezone)).toStrictEqual(
+				ZONES.slice(0, MAX_SELECT_OPTIONS).map((zone) => zone.name),
+			);
+			expect(editable(adapter, "timezone").group).toBeNull();
+			expect(searches.zones).toHaveBeenCalledWith("", {
+				guildId: GUILD,
+				userId: ADMIN,
+				locale: LOCALE,
+				values: expect.objectContaining({ apiKey: { isSet: true } }),
+			});
+		});
+
+		it("offers no free entry for a strict field", async () => {
+			const { adapter } = await setupSearchable();
+			expect(editables(adapter).map((entry) => entry.field.key)).not.toContain(
+				`timezone${OTHER_VALUE_SUFFIX}`,
+			);
+		});
+
+		it("saves the picked result, and refuses a value the strict search does not know", async () => {
+			const { adapter, subject, service, declaration } = await setupSearchable();
+
+			await submit(adapter, subject, "timezone", { ids: ["Zone/04"] });
+			expect((await service.get(declaration, GUILD)).timezone).toBe("Zone/04");
+
+			const refused = submit(adapter, subject, "timezone", { ids: ["Mars/Olympus"] });
+			await expect(refused).rejects.toBeInstanceOf(SettingsValidationError);
+			await expect(refused).rejects.toMatchObject({
+				issues: [expect.objectContaining({ field: "timezone", code: "unknownChoice" })],
+			});
+		});
+
+		it("keeps a current value the first results miss as an option, so saving it back keeps it", async () => {
+			const { adapter, subject, service, declaration } = await setupSearchable({
+				timezone: "Zone/29",
+			});
+			const timezone = choiceField(adapter, "timezone");
+
+			expect(timezone.choices).toHaveLength(MAX_SELECT_OPTIONS);
+			expect(timezone.choices[0]).toMatchObject({ value: "Zone/29" });
+			expect(optionLabels(timezone)[0]).toBe("Zone 29");
+			expect(adapter.currentValue(subject, "timezone").picked).toStrictEqual(["Zone/29"]);
+			await submit(adapter, subject, "timezone", { ids: ["Zone/29"] });
+			expect((await service.get(declaration, GUILD)).timezone).toBe("Zone/29");
+		});
+
+		it("gives a non-strict field one entry whose modal offers the results and a free entry", async () => {
+			const { adapter } = await setupSearchable();
+			const city = editable(adapter, "city");
+			const other = editable(adapter, `city${OTHER_VALUE_SUFFIX}`);
+
+			expect(city.group).not.toBeNull();
+			expect(city.group).toBe(other.group);
+			expect(city.group).toMatchObject({
+				kind: "group",
+				labelKey: "searchable.city",
+				hintKey: "searchable.city.hint",
+			});
+			expect(city.group?.fields.map((member) => member.key)).toStrictEqual([
+				"city",
+				`city${OTHER_VALUE_SUFFIX}`,
+			]);
+			expect(optionLabels(choiceField(adapter, "city"))).toStrictEqual(["Paris", "Lyon"]);
+			expect(other.field).toMatchObject({
+				kind: "text",
+				labelKey: SETTINGS_EDITOR_MESSAGES.otherValue,
+				helperKey: SETTINGS_EDITOR_MESSAGES.otherValueHelper,
+			});
+		});
+
+		it("saves a pick, or a typed value the list does not offer, validated on save", async () => {
+			const { adapter, subject, service, declaration } = await setupSearchable();
+
+			await submit(adapter, subject, "city", { ids: ["lyon"] });
+			expect((await service.get(declaration, GUILD)).city).toBe("lyon");
+
+			const written = await submit(adapter, subject, `city${OTHER_VALUE_SUFFIX}`, {
+				value: "Atlantis",
+			});
+			expect((await service.get(declaration, GUILD)).city).toBe("Atlantis");
+			expect(adapter.currentValue(written.subject, `city${OTHER_VALUE_SUFFIX}`).text).toBeNull();
+		});
+
+		it("writes nothing when the modal comes back as it opened", async () => {
+			const { adapter, subject, set } = await setupSearchable({ city: "paris" });
+			expect(adapter.currentValue(subject, "city").picked).toStrictEqual(["paris"]);
+
+			await submit(adapter, subject, "city", { ids: ["paris"] });
+
+			expect(set).not.toHaveBeenCalled();
+		});
+
+		it("keeps a non-strict field's select and free entry in the same modal of its group", async () => {
+			const { adapter } = await setupSearchable();
+			const size = editable(adapter, "size");
+
+			expect(size.group?.labelKey).toBe("searchable.group.place");
+			expect(size.group).toBe(editable(adapter, `size${OTHER_VALUE_SUFFIX}`).group);
+			expect(size.group?.fields.length).toBeLessThanOrEqual(MAX_MODAL_COMPONENTS);
+			expect(editable(adapter, "first").group).not.toBe(size.group);
+		});
+
+		it("stores a numeric field's pick and typed value as numbers", async () => {
+			const { adapter, subject, service, declaration } = await setupSearchable();
+
+			await submit(adapter, subject, "size", { ids: ["10"] });
+			expect((await service.get(declaration, GUILD)).size).toBe(10);
+
+			await submit(adapter, subject, `size${OTHER_VALUE_SUFFIX}`, { value: "7" });
+			expect((await service.get(declaration, GUILD)).size).toBe(7);
+		});
+
+		it("falls back to a typed entry when the search offers nothing", async () => {
+			const { adapter, subject, service, declaration, searches } = await (async () => {
+				const failing = createSearches();
+				failing.cities.mockRejectedValue(new Error("backend down"));
+				const failingDeclaration = searchableSettings(failing);
+				return {
+					searches: failing,
+					declaration: failingDeclaration,
+					...(await setup(failingDeclaration)),
+				};
+			})();
+
+			expect(searches.cities).toHaveBeenCalled();
+			expect(editable(adapter, "city")).toMatchObject({ field: { kind: "text" }, group: null });
+			await submit(adapter, subject, "city", { value: "Atlantis" });
+			expect((await service.get(declaration, GUILD)).city).toBe("Atlantis");
+		});
+
+		it("shows the search's label as the current value, and the free entry shows none", async () => {
+			const { adapter, subject } = await setupSearchable({ timezone: "Zone/03", city: "Atlantis" });
+			if (adapter.displayValue === undefined) {
+				throw new Error("The adapter must provide displayValue");
+			}
+
+			expect(adapter.displayValue(subject, "timezone")).toBe("Zone 03");
+			expect(adapter.displayValue(subject, "city")).toBe("Atlantis");
+			expect(adapter.displayValue(subject, `city${OTHER_VALUE_SUFFIX}`)).toBeNull();
+		});
+
+		it("shows the label of a value saved on the screen", async () => {
+			const { adapter, subject } = await setupSearchable();
+			const written = await submit(adapter, subject, "timezone", { ids: ["Zone/07"] });
+
+			expect(adapter.displayValue?.(written.subject, "timezone")).toBe("Zone 07");
 		});
 	});
 

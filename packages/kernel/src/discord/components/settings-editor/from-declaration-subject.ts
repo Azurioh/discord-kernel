@@ -1,18 +1,22 @@
 import { storedIds } from "@/discord/components/settings-editor/from-declaration-stored";
 import type { SettingsDeclaration } from "@/settings/define-settings";
+import { fieldSearch } from "@/settings/field-search";
 import type { AnyField } from "@/settings/fields/field";
 import type { RequestContext, SettingsService } from "@/settings/settings-service";
 import type { SettingsIssueCode } from "@/settings/settings-validation-error";
 
 /**
  * What the settings screen shows for one guild: every declared field as a
- * surface reads it (a secret as whether it is set), and the stored channels,
- * roles and members the guild no longer has.
+ * surface reads it (a secret as whether it is set), the stored channels,
+ * roles and members the guild no longer has, and the label a searchable
+ * field's search gives its value.
  */
 export interface DeclarationSubject {
 	readonly values: Readonly<Record<string, unknown>>;
 	/** Per field key, the stored ids the guild no longer offers. */
 	readonly unavailable: Readonly<Record<string, readonly string[]>>;
+	/** Per searchable field key, its search's label of the value, when it has one. */
+	readonly labels: Readonly<Record<string, string>>;
 }
 
 /** The issues that say a stored id no longer names a usable entity of the guild. */
@@ -22,6 +26,7 @@ const UNAVAILABLE_CODES: ReadonlySet<SettingsIssueCode> = new Set(["notFound", "
  * Read the guild's settings of a declaration for the screen, and find which
  * stored entities it no longer has by asking the service's own validator
  * about each one, so the screen and every other surface agree on it.
+ * A searchable field's value is labelled through `service.label`.
  *
  * @param params.declaration - the module's settings declaration.
  * @param params.service - the settings service the screen reads through.
@@ -44,7 +49,21 @@ export async function loadDeclarationSubject(params: {
 			return [key, missing] as const;
 		}),
 	);
-	return { values, unavailable: Object.fromEntries(checked.filter(hasMissingIds)) };
+	const labelled = await Promise.all(
+		Object.entries(declaration.fields).map(async ([key, declared]) => {
+			const value = values[key];
+			if (value === undefined || fieldSearch(declared.spec) === undefined) {
+				return [];
+			}
+			const label = await service.label(declaration, key, value, ctx);
+			return label === undefined ? [] : [[key, label] as const];
+		}),
+	);
+	return {
+		values,
+		unavailable: Object.fromEntries(checked.filter(hasMissingIds)),
+		labels: Object.fromEntries(labelled.flat()),
+	};
 }
 
 function hasMissingIds(entry: readonly [string, readonly string[]]): boolean {

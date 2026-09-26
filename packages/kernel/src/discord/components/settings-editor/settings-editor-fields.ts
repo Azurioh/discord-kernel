@@ -129,6 +129,11 @@ export interface SettingsEditorChoice {
 	/** What is stored — never shown, so it is not translated. */
 	readonly value: string;
 	readonly labelKey: string;
+	/**
+	 * Placeholders of `labelKey`, for a label computed at run time (a search
+	 * result) rather than declared.
+	 */
+	readonly labelParams?: TranslationParams;
 	/** Shown under the label, as a menu entry's hint is. Optional: a two-way toggle rarely needs one. */
 	readonly descriptionKey?: string;
 }

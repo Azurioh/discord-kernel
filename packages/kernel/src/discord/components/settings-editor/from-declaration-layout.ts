@@ -1,6 +1,6 @@
 import {
-	chunked,
 	type DeclarationControl,
+	isFreeEntry,
 } from "@/discord/components/settings-editor/from-declaration-controls";
 import type { SettingsEditorLevel } from "@/discord/components/settings-editor/navigation";
 import { MAX_CARD_LEVEL_ENTRIES } from "@/discord/components/settings-editor/settings-editor-card.view";
@@ -16,6 +16,9 @@ const KEY_SEPARATOR = "#";
 
 /** Prefix of the key of every level the layout nests. */
 const LEVEL_KEY_PREFIX = "level";
+
+/** Suffix of the key of the modal a non-strict searchable field outside any group opens. */
+const SEARCH_ENTRY_SUFFIX = "search";
 
 /** The screen of a declaration: its root entries, its nested levels, and what each group entry saves. */
 export interface DeclarationLayout {
@@ -48,6 +51,10 @@ type Section =
  * several entries moves into a level of its own, then the entries past the
  * last that fits move behind a "more settings" level.
  *
+ * A non-strict searchable field's select and its free entry are never split:
+ * outside any group they form a modal of their own, named after the field;
+ * inside a group they share one of its modals.
+ *
  * @param params.declaration - the module's settings declaration, for its groups.
  * @param params.controls - the controls of the declaration, in declared order.
  * @returns the root entries, the nested levels and each group entry's controls.
@@ -79,37 +86,99 @@ function declarationSections(params: {
 	const { declaration, controls, groups } = params;
 	const sections: Section[] = [];
 	const seenGroups = new Set<string>();
-	for (const control of controls) {
-		const { groupId } = control;
+	const units = controlUnits(controls);
+	for (const unit of units) {
+		const [first] = unit;
+		if (first === undefined) {
+			continue;
+		}
+		const { groupId } = first;
 		if (groupId === undefined) {
-			sections.push({ kind: "control", control });
+			sections.push(
+				unit.length === 1 ? { kind: "control", control: first } : searchSection({ unit, groups }),
+			);
 		} else if (!seenGroups.has(groupId)) {
 			seenGroups.add(groupId);
-			sections.push(groupSection({ declaration, controls, groups, groupId }));
+			sections.push(groupSection({ declaration, units, groups, groupId }));
 		}
 	}
 	return sections;
 }
 
-/** A declared group split into entries of at most {@link MAX_MODAL_COMPONENTS} controls. */
+/**
+ * The controls in order, a non-strict searchable field's select and free
+ * entry kept together as one unit, every other control a unit of its own.
+ */
+function controlUnits(controls: readonly DeclarationControl[]): DeclarationControl[][] {
+	const units: DeclarationControl[][] = [];
+	for (const control of controls) {
+		const last = units.at(-1);
+		if (isFreeEntry(control) && last?.[0]?.fieldKey === control.fieldKey) {
+			last.push(control);
+		} else {
+			units.push([control]);
+		}
+	}
+	return units;
+}
+
+/** A non-strict searchable field outside any group: one modal holding its select and free entry. */
+function searchSection(params: {
+	unit: readonly DeclarationControl[];
+	groups: Map<string, readonly DeclarationControl[]>;
+}): Section {
+	const { unit, groups } = params;
+	const [{ entry, fieldKey }] = unit as [DeclarationControl];
+	const key = `${fieldKey}${KEY_SEPARATOR}${SEARCH_ENTRY_SUFFIX}`;
+	groups.set(key, unit);
+	const { labelKey, hintKey } = entry;
+	return {
+		kind: "group",
+		labelKey,
+		hintKey,
+		chunks: [{ kind: "group", key, labelKey, hintKey, fields: unit.map(controlEntry) }],
+	};
+}
+
+/** A declared group split into entries of at most {@link MAX_MODAL_COMPONENTS} controls, no unit split. */
 function groupSection(params: {
 	declaration: SettingsDeclaration;
-	controls: readonly DeclarationControl[];
+	units: readonly (readonly DeclarationControl[])[];
 	groups: Map<string, readonly DeclarationControl[]>;
 	groupId: string;
 }): Section {
-	const { declaration, controls, groups, groupId } = params;
+	const { declaration, units, groups, groupId } = params;
 	const group = declaration.groups?.[groupId];
 	const labelKey = group?.label ?? groupId;
 	const hintKey = group?.description ?? SETTINGS_EDITOR_MESSAGES.entryHint;
-	const members = controls.filter((member) => member.groupId === groupId);
+	const members = units.filter((unit) => unit[0]?.groupId === groupId);
 	const chunks: SettingsEditorField<string>[] = [];
-	for (const [index, chunk] of chunked(members, MAX_MODAL_COMPONENTS).entries()) {
+	for (const [index, chunk] of packed(members, MAX_MODAL_COMPONENTS).entries()) {
 		const key = `${groupId}${KEY_SEPARATOR}${index + 1}`;
 		groups.set(key, chunk);
 		chunks.push({ kind: "group", key, labelKey, hintKey, fields: chunk.map(controlEntry) });
 	}
 	return { kind: "group", labelKey, hintKey, chunks };
+}
+
+/**
+ * `units` packed in order into chunks of at most `size` controls, a unit
+ * never split: one that does not fit starts the next chunk.
+ */
+function packed(
+	units: readonly (readonly DeclarationControl[])[],
+	size: number,
+): DeclarationControl[][] {
+	const chunks: DeclarationControl[][] = [];
+	for (const unit of units) {
+		const last = chunks.at(-1);
+		if (last !== undefined && last.length + unit.length <= size) {
+			last.push(...unit);
+		} else {
+			chunks.push([...unit]);
+		}
+	}
+	return chunks;
 }
 
 function controlEntry(control: DeclarationControl): DeclarationControl["entry"] {

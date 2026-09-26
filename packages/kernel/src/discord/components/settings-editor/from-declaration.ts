@@ -1,9 +1,12 @@
 import {
 	type DeclarationControl,
 	declarationControls,
+	isFreeEntry,
+	type SearchOptions,
 } from "@/discord/components/settings-editor/from-declaration-controls";
 import { controlDisplay } from "@/discord/components/settings-editor/from-declaration-display";
 import { layoutDeclaration } from "@/discord/components/settings-editor/from-declaration-layout";
+import { loadSearchOptions } from "@/discord/components/settings-editor/from-declaration-search";
 import {
 	type DeclarationSubject,
 	loadDeclarationSubject,
@@ -58,6 +61,13 @@ interface AdapterScope {
  * accepts and refuses exactly what every other surface does; a group's modal
  * is one write carrying only the members the administrator changed.
  *
+ * A searchable field (FR-026a) is a select of the first 25 results of its
+ * search for an empty query, read when the screen opens, and shows its
+ * search's label as its current value. A non-strict one also gets an "Other
+ * value" text entry in the same modal: a value typed there replaces the pick
+ * and is validated on save like any other. A field whose search offered
+ * nothing is typed instead.
+ *
  * @param declaration - the module's settings declaration.
  * @param service - the settings service the screen reads and writes through.
  * @param context - the guild, the administrator, their locale and the
@@ -76,12 +86,15 @@ export async function settingsEditorFromDeclaration<D extends SettingsDeclaratio
 	},
 ): Promise<DeclarationEditorOptions> {
 	const { guildId, userId, locale, translator } = context;
-	const controls = displayedControls(declaration);
+	const ctx: RequestContext = { guildId, userId, locale };
+	const subject = await loadDeclarationSubject({ declaration, service, ctx });
+	const searchOptions = await loadSearchOptions({ declaration, service, ctx, subject });
+	const controls = displayedControls(declaration, searchOptions);
 	const layout = layoutDeclaration({ declaration, controls });
 	const scope: AdapterScope = {
 		declaration,
 		service,
-		ctx: { guildId, userId, locale },
+		ctx,
 		translate: (key) => translator.translate(locale, key),
 		controls: new Map(controls.map((control) => [control.entry.key, control])),
 		groups: layout.groups,
@@ -89,11 +102,16 @@ export async function settingsEditorFromDeclaration<D extends SettingsDeclaratio
 	return {
 		fields: layout.fields,
 		levels: layout.levels,
-		initial: await reload(scope),
+		initial: { subject, assets: [] },
 		currentValue: (subject: DeclarationSubject, key: string) =>
 			controlValue({ translate: scope.translate, subject, control: controlAt({ scope, key }) }),
-		displayValue: (subject: DeclarationSubject, key: string) =>
-			controlDisplay({ translate: scope.translate, subject, control: controlAt({ scope, key }) }),
+		displayValue: (subject: DeclarationSubject, key: string) => {
+			const control = controlAt({ scope, key });
+			// The free entry holds nothing of its own: its field shows beside the select.
+			return isFreeEntry(control)
+				? null
+				: controlDisplay({ translate: scope.translate, subject, control });
+		},
 		save: (subject: DeclarationSubject, key: string, submission: SettingsEditorSubmission) =>
 			saveControl({ scope, subject, control: controlAt({ scope, key }), submission }),
 		saveGroup: (
@@ -109,14 +127,19 @@ export async function settingsEditorFromDeclaration<D extends SettingsDeclaratio
 }
 
 /** The controls of a declaration in its display order, the one every surface shows. */
-function displayedControls(declaration: SettingsDeclaration): DeclarationControl[] {
+function displayedControls(
+	declaration: SettingsDeclaration,
+	searchOptions: SearchOptions,
+): DeclarationControl[] {
 	const rank = new Map(
 		displayOrder(declaration)
 			.entries.flatMap((entry) => (entry.kind === "field" ? [entry.key] : entry.fields))
 			.map((key, index) => [key, index]),
 	);
 	const place = (control: DeclarationControl): number => rank.get(control.fieldKey) ?? rank.size;
-	return declarationControls(declaration).sort((left, right) => place(left) - place(right));
+	return declarationControls(declaration, searchOptions).sort(
+		(left, right) => place(left) - place(right),
+	);
 }
 
 /** The screen's subject, read back from the service. */

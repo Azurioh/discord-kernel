@@ -14,7 +14,7 @@ import { localizedDescription } from "@/shared/discord/localized-description";
  * `/config set key value`: change one demo setting.
  *
  * @param settings - resolves the settings service on each use.
- * @param translator - translates the key suggestions.
+ * @param translator - picks the language of the key and value suggestions.
  */
 export function createSetSubcommand(
 	settings: () => SettingsService,
@@ -22,7 +22,7 @@ export function createSetSubcommand(
 ): CompiledSubcommand {
 	return createSubCommand({
 		...localizedDescription(DEMO_CATALOG, DEMO_MESSAGES.setDescription),
-		options: createSetOptions(translator),
+		options: createSetOptions(settings, translator),
 		handler: createSetHandler(settings),
 	});
 }
