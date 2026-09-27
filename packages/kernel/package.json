@@ -1,6 +1,6 @@
 {
 	"name": "@azurioh/discord-kernel",
-	"version": "0.1.0",
+	"version": "1.0.0",
 	"description": "Framework kernel for Discord bots: command DSL, guards, interaction routing, composed components, i18n, ports (Presenter, Logger, DatabaseConnection, Authorizer, Scheduler).",
 	"keywords": [
 		"discord",
