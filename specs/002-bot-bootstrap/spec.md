@@ -76,7 +76,7 @@ both handlers ran with the guild's language and that a disabled module's handler
 
 ### User Story 2 - Run module setup, migrations and jobs at start (Priority: P1)
 
-When the bot starts, the kernel runs pending data migrations, connects the databases, logs in,
+When the bot starts, the kernel connects the databases, runs pending data migrations, logs in,
 waits until the gateway is ready, runs every module's `setup`, then starts every module's scheduled
 jobs. The author sees in the logs which step is running and which one failed.
 
@@ -84,7 +84,7 @@ jobs. The author sees in the logs which step is running and which one failed.
 story a module author declares them and nothing happens.
 
 **Independent Test**: start a bot built from in-memory adapters and a fake gateway client; check the
-order of calls (migrations, database connect, login, ready, setup of each module, job start) and
+order of calls (database connect, migrations, login, ready, setup of each module, job start) and
 that a job with `runOnStart` ran once.
 
 **Acceptance Scenarios**:
@@ -112,8 +112,9 @@ that a job with `runOnStart` ran once.
 
 When the process receives a stop signal, or when the author asks the bot to stop, the kernel stops
 in order: it stops accepting new interactions, stops scheduled jobs, runs every module's `teardown`,
-runs the flushes the author injected (for example the logger's), closes the databases and closes the
-gateway. A step that hangs cannot block the process forever.
+closes the databases, closes the gateway, and finally runs the flushes the author injected (for
+example the logger's, last so that it carries the logs of every earlier step). A step that hangs
+cannot block the process forever.
 
 **Why this priority**: today a restart can cut a job mid-run and never closes a database. A public
 bot restarts on every deploy.
@@ -294,7 +295,7 @@ in-process functions.
 
 **Start**
 
-- **FR-008**: Starting MUST run, in order: pending migrations, database connections, gateway login,
+- **FR-008**: Starting MUST run, in order: database connections, pending migrations, gateway login,
   wait for ready, every module's `setup` (in module order), then scheduled jobs.
 - **FR-009**: Until every `setup` finished, interactions MUST receive the translated "restarting"
   reply.
@@ -310,7 +311,7 @@ in-process functions.
 **Stop**
 
 - **FR-012**: Stopping MUST run, in order: stop accepting interactions, stop scheduled jobs, every
-  module's `teardown` (reverse module order), injected flushes, database close, gateway close.
+  module's `teardown` (reverse module order), database close, gateway close, injected flushes.
 - **FR-013**: Every stop step MUST run even when an earlier one failed; each failure MUST be logged
   with its step and module.
 - **FR-014**: The whole stop MUST be bounded by a timeout (default 10 seconds, configurable); on
