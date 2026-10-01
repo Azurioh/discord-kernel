@@ -91,7 +91,7 @@ yet), **Idea** (to brainstorm).
     current settings-editor).
 - Open: exact DSL shape; migration path for existing `createCard` users.
 
-### 2. Bootstrap and lifecycle — Decided
+### 2. Bootstrap and lifecycle — Decided, spec drafted (`specs/002-bot-bootstrap`)
 
 - Upstream from the BSK bot:
   - process handlers (SIGINT/SIGTERM, crash handlers, graceful shutdown with injected flush);
@@ -100,10 +100,11 @@ yet), **Idea** (to brainstorm).
   - reference implementations: `DefaultPresenter`, `InMemoryAuthorizer`.
 - New: `createBot({ modules, adapters })` boot function; generic `MigrationRunner` port (the BSK
   runner is Mongo-specific and stays in the bot).
-- Resolve the constitution finding: the core depends on `node-cron`, which is not an allowed pure
-  library. Options: move scheduling behind the existing scheduler port with an adapter package,
-  or justify it as an allowed library.
-- Open: `createBot` API; whether the scheduler adapter becomes its own package.
+- Constitution finding resolved (2.1.0): `node-cron` is an allowed pure library, restricted to
+  in-process scheduling of functions; no scheduler adapter package.
+- A failing module `setup` fails the start, unless the module is declared optional (then only that
+  module is disabled).
+- Open: exact `createBot` API shape (to settle in the plan).
 
 ### 3. Module settings — Specified (`specs/001-module-settings`)
 

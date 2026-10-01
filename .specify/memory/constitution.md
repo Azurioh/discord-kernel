@@ -1,4 +1,14 @@
 <!--
+Sync Impact Report (2.1.0)
+- Version change: 2.0.0 → 2.1.0 (MINOR: allowed pure library added to Principle I)
+- Modified principles: I. Vendor-Free Core — `node-cron` added to the allowed pure libraries,
+  restricted to in-process scheduling of functions (no background or distributed task).
+- Added sections: none
+- Removed sections: none
+- Templates requiring updates: none
+- Follow-up TODOs: a test enforces the allowed runtime dependencies and the in-process restriction
+  (specs/002-bot-bootstrap, FR-027, FR-027a).
+
 Sync Impact Report (2.0.0)
 - Version change: 1.0.0 → 2.0.0 (MAJOR: Principle I redefined)
 - Modified principles: I. Vendor-Free Core — now allows pure, ecosystem-standard libraries as
@@ -42,7 +52,12 @@ the public, sharded case; the single-process bot is its degenerate case.
   ecosystem standard for its concern, as a regular dependency, only if that library never
   appears in the core's public types. A library that appears in public types MUST be a peer
   dependency.
-- Allowed pure libraries: `zod` (schema validation and JSON Schema generation).
+- Allowed pure libraries:
+  - `zod` (schema validation and JSON Schema generation).
+  - `node-cron` (cron expression parsing and in-process timers), only to schedule functions in
+    the current process. The core MUST NOT use its background tasks (which fork a child process)
+    or its distributed mode. Pure in that use: it reads no file, opens no socket and calls no
+    service. Ecosystem standard: the most used zero-dependency cron scheduler for Node.js.
 - Every other external capability MUST be expressed as a port (interface) in the core.
 - Adapters MUST live in consuming bots or in opt-in sibling packages of this monorepo.
 
@@ -137,4 +152,4 @@ Rationale: several bots depend on this kernel and upgrade on their own schedule.
   materially expanding guidance, PATCH for wording fixes.
 - Every spec review and code review checks compliance with the principles above.
 
-**Version**: 2.0.0 | **Ratified**: 2026-09-23 | **Last Amended**: 2026-09-23
+**Version**: 2.1.0 | **Ratified**: 2026-09-23 | **Last Amended**: 2026-09-30
