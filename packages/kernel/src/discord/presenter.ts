@@ -10,7 +10,9 @@ import type { Locale } from "@/i18n/locale";
  * Every method receives the locale resolved for the interaction being answered,
  * so titles and fixed copy follow the user's language, not the process's.
  *
- * The default implementation lives in `infrastructure/discord/default-presenter.ts`.
+ * The default implementation is `createDefaultPresenter` (`discord/default-presenter.ts`).
+ *
+ * @port
  */
 export interface Presenter {
 	/** A successful, affirmative action. */

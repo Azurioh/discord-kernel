@@ -26,10 +26,10 @@ library in one tree would break every `instanceof` the gateway relies on.
 | `discord/events/` | `createEvent` and the `EventRouter` — the one place `client.on` is called |
 | `discord/ui/` | Embeds with Discord's size limits handled, `createCard` containers, a configurable palette, a colour-input parser |
 | `i18n/` | Catalogs (`{ en, fr? }`, `en` mandatory), a registry that fails the boot on a duplicate key, per-interaction locale resolution |
-| `authz/` | An `Authorizer` port with `viewer`/`editor` grants and a `requireLevel` guard |
+| `authz/` | An `Authorizer` port with `viewer`/`editor` grants, a `requireLevel` guard, an in-memory authorizer and its contract suite (`authz/testing`) |
 | `errors/` | `BusinessError` and friends, carrying an optional translation key beside the English source |
-| `scheduler/` | A `Scheduler` port and a node-cron implementation |
-| Ports | `Logger`, `DatabaseConnection`, `Presenter`, `Clock`, `ChannelExporter` — declared here, implemented by your app |
+| `scheduler/` | A `Scheduler` port, a node-cron implementation and an in-memory twin |
+| Ports | `Logger`, `Clock`, `DatabaseConnection`, `MigrationRunner`, `Authorizer`, `Scheduler`, `ChannelExporter`, `Presenter`, `LocaleResolver`, `ModuleGate`, and the settings ports — declared here (tagged `@port`), implemented by your app, each with an [in-memory twin](#testing-with-in-memory-twins) |
 
 Every path is imported directly; there is no root barrel:
 
@@ -344,6 +344,52 @@ runSettingsStoreContract(() => createPostgresSettingsStore(database.freshTable()
 Every guarantee in the table has a case in the suite, including two concurrent
 writers with the same revision. The kernel's own `createInMemorySettingsStore`
 passes the same suite and is the store to use in tests.
+
+## Testing with in-memory twins
+
+Every port ships an in-memory twin, exported through its own subpath. Twins are
+plain code, with no test framework import, so your tests use them with any
+runner, and a bot that needs no persistence can run on them. A kernel test
+fails when a port has no twin.
+
+| Port | Twin | Import from | What it adds for tests |
+| ---- | ---- | ----------- | ---------------------- |
+| `Logger` | `createInMemoryLogger()` | `in-memory-logger` | `entries` (level, fields with the bindings merged, message); a child appends to the same `entries` |
+| `Clock` | `fixedClock(instant)` | `clock` | none |
+| `DatabaseConnection` | `createInMemoryDatabase(driver?)` | `persistence/in-memory-database` | `connected`, `connectCount`, `closeCount`, `failOnConnect(error)` |
+| `MigrationRunner` | `createInMemoryMigrationRunner(migrations)` | `persistence/in-memory-migration-runner` | applied ids in each report |
+| `Authorizer` | `createInMemoryAuthorizer(initial?)` | `authz/in-memory-authorizer` | none |
+| `Scheduler` | `createInMemoryScheduler(logger?)` | `scheduler/in-memory-scheduler` | `jobs`, `run(name)` on demand; same validation as `CronScheduler`, nothing runs by timer |
+| `ChannelExporter` | `createInMemoryChannelExporter(outcome?)` | `discord/in-memory-channel-exporter` | `exports` (every call's arguments) |
+| `Presenter` | `createDefaultPresenter(translator)` | `discord/default-presenter` | none (it is also the default presenter) |
+| `LocaleResolver` | `createFixedLocaleResolver(locale)` | `discord/interaction/fixed-locale-resolver` | none |
+| `ModuleGate` | `createInMemoryModuleGate(disabled?)` | `settings` | `disable(module, guild)`, `enable(module, guild)` |
+| `SettingsStore`, `GuildDirectory`, `SettingsChangedNotifier` | `createInMemorySettingsStore`, `createInMemoryGuildDirectory`, `createInProcessNotifier` | `settings` | none |
+
+Paths are relative to `@azurioh/discord-kernel/`:
+
+```ts
+import { createInMemoryLogger } from "@azurioh/discord-kernel/in-memory-logger";
+import { createInMemoryScheduler } from "@azurioh/discord-kernel/scheduler/in-memory-scheduler";
+
+const logger = createInMemoryLogger();
+const scheduler = createInMemoryScheduler(logger);
+scheduler.start(module.jobs ?? []);
+await scheduler.run("daily-digest");
+expect(logger.entries.filter((entry) => entry.level === "error")).toEqual([]);
+```
+
+The stateful ports come with a contract suite, the same one the twin passes
+(`runSettingsStoreContract` for the settings store, see [Storage adapters](#storage-adapters)).
+Run it against your own adapter with your runner's `describe`, `it` and `expect`:
+
+```ts
+import { runAuthorizerContract } from "@azurioh/discord-kernel/authz/testing";
+import { runMigrationRunnerContract } from "@azurioh/discord-kernel/persistence/testing";
+
+runAuthorizerContract("mongo", () => createMongoAuthorizer(freshCollection()), { describe, it, expect });
+runMigrationRunnerContract("sql", (migrations) => createSqlMigrationRunner(freshDb(), migrations), { describe, it, expect });
+```
 
 ## Making it yours
 

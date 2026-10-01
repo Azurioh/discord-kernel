@@ -1,3 +1,4 @@
+import { createInMemoryModuleGate } from "@/settings/system/in-memory-module-gate";
 import type { ModuleGate } from "@/settings/system/module-gate";
 
 /**
@@ -9,7 +10,5 @@ import type { ModuleGate } from "@/settings/system/module-gate";
 export function createFakeModuleGate(
 	disabled: Readonly<Record<string, readonly string[]>> = {},
 ): ModuleGate {
-	return {
-		isEnabled: async (moduleName, guildId) => !(disabled[guildId] ?? []).includes(moduleName),
-	};
+	return createInMemoryModuleGate(disabled);
 }

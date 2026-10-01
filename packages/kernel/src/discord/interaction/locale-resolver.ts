@@ -17,6 +17,8 @@ export interface LocaleSubject {
  * picks the implementation at composition: `createGuildLocaleResolver` for the
  * guild's language setting (FR-038), or its own. Without one, the kernel uses
  * the interaction's own locales (`interactionLocale`).
+ *
+ * @port
  */
 export interface LocaleResolver {
 	/**

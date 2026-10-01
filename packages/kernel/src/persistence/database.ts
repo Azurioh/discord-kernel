@@ -8,6 +8,8 @@
  * between engines to be usefully abstracted here, so each adapter exposes its
  * own (Mongo collections, SQL statements…) and repositories in the module
  * `infrastructure/` layer are the only code allowed to use it.
+ *
+ * @port
  */
 export interface DatabaseConnection {
 	/**
