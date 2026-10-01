@@ -14,13 +14,14 @@ What `createBot` returns. One per process in production, several in tests.
 | `client` | the gateway client every listener is bound to |
 | `translator`, `registry`, `settings`, `gate`, `logger` | the services built at creation |
 | `start(token)` | runs the start steps; resolves when `running` |
-| `stop(reason?)` | runs the stop steps; resolves with a `StopReport` |
+| `stop()` | runs the stop steps; resolves with a `StopReport` (reason `manual`) |
 | `deployCommands(target)` | sends every built command; no lifecycle effect |
 
 Rules:
 
 - Creation performs no I/O and fails synchronously on a duplicate module name, a duplicate
-  catalog key or an invalid settings declaration (FR-003).
+  catalog key, an invalid settings declaration, or a part declared both on the module and by
+  `build` (FR-003); every module-level failure is a `ModuleRegistrationError` naming the module.
 - Module names are unique; the error names both modules.
 
 ### State transitions
@@ -54,8 +55,8 @@ New optional fields on the existing contract:
 | `build(context)` | none | returns the parts that need kernel services (R1) |
 
 `build` returns a `ModuleParts`: `commands`, `contextMenuCommands`, `components`, `events`, `jobs`,
-`setup`, `teardown`. `createBot` merges them with the same fields declared directly on the module
-(both are routed; a module should use one style).
+`setup`, `teardown`. A part comes either from the module or from `build`, never both: declaring the
+same part in both places fails `createBot` with `ModuleRegistrationError` naming the part.
 
 Rules:
 
@@ -65,7 +66,9 @@ Rules:
 ## ModuleContext
 
 What `build` receives: `logger` (child logger bound to `{ module: name }`), `translator`,
-`settings` (the service), `registry`, `gate`, `presenter`, `clock`, `client`.
+`settings` (the service), `registry`, `gate`, `presenter`, `clock`, `client`. `ModuleContext` and
+`BotServices` are both defined in `module/module-context.ts`, so the module contract never imports
+`bot/`.
 
 ## Module runtime status
 
@@ -121,4 +124,11 @@ wins over role grants, the highest role level applies, `listGrants` reflects eve
 ## Modal prompt result
 
 `{ status: "submitted", interaction, values } | { status: "dismissed" }`. `values` is typed by the
-modal's own `read`. `dismissed` covers timeout and a modal closed by the member.
+modal's own `read`. `dismissed` covers the timeout, which is also when a modal closed by the member
+is noticed (Discord reports no close event).
+
+## In-memory twins
+
+One per port, listed in [research.md](./research.md) R15. Each is a plain factory (no test
+framework), exported through its own subpath, with the inspection helpers listed there. Ports are
+tagged `@port` in their JSDoc; a test checks each tagged port has a twin.

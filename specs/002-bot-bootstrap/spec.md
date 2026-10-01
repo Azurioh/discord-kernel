@@ -25,6 +25,11 @@ migration, View V1/V2, event bus, HTTP API, sharding manager."
   constitution (MINOR) to add `node-cron` to the allowed pure libraries, restricted to in-process
   scheduling of functions: the kernel never uses its background (child process) or distributed
   modes, and a test enforces it. No breaking change.
+- Q: Which ports get an in-memory twin in this feature (SC-005)? → A: Every port of the kernel,
+  including the ones this feature did not create: `ProcessLike`, `DatabaseConnection`,
+  `Scheduler`, `ChannelExporter`, `LocaleResolver`, `Logger`, `ModuleGate`, command deploy
+  transport, `MigrationRunner`, `Authorizer`. Test doubles in the kernel's own tests are built on
+  these twins instead of being separate implementations.
 
 ## Context
 
@@ -184,9 +189,10 @@ payload sent and that no gateway login happened.
 ### User Story 6 - Ask a member for input in a modal (Priority: P2)
 
 A module author opens a modal from a command or a button and waits for the member's submission as a
-plain value, with a timeout. If the member closes the modal, or does not submit in time, the author
-gets a distinct "no answer" result rather than an exception, and a submission from another modal or
-another member is never taken for theirs.
+plain value, with a timeout. If the member does not submit in time, the author gets a distinct "no
+answer" result rather than an exception, and a submission from another modal or another member is
+never taken for theirs. Discord does not report a modal closed by the member: a closed modal is
+seen as "no answer" when the timeout elapses.
 
 **Why this priority**: every bot that collects free text re-writes this. The settings editor
 already does it privately; one shared helper removes the duplicate.
@@ -211,14 +217,17 @@ result with a fake clock.
 ### User Story 7 - Reference implementations for every port (Priority: P3)
 
 A bot author who does not want to style their own replies uses the kernel's default presenter. A
-module author who tests code that depends on the authorizer uses the kernel's in-memory authorizer,
-the same way they use the in-memory settings store.
+module author who tests code that depends on any kernel port (authorizer, logger, scheduler,
+database connection, channel exporter, module gate, reply language, process) uses the kernel's
+in-memory twin of that port, the same way they use the in-memory settings store.
 
-**Why this priority**: the constitution requires an in-memory twin for every port; the authorizer
-has none. The default presenter lets User Story 1 work with no presenter passed.
+**Why this priority**: the constitution requires an in-memory twin for every port; several ports
+have none, or only a private double inside the kernel's own tests. The default presenter lets User
+Story 1 work with no presenter passed.
 
-**Independent Test**: run the authorizer port's contract suite against the in-memory authorizer;
-render each presenter outcome in both catalog languages and check title, colour and incident footer.
+**Independent Test**: run the authorizer and migration runner contract suites against their twins;
+a test lists every kernel port and fails when one has no exported twin; render each presenter
+outcome in both catalog languages and check title, colour and incident footer.
 
 **Acceptance Scenarios**:
 
@@ -226,6 +235,10 @@ render each presenter outcome in both catalog languages and check title, colour 
    case passes (grants, revocations, user grant winning over role grants, highest role level).
 2. **Given** the default presenter, **When** it renders a system error in French, **Then** the title
    and incident footer are the French catalog entries and the reference appears in the footer.
+3. **Given** a module that schedules a job, **When** its author tests it with the in-memory
+   scheduler, **Then** they can run the job on demand without waiting for its schedule.
+4. **Given** a module that logs, **When** its author tests it with the in-memory logger, **Then**
+   they can read every record it wrote, with its level, fields and message.
 
 ---
 
@@ -281,7 +294,8 @@ in-process functions.
 - **FR-002**: Creating a bot MUST register every module's catalog, settings declarations, commands,
   context-menu commands, components and events, in an order the author cannot get wrong.
 - **FR-003**: Creating a bot MUST fail, before any connection, on a duplicate catalog key, an invalid
-  settings declaration or a duplicate module name, with an error naming the module.
+  settings declaration, a duplicate module name, or a module part declared both on the module and
+  by its `build`, with an error naming the module (and keeping the original error as its cause).
 - **FR-004**: A module MUST be able to declare itself never gated; its handlers MUST answer whatever
   the module toggles of the guild.
 - **FR-005**: The adapters the kernel cannot choose (logger, settings store) MUST be required. The
@@ -315,7 +329,9 @@ in-process functions.
 - **FR-013**: Every stop step MUST run even when an earlier one failed; each failure MUST be logged
   with its step and module.
 - **FR-014**: The whole stop MUST be bounded by a timeout (default 10 seconds, configurable); on
-  timeout the kernel MUST log the abandoned step and end with a failure exit code.
+  timeout the kernel MUST log the abandoned step and report the stop as failed. When the stop was
+  triggered by a signal or a crash, the kernel then ends the process with a failure exit code; a
+  stop requested by the author's code never ends the process.
 - **FR-015**: Stopping MUST be idempotent: concurrent or repeated stop requests share one run.
 - **FR-016**: By default the bot MUST stop on SIGINT and SIGTERM and set the process exit code; the
   author MUST be able to disable signal handling.
@@ -337,7 +353,8 @@ in-process functions.
 **Modal prompt**
 
 - **FR-021**: The kernel MUST offer a helper that shows a modal from an interaction and resolves with
-  the member's submission or a "no answer" result on timeout (default 5 minutes).
+  the member's submission or a "no answer" result on timeout (default 5 minutes). A modal closed by
+  the member resolves "no answer" at the timeout, since Discord does not report it.
 - **FR-022**: The helper MUST match only the submission of the same member and of that modal
   opening, even when several are open at once.
 - **FR-023**: The settings editor MUST use this helper for its modals, with no behaviour change.
@@ -351,6 +368,12 @@ in-process functions.
 - **FR-026**: The kernel MUST offer a migration runner port (run pending migrations, report which
   ran) with an in-memory twin and a contract suite. The kernel MUST NOT ship a database-specific
   runner.
+- **FR-026a**: Every port of the kernel MUST ship an exported in-memory twin usable without a test
+  framework: `ProcessLike`, `DatabaseConnection`, `Scheduler` (jobs run on demand), `ChannelExporter`
+  (records the exports), `LocaleResolver` (fixed locale), `Logger` (records every entry),
+  `ModuleGate`, the command deploy transport (records the requests), `MigrationRunner`,
+  `Authorizer`. A test MUST fail when a port has no twin. The kernel's own test doubles MUST be
+  built on these twins.
 
 **Constitution**
 
@@ -394,10 +417,12 @@ in-process functions.
   process ends within the shutdown timeout plus one second.
 - **SC-004**: A member who sends a command during a restart receives a reply in 100% of cases,
   never Discord's "the application did not respond".
-- **SC-005**: Every port of the kernel has an in-memory twin and, where it holds state, a contract
-  suite.
+- **SC-005**: 100% of the kernel's ports have an exported in-memory twin, checked by a test; every
+  port that holds state (settings store, authorizer, migration runner) has a contract suite.
 - **SC-006**: A reviewer checking Principle I finds zero runtime dependency not allowed by the
   constitution.
+- **SC-007**: A bot with one module and in-memory adapters starts, serves one command and stops in
+  a test of under 30 lines, with no test double written by hand.
 
 ## Assumptions
 

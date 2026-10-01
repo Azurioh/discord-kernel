@@ -37,3 +37,7 @@
 - Both clarifications resolved on 2026-09-30 (see the spec's Clarifications section): a failing
   `setup` fails the start unless the module is optional; `node-cron` is allowed by constitution
   2.1.0, in-process use only.
+- 2026-10-01, after `/speckit-analyze`: third clarification (every port gets an in-memory twin,
+  FR-026a, SC-005, SC-007); FR-003 now names the module through `ModuleRegistrationError`; FR-014
+  exits the process only after a signal or a crash; FR-021 states that a closed modal is seen at the
+  timeout.

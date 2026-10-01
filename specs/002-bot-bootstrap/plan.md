@@ -42,8 +42,8 @@ drops an interaction after 3 s); stop ends within `shutdownTimeoutMs` + 1 s.
 **Constraints**: creation performs no I/O; no process-level listener left after `stop`; nothing
 in `settings/` imports `discord.js`; every new text is a catalog key (en + fr, "vous").
 
-**Scale/Scope**: about 20 new source files, 4 modified kernel files, sandbox composition root
-rewritten (about 150 → under 40 lines).
+**Scale/Scope**: about 30 new source files (11 of them in-memory twins), about 10 modified kernel
+files, sandbox composition root rewritten (about 150 → under 40 lines).
 
 ## Constitution Check
 
@@ -52,12 +52,12 @@ rewritten (about 150 → under 40 lines).
 | Principle | Check | Status |
 |---|---|---|
 | I. Vendor-Free Core | No new dependency. `node-cron` allowed by 2.1.0, in-process only, enforced by a test (R13). `ProcessLike` and `MigrationRunner` are ports; the bot keeps its database drivers and pino. | Pass |
-| II. Clean Architecture | `bot/` is the kernel's composition layer: it depends on everything, nothing depends on it. Modules still receive services by injection (`build(context)`), never by import. | Pass |
+| II. Clean Architecture | `bot/` is the kernel's composition layer: it depends on everything, nothing depends on it (`BotServices` lives in `module/module-context.ts` for that reason). Modules still receive services by injection (`build(context)`), never by import. | Pass |
 | III. Declare Once, Render Everywhere | Unchanged: `createBot` registers the same declarations every surface reads. | Pass |
 | IV. Multi-Tenant by Default | Module availability is process-wide by design (a failed `setup` breaks the module in this process); guild enablement stays in the guild-scoped `ModuleGate`. Works per shard process with no shared state. | Pass |
 | V. Localised by Construction | "restarting" and "unavailable" are catalog keys (en, fr), resolved per interaction via the locale resolver. | Pass |
 | VI. Type Safety at the Boundary | `BotOptions`, `ModuleParts`, `ModalPromptResult<V>` fully typed; modal values inferred from the modal's `read`. | Pass |
-| VII. Test-First with In-Memory Twins | New ports ship twins and contract suites (`MigrationRunner`, `Authorizer`); every story has a test file first (quickstart §2). | Pass |
+| VII. Test-First with In-Memory Twins | Every port, old and new, ships an exported twin (R15), checked by a test over `@port`-tagged interfaces; stateful ports have contract suites; every story has a test file first (quickstart §2). | Pass |
 | VIII. Semver Discipline | Additive only: minor 1.1.0 with a changeset (R14). | Pass |
 
 Post-design re-check (after Phase 1): unchanged, all pass. No complexity tracking entry.
@@ -85,28 +85,34 @@ specs/002-bot-bootstrap/
 ```text
 packages/kernel/src/
 ├── bot/
-│   ├── create-bot.ts               # createBot, BotOptions, Bot, BotServices
-│   ├── bot-errors.ts               # DuplicateModuleError, ModuleBuildError
+│   ├── create-bot.ts               # createBot, BotOptions, Bot
+│   ├── bot-errors.ts               # DuplicateModuleError, ModuleRegistrationError
 │   ├── assemble-modules.ts         # static collection + build(context) + router registration
 │   ├── lifecycle.ts                # state machine, start/stop sequences
 │   ├── lifecycle-step.ts           # named step runner (log, duration, deadline race)
 │   ├── lifecycle-dispatcher.ts     # "restarting" answer while not running
 │   ├── module-status.ts            # pending/ready/unavailable, implements ModuleAvailability
 │   ├── process-handlers.ts         # install/remove signal and crash listeners
-│   ├── process-like.ts             # ProcessLike port
+│   ├── process-like.ts             # ProcessLike port, ProcessEvent
+│   ├── in-memory-process.ts        # twin
 │   └── stop-report.ts              # StopReport, StopReason
 ├── module/
 │   ├── module.ts                   # + gated, optional, build, ModuleParts
-│   └── module-context.ts           # ModuleContext
+│   └── module-context.ts           # BotServices, ModuleContext
+├── in-memory-logger.ts             # Logger twin
 ├── discord/
 │   ├── default-presenter.ts        # moved from the sandbox
 │   ├── module-availability.ts      # ModuleAvailability port
+│   ├── in-memory-module-availability.ts
+│   ├── in-memory-channel-exporter.ts
 │   ├── settings/module-unavailable-embed.ts
 │   ├── command/router.ts           # + availability, + deployCommands rest param
+│   ├── command/command-deploy-rest.ts, command/in-memory-deploy-rest.ts
 │   ├── components/component-router.ts   # + availability
 │   ├── events/event-router.ts      # + availability
 │   ├── i18n.ts                     # + lifecycle keys
 │   └── interaction/
+│       ├── fixed-locale-resolver.ts
 │       ├── prompt-modal.ts
 │       └── prompt-modal-errors.ts
 ├── authz/
@@ -115,7 +121,10 @@ packages/kernel/src/
 ├── persistence/
 │   ├── migration-runner.ts
 │   ├── in-memory-migration-runner.ts
+│   ├── in-memory-database.ts
 │   └── testing/{index.ts, migration-runner-contract.ts}
+├── scheduler/in-memory-scheduler.ts
+├── settings/system/in-memory-module-gate.ts
 └── testing/
     └── contract-runner.ts          # DescribeFn/ItFn/ExpectFn, shared by the 3 suites
 
@@ -125,7 +134,8 @@ packages/kernel/tests/
 ├── authz/in-memory-authorizer.test.ts
 ├── persistence/in-memory-migration-runner.test.ts
 ├── constitution/runtime-dependencies.test.ts
-└── support/{fake-process.ts, fake-client.ts}
+├── ports/every-port-has-a-twin.test.ts, ports/<twin>.test.ts
+└── support/fake-client.ts          # existing fakes rebuilt on the twins
 
 apps/sandbox-bot/src/
 ├── bootstrap/create-sandbox.ts     # createBot call only
@@ -143,7 +153,7 @@ Each PR passes the full gate on its own and lands behind the previous one.
 
 | # | PR | Stories | Content |
 |---|---|---|---|
-| 1 | `feat(testing): share the contract runner types` + reference twins | US7, US8 | `testing/contract-runner.ts`; in-memory authorizer + contract; migration runner port + twin + contract; default presenter; constitution dependency test and in-process scheduler test |
+| 1 | `feat(kernel): ship an in-memory twin for every port` | US7, US8 | `testing/contract-runner.ts`; `@port` tags and the twin coverage test; twins for logger, database, scheduler, channel exporter, locale resolver, module gate; authorizer and migration runner twins + contracts; default presenter; existing test fakes rebuilt on the twins; constitution dependency test and in-process scheduler test |
 | 2 | `feat(bot): create a bot from modules` | US1, US5 | `BotModule` fields, `ModuleContext`, `createBot` assembly (no lifecycle yet: `start` = login), `deployCommands` with injectable REST |
 | 3 | `feat(bot): start and stop in order` | US2, US3, US4 | lifecycle state machine, steps, deadline, lifecycle dispatcher, module availability in routers, process handlers, catalog keys |
 | 4 | `feat(discord): prompt a modal and await its answer` | US6 | `promptModal`, settings editor moved onto it |

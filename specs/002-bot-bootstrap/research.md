@@ -20,6 +20,10 @@ sites of `settings()`), with no proxy and no mutable holder. It is additive: a m
 `build` keeps working, handler fields declared directly on the module are still routed, and a
 bot doing its own assembly (FR-007) ignores `build`.
 
+A part declared both on the module and by `build` (for example `setup` in both places, or
+`commands` in both) fails `createBot` with `ModuleRegistrationError` naming the module and the
+part: merging would hide which one the author meant.
+
 **Alternatives considered**:
 - `modules: (services) => BotModule[]`: the services cannot exist before the modules' declarations
   are known, so the kernel would need a lazy proxy for the settings service. Rejected: hides the
@@ -43,8 +47,18 @@ bot doing its own assembly (FR-007) ignores `build`.
   `handleCrashes` (default `true`), `flushes` (named async functions run last), `process` (a
   `ProcessLike`, default `globalThis.process`, replaced in tests).
 
-`Bot` exposes `start(token)`, `stop(reason?)`, `deployCommands({ token, clientId })`, `state`,
-and the built services (`client`, `translator`, `registry`, `settings`, `gate`, `logger`).
+`Bot` exposes `start(token)`, `stop()`, `deployCommands({ token, clientId })`, `state`, and the
+built services (`client`, `translator`, `registry`, `settings`, `gate`, `presenter`, `clock`,
+`logger`). `stop()` takes no argument: a programmatic stop always reports the reason `manual`.
+
+`BotServices` is defined in `module/module-context.ts` (with `ModuleContext`), not in `bot/`: a
+module's contract must not import the composition layer, which depends on everything (Principle
+II). `bot/create-bot.ts` imports it from there.
+
+Errors naming the module (FR-003): every failure while registering one module's parts (duplicate
+catalog key, invalid settings declaration, part declared twice) is rethrown as
+`ModuleRegistrationError(moduleName, cause)`, keeping `DuplicateTranslationKeyError` or
+`SettingsDeclarationError` as `cause` so existing `instanceof` checks on the cause still work.
 
 **Rationale**: creation stays synchronous and connection-free so FR-003 errors surface before any
 I/O and so `register.ts` can create a bot just to deploy. `start` takes the token rather than
@@ -166,6 +180,10 @@ modal is `dismissed`, not logged. An interaction already replied or deferred thr
 `ModalPromptError` before calling Discord. Default timeout 5 minutes, overridable. The settings
 editor's `collectModalSubmission` is replaced by it, keeping its `isFromMessage` check on top.
 
+Discord sends no event when a member closes a modal: `awaitModalSubmit` only rejects at its
+timeout. A closed modal is therefore `dismissed` when the timeout elapses; the spec states it
+(FR-021) so no one expects an immediate result.
+
 **Rationale**: one implementation of "unique opening, filtered await" (the part that is easy to
 get wrong with two members at once); typed values come from the existing `Modal<F>.read`.
 
@@ -198,3 +216,43 @@ file path.
 **Decision**: minor release (1.1.0). Every change is additive: new modules and subpaths, new
 optional fields on `BotModule` and on router deps, an optional `rest` parameter. The settings
 editor's modal change is internal. The sandbox (private) is rebuilt on `createBot`.
+
+## R15. An in-memory twin for every port (FR-026a, SC-005)
+
+**Decision**: every interface the kernel declares as a port carries the JSDoc tag `@port`, and
+ships an in-memory twin next to it, exported through its own subpath. Twins are plain code (no
+test framework import), so a bot's own tests use them with any runner. The full list:
+
+| Port | File | Twin | Twin file | What it adds for tests |
+|---|---|---|---|---|
+| `Logger` | `logger.ts` | `createInMemoryLogger()` | `in-memory-logger.ts` | `entries` (level, fields, message, bindings), `child` shares the same entries |
+| `Clock` | `clock.ts` | `fixedClock` (exists) | `clock.ts` | none |
+| `DatabaseConnection` | `persistence/database.ts` | `createInMemoryDatabase(name?)` | `persistence/in-memory-database.ts` | `connected`, counts of `connect`/`close`, `failOnConnect(error)` |
+| `MigrationRunner` | `persistence/migration-runner.ts` | `createInMemoryMigrationRunner` | `persistence/in-memory-migration-runner.ts` | applied ids |
+| `Authorizer` | `authz/authorizer.ts` | `createInMemoryAuthorizer` | `authz/in-memory-authorizer.ts` | none |
+| `Scheduler` | `scheduler/scheduler.ts` | `createInMemoryScheduler()` | `scheduler/in-memory-scheduler.ts` | `jobs`, `run(name)` on demand, `started`; same validation errors as `CronScheduler` |
+| `ChannelExporter` | `discord/channel-exporter.ts` | `createInMemoryChannelExporter(outcome?)` | `discord/in-memory-channel-exporter.ts` | `exports` (every call's arguments) |
+| `Presenter` | `discord/presenter.ts` | `createDefaultPresenter` | `discord/default-presenter.ts` | none (pure) |
+| `LocaleResolver` | `discord/interaction/locale-resolver.ts` | `createFixedLocaleResolver(locale)` | `discord/interaction/fixed-locale-resolver.ts` | none |
+| `ModuleGate` | `settings/system/module-gate.ts` | `createInMemoryModuleGate(disabled?)` | `settings/system/in-memory-module-gate.ts` | `disable(module, guild)`, `enable(module, guild)` |
+| `ModuleAvailability` | `discord/module-availability.ts` | `createInMemoryModuleAvailability(unavailable?)` | `discord/in-memory-module-availability.ts` | `markUnavailable(module)` |
+| `CommandDeployRest` | `discord/command/command-deploy-rest.ts` | `createInMemoryDeployRest()` | `discord/command/in-memory-deploy-rest.ts` | `requests` (route, body) |
+| `ProcessLike` | `bot/process-like.ts` | `createInMemoryProcess()` | `bot/in-memory-process.ts` | `emit(event, ...args)`, `listenerCount(event)`, `exits` (codes passed to `exit`, which does not exit) |
+| `SettingsStore`, `GuildDirectory`, `SettingsChangedNotifier` | `settings/ports/*` | exist | `settings/in-memory/*` | none |
+
+`tests/ports/every-port-has-a-twin.test.ts` scans `src/**/*.ts` for interfaces tagged `@port` and
+fails when one is missing from its `PORT_TWINS` table (port name → twin factory imported from its
+public subpath), so a new port without a twin breaks the gate.
+
+The kernel's own test doubles are rebuilt on the twins with their call sites unchanged:
+`tests/support/fake-logger.ts` wraps `createInMemoryLogger` with `vi.spyOn` on each level (the suites
+that assert `toHaveBeenCalled` keep working); `fake-module-gate.ts` and
+`fake-locale-resolver.ts` return the twins (with `vi.spyOn` on `resolve`), then are deleted if a
+suite can use the twin directly. AGENTS.md's "one definition per concept" table points at the
+twins.
+
+**Rationale**: the constitution requires a twin for every port; several existed only as private
+test doubles, which a bot cannot import. Tagging ports makes the rule checkable.
+
+**Alternatives considered**: a hand-kept list in the test only (a new port is forgotten silently);
+`vi.fn`-based twins (would force Vitest on consumers).

@@ -40,21 +40,10 @@ export interface NamedFlush {
 
 export type BotState = "created" | "starting" | "running" | "stopping" | "stopped";
 
-export interface BotServices {
-  readonly client: Client;
-  readonly logger: Logger;
-  readonly translator: Translator;
-  readonly registry: SettingsRegistry;
-  readonly settings: SettingsService;
-  readonly gate: ModuleGate;
-  readonly presenter: Presenter;
-  readonly clock: Clock;
-}
-
 export interface Bot extends BotServices {
   readonly state: BotState;
   start(token: string): Promise<void>;
-  stop(reason?: string): Promise<StopReport>;
+  stop(): Promise<StopReport>;
   deployCommands(target: DeployTarget): Promise<number>;
 }
 
@@ -67,10 +56,15 @@ export interface DeployTarget {
 export function createBot(options: BotOptions): Bot;
 ```
 
-Errors (`@azurioh/discord-kernel/bot/bot-errors`): `DuplicateModuleError` (both names),
-`ModuleBuildError` (module name, cause). Duplicate catalog keys and invalid declarations keep
-their existing errors (`DuplicateTranslationKeyError`, `SettingsDeclarationError`), wrapped with
-the module name as `cause` context in the log.
+`BotServices` is imported from `module/module-context` (see below).
+
+Errors (`@azurioh/discord-kernel/bot/bot-errors`):
+
+- `DuplicateModuleError(first, second)`: two modules share a name.
+- `ModuleRegistrationError(moduleName, cause, part?)`: anything that fails while registering one
+  module: a duplicate catalog key (`cause` is the `DuplicateTranslationKeyError`), an invalid
+  settings declaration (`cause` is the `SettingsDeclarationError`), a `build` that throws, or a
+  `part` (`"setup"`, `"commands"`, …) declared both on the module and by `build`.
 
 `start` rejects with the original error when a database connection, a migration, the login or a
 required module `setup` fails, after the stop steps ran.
@@ -91,11 +85,12 @@ export interface StopReport {
 ## `@azurioh/discord-kernel/bot/process-like`
 
 ```ts
+export type ProcessEvent = "SIGINT" | "SIGTERM" | "uncaughtException" | "unhandledRejection";
 export interface ProcessLike {
-  on(event: "SIGINT" | "SIGTERM" | "uncaughtException" | "unhandledRejection", listener: (...args: unknown[]) => void): unknown;
-  off(event: "SIGINT" | "SIGTERM" | "uncaughtException" | "unhandledRejection", listener: (...args: unknown[]) => void): unknown;
+  on(event: ProcessEvent, listener: (...args: unknown[]) => void): unknown;
+  off(event: ProcessEvent, listener: (...args: unknown[]) => void): unknown;
   exitCode?: number | string | undefined;
-  exit(code?: number): never;
+  exit(code?: number): void;
 }
 ```
 
@@ -123,8 +118,22 @@ export interface ModuleParts {
 }
 ```
 
-`ModuleContext` (`@azurioh/discord-kernel/module/module-context`) is `BotServices` with `logger`
-bound to the module.
+`@azurioh/discord-kernel/module/module-context` defines both:
+
+```ts
+export interface BotServices {
+  readonly client: Client;
+  readonly logger: Logger;
+  readonly translator: Translator;
+  readonly registry: SettingsRegistry;
+  readonly settings: SettingsService;
+  readonly gate: ModuleGate;
+  readonly presenter: Presenter;
+  readonly clock: Clock;
+}
+/** What `build` receives: the bot's services, `logger` bound to `{ module: name }`. */
+export type ModuleContext = BotServices;
+```
 
 ## `@azurioh/discord-kernel/discord/module-availability`
 
@@ -165,7 +174,8 @@ export function promptModal<V>(
 ```
 
 `ModalPromptError` (`…/prompt-modal-errors`): thrown when the interaction was already replied to
-or deferred.
+or deferred. A modal closed by the member resolves `dismissed` at the timeout (Discord sends no
+close event).
 
 ## `@azurioh/discord-kernel/discord/default-presenter`
 
@@ -188,6 +198,75 @@ export function createInMemoryMigrationRunner(migrations: readonly Migration[]):
 
 `runMigrationRunnerContract(name, factory, { describe, it, expect })`, where `factory` receives
 the migrations to run and returns a runner over them.
+
+## In-memory twins (one per port, research R15)
+
+Each in its own subpath, no test framework import. Every port interface is tagged `@port`.
+
+```ts
+// @azurioh/discord-kernel/in-memory-logger
+export interface LogEntry {
+  readonly level: "trace" | "debug" | "info" | "warn" | "error" | "fatal";
+  readonly fields: Readonly<Record<string, unknown>>;  // bindings merged with the record
+  readonly message?: string;
+}
+export interface InMemoryLogger extends Logger { readonly entries: readonly LogEntry[] }
+export function createInMemoryLogger(): InMemoryLogger;   // children append to the same entries
+
+// @azurioh/discord-kernel/persistence/in-memory-database
+export interface InMemoryDatabase extends DatabaseConnection {
+  readonly connected: boolean;
+  readonly connectCount: number;
+  readonly closeCount: number;
+  failOnConnect(error: Error): void;
+}
+export function createInMemoryDatabase(driver?: string): InMemoryDatabase;
+
+// @azurioh/discord-kernel/scheduler/in-memory-scheduler
+export interface InMemoryScheduler extends Scheduler {
+  readonly jobs: readonly ScheduledJob[];
+  run(jobName: string): Promise<void>;   // runs the job now; rejects on an unknown name
+}
+export function createInMemoryScheduler(): InMemoryScheduler; // same validation as CronScheduler
+
+// @azurioh/discord-kernel/discord/in-memory-channel-exporter
+export interface InMemoryChannelExporter extends ChannelExporter {
+  readonly exports: readonly { channelId: string; deliverToChannelId: string; guildId: string; options?: ChannelExportOptions }[];
+}
+export function createInMemoryChannelExporter(outcome?: ChannelExportOutcome): InMemoryChannelExporter;
+
+// @azurioh/discord-kernel/discord/interaction/fixed-locale-resolver
+export function createFixedLocaleResolver(locale: Locale): LocaleResolver;
+
+// @azurioh/discord-kernel/settings/system/in-memory-module-gate
+export interface InMemoryModuleGate extends ModuleGate {
+  disable(moduleName: string, guildId: string): void;
+  enable(moduleName: string, guildId: string): void;
+}
+export function createInMemoryModuleGate(disabled?: Readonly<Record<string, readonly string[]>>): InMemoryModuleGate;
+
+// @azurioh/discord-kernel/discord/in-memory-module-availability
+export interface InMemoryModuleAvailability extends ModuleAvailability { markUnavailable(moduleName: string): void }
+export function createInMemoryModuleAvailability(unavailable?: readonly string[]): InMemoryModuleAvailability;
+
+// @azurioh/discord-kernel/discord/command/in-memory-deploy-rest
+export interface InMemoryDeployRest extends CommandDeployRest {
+  readonly requests: readonly { route: string; body: unknown }[];
+}
+export function createInMemoryDeployRest(): InMemoryDeployRest;
+
+// @azurioh/discord-kernel/bot/in-memory-process
+export interface InMemoryProcess extends ProcessLike {
+  emit(event: ProcessEvent, ...args: unknown[]): void;
+  listenerCount(event: ProcessEvent): number;
+  readonly exits: readonly (number | undefined)[];   // `exit` records and returns instead of exiting
+}
+export function createInMemoryProcess(): InMemoryProcess;
+```
+
+`ProcessEvent` is `"SIGINT" | "SIGTERM" | "uncaughtException" | "unhandledRejection"`, exported
+from `bot/process-like`, and `ProcessLike.exit` returns `void` (not `never`) so the twin can
+satisfy it.
 
 ## `@azurioh/discord-kernel/testing/contract-runner`
 
