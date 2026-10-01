@@ -38,3 +38,11 @@ export class DuplicateJobNameError extends JobScheduleError {
 		this.name = "DuplicateJobNameError";
 	}
 }
+
+/** Raised when a job is asked for by a name no registered job carries. */
+export class UnknownJobError extends Error {
+	constructor(jobName: string) {
+		super(`No scheduled job is named ${jobName}`);
+		this.name = "UnknownJobError";
+	}
+}

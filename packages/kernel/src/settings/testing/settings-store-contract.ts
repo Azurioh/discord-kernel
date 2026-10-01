@@ -1,22 +1,7 @@
 import { ConflictError } from "@/errors/business-error";
 import type { SettingsStore, StoredSettings } from "@/settings/ports/settings-store";
-
-/** Minimal shape of a test runner's `describe`, so this suite imports no framework. */
-export type DescribeFn = (name: string, body: () => void) => void;
-
-/** Minimal shape of a test runner's `it`. */
-export type ItFn = (name: string, body: () => Promise<void>) => void;
-
-/** The assertions this suite relies on; Vitest's and Jest's `expect` both satisfy it. */
-export interface ContractAssertion {
-	toBe(expected: unknown): void;
-	toEqual(expected: unknown): void;
-	toBeNull(): void;
-	toBeInstanceOf(expected: abstract new (...args: never[]) => unknown): void;
-}
-
-/** Minimal shape of a test runner's `expect`. */
-export type ExpectFn = (actual: unknown) => ContractAssertion;
+import { captureError } from "@/testing/capture-error";
+import type { DescribeFn, ExpectFn, ItFn } from "@/testing/contract-runner";
 
 const GUILD_A = "100000000000000001";
 const GUILD_B = "100000000000000002";
@@ -34,15 +19,6 @@ function record(overrides: Partial<StoredSettings> = {}): StoredSettings {
 		updatedBy: "200000000000000001",
 		...overrides,
 	};
-}
-
-async function captureError(action: () => Promise<unknown>): Promise<unknown> {
-	try {
-		await action();
-	} catch (error) {
-		return error;
-	}
-	return undefined;
 }
 
 /** The caller's view of a record it may scribble on, to prove the store kept its own copy. */

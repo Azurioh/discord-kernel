@@ -1,16 +1,18 @@
 import { vi } from "vitest";
-import type { Logger } from "@/logger";
+import { createInMemoryLogger, type InMemoryLogger } from "@/in-memory-logger";
 
-/** A {@link Logger} double: every level is a spy, and `child` hands back the same double. */
-export function createFakeLogger(): Logger {
-	const logger: Logger = {
-		trace: vi.fn(),
-		debug: vi.fn(),
-		info: vi.fn(),
-		warn: vi.fn(),
-		error: vi.fn(),
-		fatal: vi.fn(),
-		child: () => logger,
-	};
+const LEVELS = ["trace", "debug", "info", "warn", "error", "fatal"] as const;
+
+/**
+ * A {@link Logger} double over the in-memory twin: every level is a spy that
+ * still records its entry, and `child` hands back the same double, so a
+ * suite sees a child's calls on the parent's spies.
+ */
+export function createFakeLogger(): InMemoryLogger {
+	const logger = createInMemoryLogger();
+	for (const level of LEVELS) {
+		vi.spyOn(logger, level);
+	}
+	logger.child = () => logger;
 	return logger;
 }

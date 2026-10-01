@@ -31,6 +31,8 @@ export interface PermissionGrants {
  * Discord permission concern, composed at the guard level with
  * `anyOf(createPermissionGuard([Administrator]), requireLevel(...))` — keeping
  * this port focused on the one thing it owns, feature-level grants.
+ *
+ * @port
  */
 export interface Authorizer {
 	/** Whether the user (directly, or via one of their roles) meets `required`. */

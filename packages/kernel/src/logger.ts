@@ -15,6 +15,8 @@ export interface LogFn {
  * any vendor SDK, so the concrete implementation (pino, Sentry, a test double)
  * lives in `infrastructure/logging` and can be swapped without touching call
  * sites.
+ *
+ * @port
  */
 export interface Logger {
 	trace: LogFn;

@@ -56,6 +56,10 @@ export {
 } from "@/settings/settings-validation-error";
 export type { SettingsStatus } from "@/settings/status";
 export {
+	createInMemoryModuleGate,
+	type InMemoryModuleGate,
+} from "@/settings/system/in-memory-module-gate";
+export {
 	KERNEL_SETTINGS_ID,
 	type KernelSettings,
 	kernelSettings,

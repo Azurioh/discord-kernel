@@ -63,9 +63,17 @@
 			"types": "./dist/authz/authorizer.d.ts",
 			"default": "./dist/authz/authorizer.js"
 		},
+		"./authz/in-memory-authorizer": {
+			"types": "./dist/authz/in-memory-authorizer.d.ts",
+			"default": "./dist/authz/in-memory-authorizer.js"
+		},
 		"./authz/require-level-guard": {
 			"types": "./dist/authz/require-level-guard.d.ts",
 			"default": "./dist/authz/require-level-guard.js"
+		},
+		"./authz/testing": {
+			"types": "./dist/authz/testing/index.d.ts",
+			"default": "./dist/authz/testing/index.js"
 		},
 		"./clock": {
 			"types": "./dist/clock.d.ts",
@@ -267,6 +275,10 @@
 			"types": "./dist/discord/components/settings-editor/settings-editor.view.d.ts",
 			"default": "./dist/discord/components/settings-editor/settings-editor.view.js"
 		},
+		"./discord/default-presenter": {
+			"types": "./dist/discord/default-presenter.d.ts",
+			"default": "./dist/discord/default-presenter.js"
+		},
 		"./discord/events/create-event": {
 			"types": "./dist/discord/events/create-event.d.ts",
 			"default": "./dist/discord/events/create-event.js"
@@ -283,9 +295,17 @@
 			"types": "./dist/discord/i18n.d.ts",
 			"default": "./dist/discord/i18n.js"
 		},
+		"./discord/in-memory-channel-exporter": {
+			"types": "./dist/discord/in-memory-channel-exporter.d.ts",
+			"default": "./dist/discord/in-memory-channel-exporter.js"
+		},
 		"./discord/interaction/button": {
 			"types": "./dist/discord/interaction/button.d.ts",
 			"default": "./dist/discord/interaction/button.js"
+		},
+		"./discord/interaction/fixed-locale-resolver": {
+			"types": "./dist/discord/interaction/fixed-locale-resolver.d.ts",
+			"default": "./dist/discord/interaction/fixed-locale-resolver.js"
 		},
 		"./discord/interaction/interaction-locale": {
 			"types": "./dist/discord/interaction/interaction-locale.d.ts",
@@ -411,6 +431,10 @@
 			"types": "./dist/i18n/translator.d.ts",
 			"default": "./dist/i18n/translator.js"
 		},
+		"./in-memory-logger": {
+			"types": "./dist/in-memory-logger.d.ts",
+			"default": "./dist/in-memory-logger.js"
+		},
 		"./logger": {
 			"types": "./dist/logger.d.ts",
 			"default": "./dist/logger.js"
@@ -423,6 +447,22 @@
 			"types": "./dist/persistence/database.d.ts",
 			"default": "./dist/persistence/database.js"
 		},
+		"./persistence/in-memory-database": {
+			"types": "./dist/persistence/in-memory-database.d.ts",
+			"default": "./dist/persistence/in-memory-database.js"
+		},
+		"./persistence/in-memory-migration-runner": {
+			"types": "./dist/persistence/in-memory-migration-runner.d.ts",
+			"default": "./dist/persistence/in-memory-migration-runner.js"
+		},
+		"./persistence/migration-runner": {
+			"types": "./dist/persistence/migration-runner.d.ts",
+			"default": "./dist/persistence/migration-runner.js"
+		},
+		"./persistence/testing": {
+			"types": "./dist/persistence/testing/index.d.ts",
+			"default": "./dist/persistence/testing/index.js"
+		},
 		"./resilience/retry": {
 			"types": "./dist/resilience/retry.d.ts",
 			"default": "./dist/resilience/retry.js"
@@ -431,9 +471,17 @@
 			"types": "./dist/scheduler/errors.d.ts",
 			"default": "./dist/scheduler/errors.js"
 		},
+		"./scheduler/in-memory-scheduler": {
+			"types": "./dist/scheduler/in-memory-scheduler.d.ts",
+			"default": "./dist/scheduler/in-memory-scheduler.js"
+		},
 		"./scheduler/scheduler": {
 			"types": "./dist/scheduler/scheduler.d.ts",
 			"default": "./dist/scheduler/scheduler.js"
+		},
+		"./testing/contract-runner": {
+			"types": "./dist/testing/contract-runner.d.ts",
+			"default": "./dist/testing/contract-runner.js"
 		}
 	},
 	"files": [
