@@ -63,7 +63,7 @@ Already defined once, reuse them:
 | The display order of a settings declaration | `displayOrder` (`@/settings/field-order`) |
 | Reading a stored settings value on the settings screen | `@/discord/components/settings-editor/from-declaration-stored` |
 | A duration as `1h30m`, and back | `formatDuration`, `parseDuration` (`@/settings/duration`) |
-| A `Logger` double in tests | `createFakeLogger` (`tests/support/fake-logger.ts`) |
+| A `Logger` double in tests | `createFakeLogger` (`tests/support/fake-logger.ts`, spies over the `createInMemoryLogger` twin, `@/in-memory-logger`) |
 | Whether a module is enabled on a guild (routers, scheduled jobs) | `ModuleGate`, `createModuleGate` (`@/settings/system/module-gate`) |
 | A router's "skip this handler?" check | `isModuleDisabled` (`@/discord/settings/is-module-disabled`) |
 | The "disabled on this server" reply | `moduleDisabledEmbed` (`@/discord/settings/module-disabled-embed`) |
@@ -73,10 +73,14 @@ Already defined once, reuse them:
 | Whether a value is a plain JSON object (a patch, stored values, a toggles value) | `isPlainObject` (`@/settings/is-plain-object`) |
 | Stored values checked against a declaration (unknown keys ignored, invalid fields reported) | `decodeStored` (`@/settings/decode-stored`) |
 | Running a declaration's `migrate` on an older stored record, validated | `migrateStored` (`@/settings/migrate`); the service writes it back |
-| A `ModuleGate` double in tests | `createFakeModuleGate` (`tests/support/fake-module-gate.ts`) |
+| A `ModuleGate` double in tests | `createFakeModuleGate` (`tests/support/fake-module-gate.ts`), over the `createInMemoryModuleGate` twin (`@/settings/system/in-memory-module-gate`) |
 | The reply language of an interaction on a kernel reply path | `replyLocale` (`@/discord/interaction/reply-locale`) over the `LocaleResolver` port (`@/discord/interaction/locale-resolver`) |
 | The guild's language setting as a resolver (FR-038) | `createGuildLocaleResolver` (`@/discord/settings/guild-locale-resolver`) |
-| A `LocaleResolver` double in tests | `createFakeLocaleResolver` (`tests/support/fake-locale-resolver.ts`) |
+| A `LocaleResolver` double in tests | `createFakeLocaleResolver` (`tests/support/fake-locale-resolver.ts`, a spy over the `createFixedLocaleResolver` twin, `@/discord/interaction/fixed-locale-resolver`) |
+| A discord.js `Client` that never connects, in tests | `createFakeClient`, `emitReady` (`tests/support/fake-client.ts`) |
+| A double of any other port (`@port`) | its in-memory twin (`tests/ports/every-port-has-a-twin.test.ts` lists them) |
+| Whether a scheduler may register a job (same refusals and logs everywhere) | `isSchedulable` (`@/scheduler/validate-jobs`) |
+| The runner types and rejection capture of a contract suite | `@/testing/contract-runner`, `captureError` (`@/testing/capture-error`) |
 | The required settings a guild left unset | `service.status(declaration, guildId)` (`@/settings/status`, cached) |
 | Blocking a command or component until its module is configured | `requireConfigured` (`@/discord/settings/require-configured`) as its `guard` |
 | Running a command's or component's guard and answering its denial | `passesGuard` (`@/discord/command/passes-guard`) |

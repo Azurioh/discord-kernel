@@ -1,3 +1,4 @@
+import cron from "node-cron";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	AmbiguousJobScheduleError,
@@ -7,6 +8,13 @@ import {
 } from "@/scheduler/errors";
 import { CronScheduler, type ScheduledJob } from "@/scheduler/scheduler";
 import { createFakeLogger } from "../support/fake-logger";
+
+// Pass-through spy: every case still schedules through the real node-cron, and
+// the FR-027a case below reads what the scheduler handed it.
+vi.mock("node-cron", async (importOriginal) => {
+	const actual = (await importOriginal<{ default: typeof cron }>()).default;
+	return { default: { ...actual, schedule: vi.fn(actual.schedule) } };
+});
 
 const INTERVAL_MS = 1_000;
 
@@ -281,5 +289,26 @@ describe("CronScheduler runOnStart", () => {
 			expect.objectContaining({ job: "boot", err: "boot failed" }),
 			"Scheduled job failed",
 		);
+	});
+});
+
+describe("CronScheduler use of node-cron (FR-027a)", () => {
+	it("hands node-cron a function, never a task path, and no distributed option", () => {
+		const local = new CronScheduler(createFakeLogger());
+		const zoned = new CronScheduler(createFakeLogger(), { timezone: "Europe/Paris" });
+		local.start([{ name: "local", cron: "0 9 * * *", run: vi.fn() }]);
+		zoned.start([{ name: "zoned", cron: "0 9 * * *", run: vi.fn() }]);
+		local.rescheduleCron("local", "0 10 * * *");
+
+		const calls = vi.mocked(cron.schedule).mock.calls;
+
+		expect(calls).toHaveLength(3);
+		for (const [, task, options] of calls) {
+			expect(typeof task).toBe("function");
+			expect(options ?? {}).not.toHaveProperty("distributed");
+		}
+		expect(calls[1]?.[2]).toEqual({ timezone: "Europe/Paris" });
+		local.stop();
+		zoned.stop();
 	});
 });

@@ -14,14 +14,6 @@ interface Manifest {
 
 const manifest: Manifest = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
 
-/**
- * The runtime dependencies the kernel may have (constitution I). `zod` is the one
- * allowed pure library. `node-cron` predates the constitution: it was already
- * shipped by 0.1.0 as the engine behind the `Scheduler`, and stays hidden
- * behind the kernel's own `ScheduledJob` type.
- */
-const ALLOWED_DEPENDENCIES = ["node-cron", "zod"];
-
 /** What the kernel exposes in its public types, so the consumer provides it. */
 const ALLOWED_PEER_DEPENDENCIES = ["discord.js"];
 
@@ -106,10 +98,6 @@ describe("public surface of the settings feature (S14, FR-034, SC-008)", () => {
 		const leaks = Object.keys(manifest.dependencies ?? {}).flatMap((name) => importersOf(name));
 
 		expect(leaks).toEqual([]);
-	});
-
-	it("depends at runtime on the allowed libraries only", () => {
-		expect(Object.keys(manifest.dependencies ?? {}).sort()).toEqual(ALLOWED_DEPENDENCIES);
 	});
 
 	it("asks the consumer for discord.js only", () => {

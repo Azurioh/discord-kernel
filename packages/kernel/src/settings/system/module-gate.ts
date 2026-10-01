@@ -7,6 +7,8 @@ import type { SettingsService } from "@/settings/settings-service";
  * Whether a module runs on a guild. The command, component and event routers
  * check it before running a module's handler there; scheduled jobs call it
  * themselves (FR-036).
+ *
+ * @port
  */
 export interface ModuleGate {
 	isEnabled(moduleName: string, guildId: string): Promise<boolean>;

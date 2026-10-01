@@ -30,6 +30,8 @@ export type ChannelKind =
  * Read-only view of a guild's channels, roles and members. Settings logic uses
  * it to check that a referenced entity exists and to suggest candidates,
  * without depending on discord.js.
+ *
+ * @port
  */
 export interface GuildDirectory {
 	channel(
