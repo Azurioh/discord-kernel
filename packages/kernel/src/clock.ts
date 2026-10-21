@@ -2,6 +2,8 @@
  * Abstraction over the current time. Injecting a clock (instead of calling
  * `new Date()` directly) lets domain/application code be tested deterministically
  * and keeps those layers free of ambient I/O.
+ *
+ * @port
  */
 export interface Clock {
 	now(): Date;

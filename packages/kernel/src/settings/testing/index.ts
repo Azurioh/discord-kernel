@@ -1,7 +1,2 @@
-export {
-	type ContractAssertion,
-	type DescribeFn,
-	type ExpectFn,
-	type ItFn,
-	runSettingsStoreContract,
-} from "@/settings/testing/settings-store-contract";
+export { runSettingsStoreContract } from "@/settings/testing/settings-store-contract";
+export type { ContractAssertion, DescribeFn, ExpectFn, ItFn } from "@/testing/contract-runner";
