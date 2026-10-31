@@ -47,6 +47,8 @@ export interface StoredSettings {
  *   or get back without changing what is stored.
  * - **Errors are real.** Only a revision mismatch is a `ConflictError`; any
  *   other failure (connection lost, corrupt data) is thrown as it is.
+ *
+ * @port
  */
 export interface SettingsStore {
 	/**

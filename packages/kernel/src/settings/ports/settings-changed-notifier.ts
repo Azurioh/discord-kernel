@@ -12,6 +12,8 @@ export interface SettingsChangedEvent {
 /**
  * Broadcasts settings changes, e.g. so read caches can invalidate. The default
  * implementation is in-process; distributed delivery is a separate adapter.
+ *
+ * @port
  */
 export interface SettingsChangedNotifier {
 	notify(event: SettingsChangedEvent): void;

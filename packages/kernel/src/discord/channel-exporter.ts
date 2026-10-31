@@ -1,13 +1,4 @@
-/**
- * Port for handing a channel to whatever export/archive pipeline is wired up at
- * the composition root, before the channel is otherwise disposed of.
- *
- * This is the seam that lets one feature use another's capability without
- * importing it: a module that closes channels can ask for the content to be
- * archived first, while knowing nothing about who archives it — or whether
- * anyone does. The composition root decides what implements this, exactly as it
- * does for `Logger` and `DatabaseConnection`.
- */
+/** Options of one {@link ChannelExporter.exportChannel} call. */
 export interface ChannelExportOptions {
 	/** A caller-chosen base name (no extension) for the produced archive file. */
 	readonly fileName?: string;
@@ -30,6 +21,18 @@ export interface ChannelExportOutcome {
 	readonly cloudUrl?: string;
 }
 
+/**
+ * Port for handing a channel to whatever export/archive pipeline is wired up at
+ * the composition root, before the channel is otherwise disposed of.
+ *
+ * This is the seam that lets one feature use another's capability without
+ * importing it: a module that closes channels can ask for the content to be
+ * archived first, while knowing nothing about who archives it — or whether
+ * anyone does. The composition root decides what implements this, exactly as it
+ * does for `Logger` and `DatabaseConnection`.
+ *
+ * @port
+ */
 export interface ChannelExporter {
 	/**
 	 * Export `channelId`'s content and deliver the result.

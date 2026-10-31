@@ -1,13 +1,7 @@
 import cron from "node-cron";
 import { errorMessage } from "@/errors/error-message";
 import type { Logger } from "@/logger";
-import {
-	AmbiguousJobScheduleError,
-	DuplicateJobNameError,
-	InvalidJobIntervalError,
-	type JobScheduleError,
-	MissingJobScheduleError,
-} from "@/scheduler/errors";
+import { isSchedulable } from "@/scheduler/validate-jobs";
 
 /** What every job carries, whatever schedule drives it. */
 interface BaseScheduledJob {
@@ -56,47 +50,17 @@ interface RegisteredTask {
 	readonly stop: StopTask;
 }
 
-/** Scheduler control exposed to modules through dependency injection. */
+/**
+ * Scheduler control exposed to modules through dependency injection.
+ *
+ * @port
+ */
 export interface Scheduler {
 	readonly started: boolean;
 	start(jobs: Iterable<ScheduledJob>): void;
 	isValidCron(expression: string): boolean;
 	rescheduleCron(jobName: string, expression: string): boolean;
 	stop(): void;
-}
-
-/**
- * A job as it actually arrives at runtime. The exported union already forbids
- * the invalid combinations, which is exactly why the check below cannot be
- * written against it: the compiler narrows them to `never`. Modules built from
- * untyped config still reach us, so validation reads the unnarrowed shape.
- */
-interface UnvalidatedJob {
-	readonly name: string;
-	readonly cron?: string;
-	readonly intervalMs?: number;
-}
-
-/**
- * The schedule failure of a single job, or `null` when it is well-formed.
- * Returned rather than thrown: `start()` runs inside the `ready` handler, on an
- * already-online bot, so one malformed job must not cancel every other module's
- * jobs. The caller logs it and skips that job alone.
- */
-function scheduleFailure(job: ScheduledJob): JobScheduleError | null {
-	const { name, cron: expression, intervalMs } = job as UnvalidatedJob;
-	const hasCron = expression !== undefined;
-	const hasInterval = intervalMs !== undefined;
-	if (hasCron && hasInterval) {
-		return new AmbiguousJobScheduleError(name);
-	}
-	if (!hasCron && !hasInterval) {
-		return new MissingJobScheduleError(name);
-	}
-	if (intervalMs !== undefined && (!Number.isFinite(intervalMs) || intervalMs <= 0)) {
-		return new InvalidJobIntervalError(name, intervalMs);
-	}
-	return null;
 }
 
 /**
@@ -121,25 +85,14 @@ export class CronScheduler implements Scheduler {
 		this.running = true;
 		const declared = [...jobs];
 		for (const job of declared) {
-			if (this.tasks.has(job.name)) {
-				const failure = new DuplicateJobNameError(job.name);
-				this.logger.error({ job: job.name, err: failure.message }, "Job schedule invalid, skipped");
-				continue;
-			}
-			// A malformed schedule disables that job only. Skipping is logged at
-			// error level so it is not mistaken for a working job.
-			const failure = scheduleFailure(job);
-			if (failure !== null) {
-				this.logger.error({ job: job.name, err: failure.message }, "Job schedule invalid, skipped");
+			// A malformed schedule disables that job only, and its boot run with it:
+			// a boot run would fire something the caller has been told is not running.
+			if (!isSchedulable(job, this.tasks, this.logger)) {
 				continue;
 			}
 			const stopTask = job.cron !== undefined ? this.scheduleCron(job) : this.scheduleInterval(job);
-			// An unusable schedule already disabled the job, so a boot run would
-			// fire something the caller has been told is not running.
-			if (stopTask !== null) {
-				this.tasks.set(job.name, { job, stop: stopTask });
-			}
-			if (stopTask !== null && job.runOnStart === true) {
+			this.tasks.set(job.name, { job, stop: stopTask });
+			if (job.runOnStart === true) {
 				void this.runIsolated(job);
 			}
 		}
@@ -166,20 +119,14 @@ export class CronScheduler implements Scheduler {
 
 		const replacement: CronScheduledJob = { ...current.job, cron: expression };
 		const replacementStop = this.scheduleCron(replacement, false);
-		if (replacementStop === null) {
-			return false;
-		}
 		current.stop();
 		this.tasks.set(jobName, { job: replacement, stop: replacementStop });
 		this.logger.info({ job: jobName, cron: expression }, "Scheduled cron job updated");
 		return true;
 	}
 
-	private scheduleCron(job: CronScheduledJob, logRegistration = true): StopTask | null {
-		if (!this.isValidCron(job.cron)) {
-			this.logger.error({ job: job.name, cron: job.cron }, "Invalid cron expression, job skipped");
-			return null;
-		}
+	/** Register a cron job whose expression the caller already validated. */
+	private scheduleCron(job: CronScheduledJob, logRegistration = true): StopTask {
 		const task = cron.schedule(
 			job.cron,
 			() => this.runIsolated(job),
