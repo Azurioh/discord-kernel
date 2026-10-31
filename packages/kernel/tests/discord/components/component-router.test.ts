@@ -7,6 +7,7 @@ import {
 } from "@/discord/components/component-access";
 import { ComponentRouter } from "@/discord/components/component-router";
 import { CORE_MESSAGES } from "@/discord/i18n";
+import { createInMemoryModuleAvailability } from "@/discord/in-memory-module-availability";
 import type { Presenter } from "@/discord/presenter";
 import type { Translator } from "@/i18n/translator";
 import { SETTINGS_MESSAGES } from "@/settings/messages";
@@ -276,3 +277,29 @@ describe("ComponentRouter reply language (S17)", () => {
 		);
 	});
 });
+
+it.each(["button", "select", "modal"])(
+	"denies an unavailable ungated %s before authorization",
+	async (kind) => {
+		const handle = vi.fn();
+		const deps = { ...makeDeps(), availability: createInMemoryModuleAvailability(["tickets"]) };
+		const router = new ComponentRouter(deps).registerAll(
+			[{ customId: "ticket", authorize: openToAnyone("test"), handle }],
+			"tickets",
+			false,
+		);
+		const interaction = {
+			...fakeButton("ticket", null),
+			isButton: () => kind === "button",
+			isAnySelectMenu: () => kind === "select",
+			isModalSubmit: () => kind === "modal",
+		};
+		expect(await router.handle(interaction as never)).toBe(true);
+		expect(handle).not.toHaveBeenCalled();
+		expect(deps.translator.translate).toHaveBeenCalledWith("en", CORE_MESSAGES.moduleUnavailable);
+		expect(interaction.reply).toHaveBeenCalledWith({
+			embeds: [expect.any(EmbedBuilder)],
+			flags: MessageFlags.Ephemeral,
+		});
+	},
+);

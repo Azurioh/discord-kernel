@@ -506,6 +506,50 @@
 		"./discord/command/in-memory-deploy-rest": {
 			"types": "./dist/discord/command/in-memory-deploy-rest.d.ts",
 			"default": "./dist/discord/command/in-memory-deploy-rest.js"
+		},
+		"./bot/lifecycle-step": {
+			"types": "./dist/bot/lifecycle-step.d.ts",
+			"default": "./dist/bot/lifecycle-step.js"
+		},
+		"./bot/lifecycle": {
+			"types": "./dist/bot/lifecycle.d.ts",
+			"default": "./dist/bot/lifecycle.js"
+		},
+		"./bot/lifecycle-dispatcher": {
+			"types": "./dist/bot/lifecycle-dispatcher.d.ts",
+			"default": "./dist/bot/lifecycle-dispatcher.js"
+		},
+		"./bot/module-status": {
+			"types": "./dist/bot/module-status.d.ts",
+			"default": "./dist/bot/module-status.js"
+		},
+		"./bot/process-like": {
+			"types": "./dist/bot/process-like.d.ts",
+			"default": "./dist/bot/process-like.js"
+		},
+		"./bot/stop-report": {
+			"types": "./dist/bot/stop-report.d.ts",
+			"default": "./dist/bot/stop-report.js"
+		},
+		"./bot/in-memory-process": {
+			"types": "./dist/bot/in-memory-process.d.ts",
+			"default": "./dist/bot/in-memory-process.js"
+		},
+		"./bot/process-handlers": {
+			"types": "./dist/bot/process-handlers.d.ts",
+			"default": "./dist/bot/process-handlers.js"
+		},
+		"./discord/module-availability": {
+			"types": "./dist/discord/module-availability.d.ts",
+			"default": "./dist/discord/module-availability.js"
+		},
+		"./discord/in-memory-module-availability": {
+			"types": "./dist/discord/in-memory-module-availability.d.ts",
+			"default": "./dist/discord/in-memory-module-availability.js"
+		},
+		"./discord/settings/module-unavailable-embed": {
+			"types": "./dist/discord/settings/module-unavailable-embed.d.ts",
+			"default": "./dist/discord/settings/module-unavailable-embed.js"
 		}
 	},
 	"files": [

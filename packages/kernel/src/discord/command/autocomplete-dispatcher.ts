@@ -1,6 +1,7 @@
 import type { Interaction } from "discord.js";
 import type { SlashCommand } from "@/discord/command/types";
 import type { InteractionDispatcher } from "@/discord/interaction/interaction-router";
+import type { ModuleAvailability } from "@/discord/module-availability";
 import { isModuleDisabled } from "@/discord/settings/is-module-disabled";
 import { errorMessage } from "@/errors/error-message";
 import type { Logger } from "@/logger";
@@ -14,8 +15,10 @@ import type { ModuleGate } from "@/settings/system/module-gate";
  */
 export interface CommandLookup {
 	get(name: string): SlashCommand | undefined;
-	/** The owning gated module, when the registry supplies module metadata. */
+	/** The owning module, independent of guild gating. */
 	moduleName?(command: SlashCommand): string | undefined;
+	/** Whether the owning module uses per-guild gating. */
+	gated?(command: SlashCommand): boolean;
 }
 
 /**
@@ -28,6 +31,7 @@ export class AutocompleteDispatcher implements InteractionDispatcher {
 		private readonly commands: CommandLookup,
 		private readonly logger: Logger,
 		private readonly gate?: ModuleGate,
+		private readonly availability?: ModuleAvailability,
 	) {}
 
 	/** Claim autocomplete interactions; ignore everything else. */
@@ -45,10 +49,15 @@ export class AutocompleteDispatcher implements InteractionDispatcher {
 		// error for autocomplete, it just leaves the box spinning until it times
 		// out. Swallow, log, and let the command reply with an empty list.
 		try {
+			const owner = this.commands.moduleName?.(command);
+			if (owner !== undefined && this.availability?.isAvailable(owner) === false) {
+				await interaction.respond([]);
+				return true;
+			}
 			if (
 				await isModuleDisabled({
 					gate: this.gate,
-					moduleName: this.commands.moduleName?.(command),
+					moduleName: this.commands.gated?.(command) === false ? undefined : owner,
 					guildId: interaction.guildId,
 				})
 			) {

@@ -1,9 +1,9 @@
-import { join } from "node:path";
 import { EmbedBuilder, Events } from "discord.js";
 import { describe, expect, it, vi } from "vitest";
 import { assembleModules, buildModules } from "@/bot/assemble-modules";
 import { DuplicateModuleError, ModuleRegistrationError } from "@/bot/bot-errors";
 import { type BotOptions, createBot } from "@/bot/create-bot";
+import { createInMemoryProcess } from "@/bot/in-memory-process";
 import { fixedClock, systemClock } from "@/clock";
 import { AutocompleteDispatcher } from "@/discord/command/autocomplete-dispatcher";
 import { createCommand } from "@/discord/command/create-command";
@@ -24,6 +24,7 @@ import { createTranslator } from "@/i18n/translator";
 import { createInMemoryLogger } from "@/in-memory-logger";
 import type { BotModule } from "@/module/module";
 import type { ModuleContext } from "@/module/module-context";
+import { createInMemoryScheduler } from "@/scheduler/in-memory-scheduler";
 import { defineSettings } from "@/settings/define-settings";
 import { field } from "@/settings/fields/builders";
 import { createInMemoryGuildDirectory } from "@/settings/in-memory/in-memory-guild-directory";
@@ -35,8 +36,13 @@ import { SettingsDeclarationError } from "@/settings/settings-declaration-error"
 import { createSettingsService } from "@/settings/settings-service";
 import { createModuleGate } from "@/settings/system/module-gate";
 import packageManifest from "../../package.json";
-import { createBotInteraction, dispatchClientEvent } from "../support/bot-interaction";
-import { createFakeClient } from "../support/fake-client";
+import {
+	createBotInteraction,
+	dispatchClientEvent,
+	startFakeBot,
+} from "../support/bot-interaction";
+import { createFakeClient, emitReady } from "../support/fake-client";
+import { publicEntrySource } from "../support/public-entry";
 
 const GUILD_A = "100000000000000001";
 const GUILD_B = "100000000000000002";
@@ -61,7 +67,8 @@ function options(modules: readonly BotModule[]): BotOptions & {
 		logger: createInMemoryLogger(),
 		settingsStore: createInMemorySettingsStore(),
 		discord: { client: createFakeClient() },
-		adapters: { guilds: createInMemoryGuildDirectory({}) },
+		adapters: { guilds: createInMemoryGuildDirectory({}), scheduler: createInMemoryScheduler() },
+		lifecycle: { process: createInMemoryProcess() },
 	};
 }
 
@@ -117,6 +124,7 @@ describe("createBot", () => {
 		);
 		expect(bot.translator.translate("fr", TEST_MESSAGES.enabled)).toBe("Activé");
 		expect(bot.registry.get(DECLARATION.id)).toBe(DECLARATION);
+		await startFakeBot({ bot });
 		await interact({ bot, kind: "slash", name: "first" });
 		await interact({ bot, kind: "slash", name: "second" });
 		await interact({ bot, kind: "button", name: "button" });
@@ -129,6 +137,7 @@ describe("createBot", () => {
 		expect(second.dispatch).toHaveBeenCalledOnce();
 		expect(button.handle).toHaveBeenCalledOnce();
 		expect(execute).toHaveBeenCalledOnce();
+		await bot.stop();
 	});
 
 	it("(b) builds once with finished services and a module-bound logger", async () => {
@@ -149,6 +158,7 @@ describe("createBot", () => {
 			fields: { module: "test" },
 			message: "built",
 		});
+		await startFakeBot({ bot });
 		await interact({ bot, kind: "slash", name: "built" });
 		expect(built.dispatch).toHaveBeenCalledOnce();
 		expect(build).toHaveBeenCalledOnce();
@@ -156,6 +166,7 @@ describe("createBot", () => {
 			settings: bot.settings,
 			registry: bot.registry,
 		});
+		await bot.stop();
 	});
 
 	it("(c) rejects duplicate names before login or build", () => {
@@ -248,8 +259,10 @@ describe("createBot", () => {
 		expect((await bot.settings.get(bot.registry.kernel, GUILD_A)).modules).toEqual({
 			disabled: false,
 		});
+		await startFakeBot({ bot });
 		await interact({ bot, kind: "slash", name: "admin" });
 		expect(admin.dispatch).toHaveBeenCalledOnce();
+		await bot.stop();
 	});
 
 	it("(i) includes settings-only modules in declarations and toggles", async () => {
@@ -279,6 +292,7 @@ describe("createBot", () => {
 				locale: "en",
 			},
 		);
+		await startFakeBot({ bot });
 		for (const locale of ["de", "en"]) {
 			const replyLocale = locale === "de" ? "fr" : "en";
 			const interaction = await interact({ bot, kind: "slash", name: "fail", locale });
@@ -294,6 +308,7 @@ describe("createBot", () => {
 				],
 			});
 		}
+		await bot.stop();
 	});
 
 	it("(k) uses custom presenter and locale resolver factory", async () => {
@@ -321,12 +336,14 @@ describe("createBot", () => {
 			},
 		]);
 		const bot = createBot({ ...input, adapters: { ...input.adapters, presenter, localeResolver } });
+		await startFakeBot({ bot });
 		const interaction = await interact({ bot, kind: "slash", name: "confirm" });
 		expect(localeResolver).toHaveBeenCalledWith(
 			expect.objectContaining({ settings: bot.settings }),
 		);
 		expect(presenter.confirmation).toHaveBeenCalledWith("done", "fr");
 		expect(interaction.reply).toHaveBeenCalledWith(expect.objectContaining({ embeds: [embed] }));
+		await bot.stop();
 	});
 
 	it("(l) exposes all services and awaits login without returning the token", async () => {
@@ -337,8 +354,8 @@ describe("createBot", () => {
 		for (const key of ["translator", "registry", "settings", "gate", "presenter"]) {
 			expect(bot).toHaveProperty(key);
 		}
-		expect(bot).not.toHaveProperty("state");
-		expect(bot).not.toHaveProperty("stop");
+		expect(bot.state).toBe("created");
+		expect(bot.stop).toBeTypeOf("function");
 		let resolveLogin: ((token: string) => void) | undefined;
 		vi.mocked(input.discord.client.login).mockImplementation(
 			() =>
@@ -351,11 +368,14 @@ describe("createBot", () => {
 			completed = true;
 			return result;
 		});
-		await Promise.resolve();
+		await vi.waitFor(() => expect(input.discord.client.login).toHaveBeenCalledOnce());
 		expect(completed).toBe(false);
 		resolveLogin?.("secret");
+		emitReady(bot.client);
 		expect(await starting).toBeUndefined();
 		expect(input.discord.client.login).toHaveBeenCalledWith("secret");
+		expect(bot.state).toBe("running");
+		expect(await bot.stop()).toEqual({ ok: true, reason: "manual", failed: [], abandoned: [] });
 	});
 
 	it.each([
@@ -388,13 +408,10 @@ describe("createBot", () => {
 		async (subpath, expected) => {
 			// Self-references load dist separately from the source graph used by createBot.
 			// Resolve the real public export to its source so this also works before build.
-			const target = packageManifest.exports[`./${subpath}`].default;
-			expect(target).toMatch(/^\.\/dist\/.+\.js$/);
-			const source = join(
-				__dirname,
-				"../..",
-				target.replace("./dist/", "src/").replace(/\.js$/, ".ts"),
-			);
+			const target = packageManifest.exports[`./${subpath}`];
+			expect(target.default).toMatch(/^\.\/dist\/.+\.js$/);
+			const source = publicEntrySource(`./${subpath}`);
+			expect(source).toMatch(/src\/.+\.ts$/);
 			const publicModule = await import(source);
 			for (const [name, implementation] of Object.entries(expected)) {
 				expect(publicModule[name], `${subpath}: ${name}`).toBe(implementation);
@@ -431,6 +448,7 @@ describe("createBot", () => {
 				locale: "en",
 			},
 		);
+		await startFakeBot({ bot });
 		for (const guildId of [GUILD_A, GUILD_B]) {
 			await interact({ bot, kind: "slash", name: "test", guildId });
 			await interact({ bot, kind: "button", name: "test", guildId });
@@ -450,13 +468,16 @@ describe("createBot", () => {
 			expect.anything(),
 		);
 		expect(execute).toHaveBeenCalledExactlyOnceWith({ guildId: GUILD_B });
+		await bot.stop();
 	});
 
 	it("(o) registers and routes context menus", async () => {
 		const menu = command("inspect");
 		const bot = createBot(options([{ name: "test", contextMenuCommands: [menu] }]));
+		await startFakeBot({ bot });
 		await interact({ bot, kind: "contextMenu", name: "inspect" });
 		expect(menu.dispatch).toHaveBeenCalledOnce();
+		await bot.stop();
 	});
 
 	it("(p) routes autocomplete through the shared command registry", async () => {
@@ -471,8 +492,10 @@ describe("createBot", () => {
 				},
 			]),
 		);
+		await startFakeBot({ bot });
 		await interact({ bot, kind: "autocomplete", name: "search" });
 		expect(autocomplete).toHaveBeenCalledOnce();
+		await bot.stop();
 	});
 
 	it("gates autocomplete per guild while ungated modules always run", async () => {
@@ -498,6 +521,7 @@ describe("createBot", () => {
 				locale: "en",
 			},
 		);
+		await startFakeBot({ bot });
 		const disabled = await interact({
 			bot,
 			kind: "autocomplete",
@@ -514,6 +538,7 @@ describe("createBot", () => {
 		expect(adminAutocomplete).toHaveBeenCalledExactlyOnceWith(
 			expect.objectContaining({ guildId: GUILD_A }),
 		);
+		await bot.stop();
 	});
 
 	it.each(["static", "build"] as const)(

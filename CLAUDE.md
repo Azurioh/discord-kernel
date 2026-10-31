@@ -53,6 +53,13 @@ Already defined once, reuse them:
 | Need | Use |
 |---|---|
 | Creating a bot from modules and shared services | `createBot` (`@/bot/create-bot`); `BotServices` and `ModuleContext` (`@/module/module-context`) |
+| Owning startup acquisitions and ordered shutdown | `BotLifecycle` (`@/bot/lifecycle`) and `runStep` (`@/bot/lifecycle-step`); never duplicate startup or deadline handling |
+| Module availability independently of guild toggles | `ModuleStatus` (`@/bot/module-status`) over `ModuleAvailability` (`@/discord/module-availability`); twin: `createInMemoryModuleAvailability` (`@/discord/in-memory-module-availability`) |
+| The unavailable-module reply | `moduleUnavailableEmbed` (`@/discord/settings/module-unavailable-embed`) |
+| Blocking interactions outside the running state | `LifecycleDispatcher` (`@/bot/lifecycle-dispatcher`), first in the existing `InteractionRouter` |
+| Process signals, crashes and observable exits in tests | `installProcessHandlers` (`@/bot/process-handlers`) over `ProcessLike` (`@/bot/process-like`); twin: `createInMemoryProcess` (`@/bot/in-memory-process`) |
+| The result of ordered shutdown | `StopReport` and `StopReason` (`@/bot/stop-report`) |
+| Starting fake-client bots and dispatching shared interactions in tests | `startFakeBot`, `createBotInteraction`, `dispatchClientEvent` (`tests/support/bot-interaction.ts`) |
 | Validating and building module contributions | `assembleModules`, `buildModules` (`@/bot/assemble-modules`) |
 | Recording command deployment without Discord REST | `createInMemoryDeployRest` (`@/discord/command/in-memory-deploy-rest`), over `CommandDeployRest` |
 | The reply language of an interaction | `interactionLocale` (`@/discord/interaction/interaction-locale`) |

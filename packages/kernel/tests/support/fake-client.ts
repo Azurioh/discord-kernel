@@ -6,9 +6,12 @@ import { vi } from "vitest";
  * the token without opening the gateway, and `login` and `destroy` are spies.
  */
 export function createFakeClient(): Client {
-	const client = new Client({ intents: [] });
+	const client = new Client({
+		intents: [],
+		rest: { hashSweepInterval: 0, handlerSweepInterval: 0 },
+	});
 	vi.spyOn(client, "login").mockImplementation(async (token) => token ?? "");
-	vi.spyOn(client, "destroy").mockResolvedValue();
+	vi.spyOn(client, "destroy");
 	return client;
 }
 

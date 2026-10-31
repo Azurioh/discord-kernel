@@ -9,14 +9,18 @@ import type {
 } from "@/discord/command/types";
 import type { InteractionDispatcher } from "@/discord/interaction/interaction-router";
 import type { LocaleResolver } from "@/discord/interaction/locale-resolver";
+import type { ModuleAvailability } from "@/discord/module-availability";
 import type { Presenter } from "@/discord/presenter";
 import { isModuleDisabled } from "@/discord/settings/is-module-disabled";
 import { moduleDisabledEmbed } from "@/discord/settings/module-disabled-embed";
+import { moduleUnavailableEmbed } from "@/discord/settings/module-unavailable-embed";
 import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 import type { ModuleGate } from "@/settings/system/module-gate";
 
 export interface CommandRouterDeps {
+	/** Owning modules that failed setup are denied before any per-guild gate. */
+	availability?: ModuleAvailability;
 	presenter: Presenter;
 	logger: Logger;
 	translator: Translator;
@@ -43,8 +47,9 @@ export interface CommandRouterDeps {
 export class CommandRouter implements InteractionDispatcher {
 	private readonly commands = new Map<string, SlashCommand>();
 	private readonly contextMenuCommands = new Map<string, ContextMenuCommand>();
-	/** The module each command was registered for, by command; absent means never gated. */
+	/** The owning module of each command, independent of per-guild gating. */
 	private readonly modules = new Map<DeployableCommand, string>();
+	private readonly ungated = new Set<DeployableCommand>();
 	private readonly runtime: CommandRuntime;
 
 	constructor(private readonly deps: CommandRouterDeps) {
@@ -61,18 +66,19 @@ export class CommandRouter implements InteractionDispatcher {
 	 *
 	 * @param moduleName - the module the command belongs to, so the gate can
 	 * skip it on guilds where that module is disabled. Omit it for a command
-	 * that always runs.
+	 * without module ownership.
+	 * @param gated - Whether to consult the per-guild gate; ownership is always retained.
 	 */
-	register(command: SlashCommand, moduleName?: string): this {
+	register(command: SlashCommand, moduleName?: string, gated = true): this {
 		this.commands.set(command.data.name, command);
-		this.remember(command, moduleName);
+		this.remember(command, moduleName, gated);
 		return this;
 	}
 
 	/** Register many commands at once, all of `moduleName` when given. */
-	registerAll(commands: Iterable<SlashCommand>, moduleName?: string): this {
+	registerAll(commands: Iterable<SlashCommand>, moduleName?: string, gated = true): this {
 		for (const command of commands) {
-			this.register(command, moduleName);
+			this.register(command, moduleName, gated);
 		}
 		return this;
 	}
@@ -82,15 +88,19 @@ export class CommandRouter implements InteractionDispatcher {
 	 * slash command and a context-menu entry as distinct application command
 	 * types, and therefore lets them share a name.
 	 */
-	registerContextMenu(command: ContextMenuCommand, moduleName?: string): this {
+	registerContextMenu(command: ContextMenuCommand, moduleName?: string, gated = true): this {
 		this.contextMenuCommands.set(command.data.name, command);
-		this.remember(command, moduleName);
+		this.remember(command, moduleName, gated);
 		return this;
 	}
 
-	registerAllContextMenus(commands: Iterable<ContextMenuCommand>, moduleName?: string): this {
+	registerAllContextMenus(
+		commands: Iterable<ContextMenuCommand>,
+		moduleName?: string,
+		gated = true,
+	): this {
 		for (const command of commands) {
-			this.registerContextMenu(command, moduleName);
+			this.registerContextMenu(command, moduleName, gated);
 		}
 		return this;
 	}
@@ -127,7 +137,16 @@ export class CommandRouter implements InteractionDispatcher {
 		return false;
 	}
 
-	private remember(command: DeployableCommand, moduleName: string | undefined): void {
+	private remember(
+		command: DeployableCommand,
+		moduleName: string | undefined,
+		gated: boolean,
+	): void {
+		if (gated) {
+			this.ungated.delete(command);
+		} else {
+			this.ungated.add(command);
+		}
 		if (moduleName === undefined) {
 			this.modules.delete(command);
 		} else {
@@ -140,9 +159,19 @@ export class CommandRouter implements InteractionDispatcher {
 		interaction: CommandInteraction,
 		command: DeployableCommand,
 	): Promise<boolean> {
+		const owner = this.modules.get(command);
+		if (owner !== undefined && this.deps.availability?.isAvailable(owner) === false) {
+			await sendEmbed(
+				interaction,
+				await moduleUnavailableEmbed(interaction, this.deps),
+				true,
+				this.deps.logger,
+			);
+			return false;
+		}
 		const disabled = await isModuleDisabled({
 			gate: this.deps.gate,
-			moduleName: this.modules.get(command),
+			moduleName: this.ungated.has(command) ? undefined : owner,
 			guildId: interaction.guildId,
 		});
 		if (disabled) {

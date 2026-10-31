@@ -2,10 +2,12 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createInMemoryAuthorizer } from "@/authz/in-memory-authorizer";
+import { createInMemoryProcess } from "@/bot/in-memory-process";
 import { fixedClock } from "@/clock";
 import { createInMemoryDeployRest } from "@/discord/command/in-memory-deploy-rest";
 import { createDefaultPresenter } from "@/discord/default-presenter";
 import { createInMemoryChannelExporter } from "@/discord/in-memory-channel-exporter";
+import { createInMemoryModuleAvailability } from "@/discord/in-memory-module-availability";
 import { createFixedLocaleResolver } from "@/discord/interaction/fixed-locale-resolver";
 import { createInMemoryLogger } from "@/in-memory-logger";
 import { createInMemoryDatabase } from "@/persistence/in-memory-database";
@@ -48,6 +50,8 @@ const PORT_TWINS: Readonly<Record<string, unknown>> = {
 	Logger: createInMemoryLogger,
 	MigrationRunner: createInMemoryMigrationRunner,
 	ModuleGate: createInMemoryModuleGate,
+	ModuleAvailability: createInMemoryModuleAvailability,
+	ProcessLike: createInMemoryProcess,
 	Presenter: createDefaultPresenter,
 	Scheduler: createInMemoryScheduler,
 	SettingsChangedNotifier: createInProcessNotifier,

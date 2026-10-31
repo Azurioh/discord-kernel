@@ -1,10 +1,12 @@
 import { Routes } from "discord.js";
 import { describe, expect, it, vi } from "vitest";
 import { createBot } from "@/bot/create-bot";
+import { createInMemoryProcess } from "@/bot/in-memory-process";
 import { createInMemoryDeployRest } from "@/discord/command/in-memory-deploy-rest";
 import { createInMemoryLogger } from "@/in-memory-logger";
 import { createInMemoryDatabase } from "@/persistence/in-memory-database";
 import { createInMemoryMigrationRunner } from "@/persistence/in-memory-migration-runner";
+import { createInMemoryScheduler } from "@/scheduler/in-memory-scheduler";
 import { createInMemorySettingsStore } from "@/settings/in-memory/in-memory-settings-store";
 import { createFakeClient } from "../support/fake-client";
 
@@ -26,7 +28,9 @@ describe("bot.deployCommands", () => {
 			logger: createInMemoryLogger(),
 			settingsStore: createInMemorySettingsStore(),
 			discord: { client },
+			lifecycle: { process: createInMemoryProcess() },
 			adapters: {
+				scheduler: createInMemoryScheduler(),
 				databases: [database],
 				migrations: createInMemoryMigrationRunner([{ id: "one", up }]),
 			},
@@ -56,5 +60,6 @@ describe("bot.deployCommands", () => {
 		expect(up).not.toHaveBeenCalled();
 		expect(setup).not.toHaveBeenCalled();
 		expect(builtSetup).not.toHaveBeenCalled();
+		expect(await bot.stop()).toEqual({ ok: true, reason: "manual", failed: [], abandoned: [] });
 	});
 });

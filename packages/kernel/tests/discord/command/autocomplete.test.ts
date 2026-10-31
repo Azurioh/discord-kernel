@@ -4,7 +4,9 @@ import { AutocompleteDispatcher } from "@/discord/command/autocomplete-dispatche
 import { createCommand, createSubCommand } from "@/discord/command/create-command";
 import { createStringOption } from "@/discord/command/options";
 import type { SlashCommand } from "@/discord/command/types";
+import { createInMemoryModuleAvailability } from "@/discord/in-memory-module-availability";
 import type { Logger } from "@/logger";
+import { createFakeLogger } from "../../support/fake-logger";
 
 function stubLogger(): Logger {
 	const noop = vi.fn();
@@ -229,4 +231,23 @@ describe("AutocompleteDispatcher", () => {
 		await expect(dispatcher.handle(interaction)).resolves.toBe(true);
 		expect(logger.error).toHaveBeenCalled();
 	});
+});
+
+it("answers empty autocomplete for an unavailable ungated owner", async () => {
+	const autocomplete = vi.fn();
+	const command = {
+		data: { name: "search" },
+		dispatch: vi.fn(),
+		autocomplete,
+	} satisfies SlashCommand;
+	const dispatcher = new AutocompleteDispatcher(
+		{ get: () => command, moduleName: () => "tickets", gated: () => false },
+		createFakeLogger(),
+		undefined,
+		createInMemoryModuleAvailability(["tickets"]),
+	);
+	const { interaction, respond } = fakeAutocomplete();
+	expect(await dispatcher.handle(interaction)).toBe(true);
+	expect(autocomplete).not.toHaveBeenCalled();
+	expect(respond).toHaveBeenCalledWith([]);
 });

@@ -1,5 +1,10 @@
 import { Client, Events, GatewayIntentBits } from "discord.js";
 import { assembleModules, buildModules } from "@/bot/assemble-modules";
+import { BotLifecycle } from "@/bot/lifecycle";
+import { LifecycleDispatcher } from "@/bot/lifecycle-dispatcher";
+import { ModuleStatus } from "@/bot/module-status";
+import type { ProcessLike } from "@/bot/process-like";
+import type { StopReport } from "@/bot/stop-report";
 import { type Clock, systemClock } from "@/clock";
 import { AutocompleteDispatcher } from "@/discord/command/autocomplete-dispatcher";
 import type { CommandDeployRest } from "@/discord/command/command-deploy-rest";
@@ -19,7 +24,7 @@ import type { BotModule } from "@/module/module";
 import type { BotServices } from "@/module/module-context";
 import type { DatabaseConnection } from "@/persistence/database";
 import type { MigrationRunner } from "@/persistence/migration-runner";
-import type { Scheduler } from "@/scheduler/scheduler";
+import { CronScheduler, type Scheduler } from "@/scheduler/scheduler";
 import { createInProcessNotifier } from "@/settings/in-memory/in-process-notifier";
 import type { GuildDirectory } from "@/settings/ports/guild-directory";
 import type { SettingsChangedNotifier } from "@/settings/ports/settings-changed-notifier";
@@ -27,7 +32,7 @@ import type { SettingsStore } from "@/settings/ports/settings-store";
 import { createSettingsService } from "@/settings/settings-service";
 import { createModuleGate } from "@/settings/system/module-gate";
 
-/** Modules and adapters used to assemble a bot. Lifecycle adapters run in PR 3. */
+/** Modules and adapters used to assemble and run a bot. */
 export interface BotOptions {
 	readonly modules: readonly BotModule[];
 	readonly logger: Logger;
@@ -42,6 +47,13 @@ export interface BotOptions {
 		readonly notifier?: SettingsChangedNotifier;
 		readonly clock?: Clock;
 	};
+	readonly lifecycle?: {
+		readonly shutdownTimeoutMs?: number;
+		readonly handleSignals?: boolean;
+		readonly handleCrashes?: boolean;
+		readonly flushes?: readonly NamedFlush[];
+		readonly process?: ProcessLike;
+	};
 	readonly discord?: {
 		readonly client?: Client;
 		readonly intents?: readonly GatewayIntentBits[];
@@ -55,8 +67,19 @@ export interface DeployTarget {
 	readonly rest?: CommandDeployRest;
 }
 
-/** An assembled bot; lifecycle state and graceful shutdown are added in PR 3. */
+/** A named final log or telemetry flush. */
+export interface NamedFlush {
+	readonly name: string;
+	flush(): Promise<void> | void;
+}
+
+/** Observable lifecycle phases of a bot. */
+export type BotState = "created" | "starting" | "running" | "stopping" | "stopped";
+
+/** An assembled bot with ordered startup and graceful shutdown. */
 export interface Bot extends BotServices {
+	readonly state: BotState;
+	stop(): Promise<StopReport>;
 	start(token: string): Promise<void>;
 	deployCommands(target: DeployTarget): Promise<number>;
 }
@@ -112,22 +135,47 @@ export function createBot(options: BotOptions): Bot {
 			options.adapters?.localeResolver?.(services) ??
 			createGuildLocaleResolver({ service: settings, registry, translator });
 		const modules = buildModules({ modules: options.modules, services });
-		const deps = { logger, translator, presenter, gate, localeResolver };
+		const availability = new ModuleStatus(modules);
+		const lifecycle = new BotLifecycle({
+			client,
+			logger,
+			modules,
+			statuses: availability,
+			scheduler: options.adapters?.scheduler ?? new CronScheduler(logger),
+			databases: options.adapters?.databases ?? [],
+			migrations: options.adapters?.migrations,
+			options: options.lifecycle,
+			subscriptions,
+		});
+		const deps = { logger, translator, presenter, gate, localeResolver, availability };
 		const commands = new CommandRouter(deps);
 		const components = new ComponentRouter(deps);
-		const events = new EventRouter(logger, gate);
+		const events = new EventRouter(logger, gate, availability);
 		for (const module of modules) {
-			const moduleName = module.gated === false ? undefined : module.name;
-			commands.registerAll(module.commands ?? [], moduleName);
-			commands.registerAllContextMenus(module.contextMenuCommands ?? [], moduleName);
-			components.registerAll(module.components ?? [], moduleName);
-			events.registerAll(module.events ?? [], moduleName);
+			const moduleName = module.name;
+			commands.registerAll(module.commands ?? [], moduleName, module.gated !== false);
+			commands.registerAllContextMenus(
+				module.contextMenuCommands ?? [],
+				moduleName,
+				module.gated !== false,
+			);
+			components.registerAll(module.components ?? [], moduleName, module.gated !== false);
+			events.registerAll(module.events ?? [], moduleName, module.gated !== false);
 		}
 		const interactions = new InteractionRouter([
+			new LifecycleDispatcher({ ...deps, state: () => lifecycle.state }),
 			commands,
 			new AutocompleteDispatcher(
 				{
 					get: commands.get.bind(commands),
+					gated(command) {
+						for (const module of modules) {
+							if (module.commands?.includes(command)) {
+								return module.gated !== false;
+							}
+						}
+						return true;
+					},
 					moduleName(command) {
 						let owner: BotModule | undefined;
 						for (const module of modules) {
@@ -135,11 +183,12 @@ export function createBot(options: BotOptions): Bot {
 								owner = module;
 							}
 						}
-						return owner?.gated === false ? undefined : owner?.name;
+						return owner?.name;
 					},
 				},
 				logger,
 				gate,
+				availability,
 			),
 			components,
 		]);
@@ -147,9 +196,11 @@ export function createBot(options: BotOptions): Bot {
 		events.bind(client);
 		return {
 			...services,
-			async start(token) {
-				await client.login(token);
+			get state() {
+				return lifecycle.state;
 			},
+			start: lifecycle.start.bind(lifecycle),
+			stop: lifecycle.stop.bind(lifecycle),
 			deployCommands(target) {
 				return commands.deployCommands(target.token, target.clientId, target.rest);
 			},
