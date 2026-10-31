@@ -30,6 +30,7 @@ export class BotLifecycle {
 	private readonly connected: DatabaseConnection[] = [];
 	private loginCalled = false;
 	private cleanupBudget: ShutdownBudget | undefined;
+	private readonly lateCleanups: Promise<void>[] = [];
 	private cancelReady: (() => void) | undefined;
 	private removeHandlers: (() => void) | undefined;
 	private notifyStop: (() => void) | undefined;
@@ -213,12 +214,14 @@ export class BotLifecycle {
 		if (this.cleanupBudget === undefined) {
 			params.retain?.();
 		} else if (params.release !== undefined) {
-			await this.stopStep({
+			const cleanup = this.stopStep({
 				step: params.step,
 				target: params.target,
 				action: params.release,
 				budget: this.cleanupBudget,
 			});
+			this.lateCleanups.push(cleanup);
+			await cleanup;
 		}
 	}
 
@@ -231,56 +234,65 @@ export class BotLifecycle {
 		const deadline =
 			systemClock.now().getTime() + (this.deps.options?.shutdownTimeoutMs ?? SHUTDOWN_TIMEOUT_MS);
 		const budget = { deadline, graceDeadline: deadline + SHUTDOWN_GRACE_MS, failed, abandoned };
-		if (this.startup !== undefined) {
-			await this.stopStep({
-				step: "start.settle",
-				action: () => this.startup?.then(startSettled, startSettled),
-				budget,
-			});
-		}
-		this.cleanupBudget = budget;
-		if (this.deps.scheduler.started) {
-			await this.stopStep({ step: "jobs.stop", action: () => this.deps.scheduler.stop(), budget });
-		}
-		for (const module of [...this.deps.modules].reverse()) {
-			if (this.deps.statuses.isAvailable(module.name) && module.teardown !== undefined) {
+		try {
+			if (this.startup !== undefined) {
 				await this.stopStep({
-					step: "module.teardown",
-					target: module.name,
-					action: () => module.teardown?.(),
+					step: "start.settle",
+					action: () => this.startup?.then(startSettled, startSettled),
 					budget,
 				});
 			}
+			this.cleanupBudget = budget;
+			if (this.deps.scheduler.started) {
+				await this.stopStep({
+					step: "jobs.stop",
+					action: () => this.deps.scheduler.stop(),
+					budget,
+				});
+			}
+			for (const module of [...this.deps.modules].reverse()) {
+				if (this.deps.statuses.isAvailable(module.name) && module.teardown !== undefined) {
+					await this.stopStep({
+						step: "module.teardown",
+						target: module.name,
+						action: () => module.teardown?.(),
+						budget,
+					});
+				}
+			}
+			await this.joinLateCleanups();
+			for (const database of [...this.connected].reverse()) {
+				await this.stopStep({
+					step: "databases.close",
+					target: database.driver,
+					action: () => database.close(),
+					budget,
+				});
+			}
+			if (this.loginCalled) {
+				await this.stopStep({
+					step: "gateway.destroy",
+					action: () => this.deps.client.destroy(),
+					budget,
+				});
+			}
+			for (const flush of this.deps.options?.flushes ?? []) {
+				await this.stopStep({
+					step: "flush",
+					target: flush.name,
+					action: () => flush.flush(),
+					budget,
+				});
+			}
+			this.cancelReady?.();
+			for (const unsubscribe of this.deps.subscriptions) {
+				await this.stopStep({ step: "settings.unsubscribe", action: unsubscribe, budget });
+			}
+			await this.joinLateCleanups();
+		} finally {
+			this.currentState = "stopped";
+			this.removeHandlers?.();
 		}
-		for (const database of [...this.connected].reverse()) {
-			await this.stopStep({
-				step: "databases.close",
-				target: database.driver,
-				action: () => database.close(),
-				budget,
-			});
-		}
-		if (this.loginCalled) {
-			await this.stopStep({
-				step: "gateway.destroy",
-				action: () => this.deps.client.destroy(),
-				budget,
-			});
-		}
-		for (const flush of this.deps.options?.flushes ?? []) {
-			await this.stopStep({
-				step: "flush",
-				target: flush.name,
-				action: () => flush.flush(),
-				budget,
-			});
-		}
-		this.cancelReady?.();
-		for (const unsubscribe of this.deps.subscriptions) {
-			unsubscribe();
-		}
-		this.removeHandlers?.();
-		this.currentState = "stopped";
 		return {
 			ok: failed.length === 0 && abandoned.length === 0,
 			reason: params.reason,
@@ -288,6 +300,12 @@ export class BotLifecycle {
 			failed,
 			abandoned,
 		};
+	}
+
+	private async joinLateCleanups(): Promise<void> {
+		for (let index = 0; index < this.lateCleanups.length; index++) {
+			await this.lateCleanups[index];
+		}
 	}
 
 	private async stopStep(params: {

@@ -1,6 +1,7 @@
 import { Events } from "discord.js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { type BotOptions, createBot } from "@/bot/create-bot";
+import { createInMemoryProcess } from "@/bot/in-memory-process";
 import { createEvent } from "@/discord/events/create-event";
 import { CORE_MESSAGES } from "@/discord/i18n";
 import type { BotModule } from "@/module/module";
@@ -32,6 +33,36 @@ function input(modules: readonly BotModule[]): BotOptions {
 afterEach(() => vi.useRealTimers());
 
 describe("bot start", () => {
+	it("preserves the startup error when unsubscribe throws during rollback", async () => {
+		const original = new TypeError("original setup failure");
+		const process = createInMemoryProcess();
+		const opts = input([
+			{
+				name: "broken",
+				setup: () => {
+					throw original;
+				},
+			},
+		]);
+		const bot = createBot({
+			...opts,
+			lifecycle: { process },
+			adapters: {
+				...opts.adapters,
+				notifier: {
+					notify: vi.fn(),
+					subscribe: () => () => {
+						throw new TypeError("unsubscribe failed");
+					},
+				},
+			},
+		});
+		await expect(bot.start("token")).rejects.toBe(original);
+		expect(bot.state).toBe("stopped");
+		for (const event of ["SIGINT", "SIGTERM", "uncaughtException", "unhandledRejection"] as const) {
+			expect(process.listenerCount(event)).toBe(0);
+		}
+	});
 	it("connects, migrates, logs in, waits ready, sets up in order and schedules ready jobs", async () => {
 		const order: string[] = [];
 		const run = vi.fn();

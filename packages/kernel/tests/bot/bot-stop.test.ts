@@ -6,11 +6,16 @@ import { createInMemoryDatabase } from "@/persistence/in-memory-database";
 import { createInMemoryScheduler } from "@/scheduler/in-memory-scheduler";
 import { createInMemorySettingsStore } from "@/settings/in-memory/in-memory-settings-store";
 import { createInProcessNotifier } from "@/settings/in-memory/in-process-notifier";
+import type { SettingsChangedNotifier } from "@/settings/ports/settings-changed-notifier";
 import { createDeferred } from "../support/deferred";
 import { createFakeClient, emitReady } from "../support/fake-client";
 import { createFakeLogger } from "../support/fake-logger";
 
-function fixture(params: { modules?: readonly BotModule[]; lifecycle?: BotOptions["lifecycle"] }) {
+function fixture(params: {
+	modules?: readonly BotModule[];
+	lifecycle?: BotOptions["lifecycle"];
+	notifier?: SettingsChangedNotifier;
+}) {
 	const client = createFakeClient();
 	vi.mocked(client.login).mockImplementation(async () => {
 		emitReady(client);
@@ -21,7 +26,7 @@ function fixture(params: { modules?: readonly BotModule[]; lifecycle?: BotOption
 	const process = createInMemoryProcess();
 	const first = createInMemoryDatabase("first");
 	const second = createInMemoryDatabase("second");
-	const notifier = createInProcessNotifier(logger);
+	const notifier = params.notifier ?? createInProcessNotifier(logger);
 	const bot = createBot({
 		modules: params.modules ?? [],
 		logger,
@@ -36,6 +41,99 @@ function fixture(params: { modules?: readonly BotModule[]; lifecycle?: BotOption
 afterEach(() => vi.useRealTimers());
 
 describe("bot stop", () => {
+	it.each(["completed", "failed", "abandoned"] as const)(
+		"joins a late module cleanup before dependencies close (%s)",
+		async (outcome) => {
+			vi.useFakeTimers();
+			const setup = createDeferred<void>();
+			const setupEntered = createDeferred<void>();
+			const readyCleanup = createDeferred<void>();
+			const lateCleanup = createDeferred<void>();
+			const lateEntered = createDeferred<void>();
+			const f = fixture({
+				modules: [
+					{ name: "ready", teardown: () => readyCleanup.promise },
+					{
+						name: "late",
+						setup: () => {
+							setupEntered.resolve();
+							return setup.promise;
+						},
+						teardown: () => {
+							lateEntered.resolve();
+							return lateCleanup.promise;
+						},
+					},
+				],
+				lifecycle: { shutdownTimeoutMs: 100 },
+			});
+			const starting = f.bot.start("token");
+			await setupEntered.promise;
+			const since = Date.now();
+			const stopping = f.bot.stop();
+			await vi.advanceTimersByTimeAsync(100);
+			setup.resolve();
+			await lateEntered.promise;
+			readyCleanup.resolve();
+			await vi.advanceTimersByTimeAsync(10);
+			expect(f.first.closeCount).toBe(0);
+			expect(f.second.closeCount).toBe(0);
+			expect(f.client.destroy).not.toHaveBeenCalled();
+			if (outcome === "completed") {
+				lateCleanup.resolve();
+			} else if (outcome === "failed") {
+				lateCleanup.reject(new TypeError("late teardown failed"));
+			}
+			await vi.advanceTimersByTimeAsync(990);
+			const report = await stopping;
+			await starting;
+			expect(report.failed).toEqual(
+				outcome === "failed"
+					? [{ step: "module.teardown", target: "late", error: "late teardown failed" }]
+					: [],
+			);
+			expect(report.abandoned).toEqual(
+				outcome === "abandoned"
+					? expect.arrayContaining([
+							{ step: "start.settle" },
+							{ step: "module.teardown", target: "late" },
+						])
+					: [{ step: "start.settle" }],
+			);
+			expect(f.logger.info).toHaveBeenCalledWith(
+				expect.objectContaining({ step: "module.teardown", target: "ready", outcome: "ok" }),
+				expect.any(String),
+			);
+			expect(f.first.closeCount).toBe(1);
+			expect(f.second.closeCount).toBe(1);
+			expect(f.client.destroy).toHaveBeenCalledOnce();
+			expect(Date.now() - since).toBeLessThanOrEqual(1100);
+			expect(vi.getTimerCount()).toBe(0);
+		},
+	);
+	it("records a throwing unsubscribe and always removes process handlers", async () => {
+		const unsubscribe = vi.fn(() => {
+			throw new TypeError("unsubscribe failed");
+		});
+		const f = fixture({ notifier: { notify: vi.fn(), subscribe: () => unsubscribe } });
+		await f.bot.start("token");
+		expect(f.process.listenerCount("SIGTERM")).toBe(1);
+		await expect(f.bot.stop()).resolves.toEqual({
+			ok: false,
+			reason: "manual",
+			failed: [{ step: "settings.unsubscribe", error: "unsubscribe failed" }],
+			abandoned: [],
+		});
+		expect(f.bot.state).toBe("stopped");
+		expect(unsubscribe).toHaveBeenCalledOnce();
+		expect(f.logger.error).toHaveBeenCalledWith(
+			expect.objectContaining({ step: "settings.unsubscribe", error: "unsubscribe failed" }),
+			expect.any(String),
+		);
+		for (const event of ["SIGINT", "SIGTERM", "uncaughtException", "unhandledRejection"] as const) {
+			expect(f.process.listenerCount(event)).toBe(0);
+		}
+	});
 	it.each([false, true])(
 		"closes a late database exactly once (after shutdown: %s)",
 		async (afterShutdown) => {
