@@ -21,6 +21,7 @@ function fixture(params: {
 		emitReady(client);
 		return "token";
 	});
+	vi.mocked(client.destroy).mockResolvedValue();
 	const logger = createFakeLogger();
 	const scheduler = createInMemoryScheduler();
 	const process = createInMemoryProcess();
@@ -41,6 +42,86 @@ function fixture(params: {
 afterEach(() => vi.useRealTimers());
 
 describe("bot stop", () => {
+	it.each([false, true])(
+		"joins a pending acquisition without another teardown delaying shutdown (after grace: %s)",
+		async (afterGrace) => {
+			vi.useFakeTimers();
+			const setup = createDeferred<void>();
+			const entered = createDeferred<void>();
+			const order: string[] = [];
+			const teardown = vi.fn(() => {
+				order.push("module.teardown");
+			});
+			const f = fixture({
+				modules: [
+					{
+						name: "pending",
+						setup: () => {
+							entered.resolve();
+							return setup.promise;
+						},
+						teardown,
+					},
+				],
+				lifecycle: { shutdownTimeoutMs: 100 },
+			});
+			const closeSecond = f.second.close.bind(f.second);
+			vi.spyOn(f.second, "close").mockImplementation(() => {
+				order.push("database.close");
+				return closeSecond();
+			});
+			vi.mocked(f.client.destroy).mockImplementation(async () => {
+				order.push("client.destroy");
+			});
+			const starting = f.bot.start("token");
+			await entered.promise;
+			const since = Date.now();
+			const stopping = f.bot.stop();
+			await vi.advanceTimersByTimeAsync(afterGrace ? 1099 : 100);
+			expect(f.bot.state).toBe("stopping");
+			expect(order).toEqual([]);
+			expect(f.first.closeCount).toBe(0);
+			if (afterGrace) {
+				await vi.advanceTimersByTimeAsync(1);
+			} else {
+				setup.resolve();
+				await vi.advanceTimersByTimeAsync(0);
+			}
+			const report = await stopping;
+			await starting;
+			expect(Date.now() - since).toBeLessThanOrEqual(1100);
+			expect(report).toEqual({
+				ok: false,
+				reason: "manual",
+				failed: [],
+				abandoned: [{ step: "start.settle" }],
+			});
+			expect(order).toEqual(
+				afterGrace
+					? ["database.close", "client.destroy"]
+					: ["module.teardown", "database.close", "client.destroy"],
+			);
+			expect(f.first.closeCount).toBe(1);
+			expect(f.second.close).toHaveBeenCalledOnce();
+			expect(f.second.closeCount).toBe(1);
+			expect(f.client.destroy).toHaveBeenCalledOnce();
+			if (afterGrace) {
+				setup.resolve();
+				await vi.advanceTimersByTimeAsync(0);
+				expect(f.logger.warn).toHaveBeenCalledWith(
+					expect.objectContaining({ step: "module.teardown", target: "pending" }),
+					"Releasing resource acquired after shutdown",
+				);
+				expect(order).toEqual(["database.close", "client.destroy", "module.teardown"]);
+			}
+			expect(teardown).toHaveBeenCalledOnce();
+			expect(f.first.closeCount).toBe(1);
+			expect(f.second.close).toHaveBeenCalledOnce();
+			expect(f.client.destroy).toHaveBeenCalledOnce();
+			expect(report.abandoned).toEqual([{ step: "start.settle" }]);
+			expect(vi.getTimerCount()).toBe(0);
+		},
+	);
 	it.each(["completed", "failed", "abandoned"] as const)(
 		"joins a late module cleanup before dependencies close (%s)",
 		async (outcome) => {

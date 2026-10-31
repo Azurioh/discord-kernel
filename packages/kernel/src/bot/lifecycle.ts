@@ -30,7 +30,6 @@ export class BotLifecycle {
 	private readonly connected: DatabaseConnection[] = [];
 	private loginCalled = false;
 	private cleanupBudget: ShutdownBudget | undefined;
-	private readonly lateCleanups: Promise<void>[] = [];
 	private cancelReady: (() => void) | undefined;
 	private removeHandlers: (() => void) | undefined;
 	private notifyStop: (() => void) | undefined;
@@ -214,14 +213,18 @@ export class BotLifecycle {
 		if (this.cleanupBudget === undefined) {
 			params.retain?.();
 		} else if (params.release !== undefined) {
-			const cleanup = this.stopStep({
+			if (this.currentState === "stopped") {
+				this.deps.logger.warn(
+					{ step: params.step, target: params.target },
+					"Releasing resource acquired after shutdown",
+				);
+			}
+			await this.stopStep({
 				step: params.step,
 				target: params.target,
 				action: params.release,
 				budget: this.cleanupBudget,
 			});
-			this.lateCleanups.push(cleanup);
-			await cleanup;
 		}
 	}
 
@@ -260,7 +263,14 @@ export class BotLifecycle {
 					});
 				}
 			}
-			await this.joinLateCleanups();
+			if (this.startup !== undefined && abandoned.some(({ step }) => step === "start.settle")) {
+				// Startup includes acquisition cleanup, even when no cleanup was registered at timeout.
+				// Its initial timeout is already in the report; this join shares the absolute grace bound.
+				await runStep("start.settle", () => this.startup?.then(startSettled, startSettled), {
+					logger: this.deps.logger,
+					deadline: budget.graceDeadline,
+				});
+			}
 			for (const database of [...this.connected].reverse()) {
 				await this.stopStep({
 					step: "databases.close",
@@ -288,7 +298,6 @@ export class BotLifecycle {
 			for (const unsubscribe of this.deps.subscriptions) {
 				await this.stopStep({ step: "settings.unsubscribe", action: unsubscribe, budget });
 			}
-			await this.joinLateCleanups();
 		} finally {
 			this.currentState = "stopped";
 			this.removeHandlers?.();
@@ -300,12 +309,6 @@ export class BotLifecycle {
 			failed,
 			abandoned,
 		};
-	}
-
-	private async joinLateCleanups(): Promise<void> {
-		for (let index = 0; index < this.lateCleanups.length; index++) {
-			await this.lateCleanups[index];
-		}
 	}
 
 	private async stopStep(params: {

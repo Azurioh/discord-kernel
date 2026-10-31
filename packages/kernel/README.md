@@ -157,9 +157,11 @@ step may settle, but no remaining startup steps run, no later jobs are scheduled
 and the bot cannot become `running`. Shutdown releases what startup acquired.
 If an abandoned startup step succeeds later, its resource is released through the
 same cleanup path, using the original deadline and grace period. A late successful
-module setup is torn down without becoming ready. Late cleanup does not delay the
-returned shutdown report; `start.settle` remains reported as abandoned, and late
-cleanup failures or abandonments are logged and appended to that report.
+module setup is torn down without becoming ready. Before closing databases or the
+client, shutdown joins pending startup and its cleanup until the absolute grace
+deadline; `start.settle` remains reported as abandoned. Resources acquired after
+shutdown are released best-effort and logged. Late cleanup failures or abandonments
+are logged and appended to the report.
 The interrupted `start()` resolves after cleanup; an actual startup failure still
 rejects with its original error.
 
