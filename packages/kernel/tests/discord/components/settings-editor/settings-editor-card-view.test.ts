@@ -6,7 +6,7 @@ import type {
 import { ComponentType } from "discord.js";
 import { describe, expect, it, vi } from "vitest";
 import { fixedClock } from "@/clock";
-import type { InteractiveMessagePayload } from "@/discord/components/interactive-message/interactive-message-collector";
+import type { InteractiveMessagePayload } from "@/discord/components/interactive-message/interactive-message-payload";
 import type { SettingsEditorLevel } from "@/discord/components/settings-editor/navigation";
 import { ROOT_LEVEL_KEY } from "@/discord/components/settings-editor/navigation";
 import {

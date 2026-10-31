@@ -1,5 +1,5 @@
 import type { Attachment, InteractionUpdateOptions } from "discord.js";
-import type { InteractiveMessagePayload } from "@/discord/components/interactive-message/interactive-message-collector";
+import type { InteractiveMessagePayload } from "@/discord/components/interactive-message/interactive-message-payload";
 import { planMessageAttachments } from "@/discord/ui/message-attachments";
 
 /**

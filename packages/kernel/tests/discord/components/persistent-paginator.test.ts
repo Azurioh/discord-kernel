@@ -1,7 +1,7 @@
 import { Collection, EmbedBuilder } from "discord.js";
 import { describe, expect, it, vi } from "vitest";
 import type { ComponentRuntime, RoutableInteraction } from "@/discord/components/component-router";
-import type { InteractiveMessagePayload } from "@/discord/components/interactive-message/interactive-message-collector";
+import type { InteractiveMessagePayload } from "@/discord/components/interactive-message/interactive-message-payload";
 import {
 	createPersistentPaginator,
 	decodePaginatorPage,
