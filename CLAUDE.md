@@ -52,6 +52,9 @@ Already defined once, reuse them:
 
 | Need | Use |
 |---|---|
+| Creating a bot from modules and shared services | `createBot` (`@/bot/create-bot`); `BotServices` and `ModuleContext` (`@/module/module-context`) |
+| Validating and building module contributions | `assembleModules`, `buildModules` (`@/bot/assemble-modules`) |
+| Recording command deployment without Discord REST | `createInMemoryDeployRest` (`@/discord/command/in-memory-deploy-rest`), over `CommandDeployRest` |
 | The reply language of an interaction | `interactionLocale` (`@/discord/interaction/interaction-locale`) |
 | The message of an unknown error | `errorMessage` (`@/errors/error-message`) |
 | Discord's 25-choice cap | `MAX_AUTOCOMPLETE_CHOICES` (`@/discord/command/autocomplete-limits`), `MAX_SELECT_OPTIONS` |

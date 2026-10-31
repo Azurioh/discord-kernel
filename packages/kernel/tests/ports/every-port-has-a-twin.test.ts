@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createInMemoryAuthorizer } from "@/authz/in-memory-authorizer";
 import { fixedClock } from "@/clock";
+import { createInMemoryDeployRest } from "@/discord/command/in-memory-deploy-rest";
 import { createDefaultPresenter } from "@/discord/default-presenter";
 import { createInMemoryChannelExporter } from "@/discord/in-memory-channel-exporter";
 import { createFixedLocaleResolver } from "@/discord/interaction/fixed-locale-resolver";
@@ -40,6 +41,7 @@ const PORT_TWINS: Readonly<Record<string, unknown>> = {
 	Authorizer: createInMemoryAuthorizer,
 	ChannelExporter: createInMemoryChannelExporter,
 	Clock: fixedClock,
+	CommandDeployRest: createInMemoryDeployRest,
 	DatabaseConnection: createInMemoryDatabase,
 	GuildDirectory: createInMemoryGuildDirectory,
 	LocaleResolver: createFixedLocaleResolver,

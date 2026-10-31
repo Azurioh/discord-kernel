@@ -1,5 +1,6 @@
-import { EmbedBuilder, MessageFlags } from "discord.js";
+import { EmbedBuilder, MessageFlags, REST, Routes } from "discord.js";
 import { describe, expect, it, vi } from "vitest";
+import { createInMemoryDeployRest } from "@/discord/command/in-memory-deploy-rest";
 import { CommandRouter } from "@/discord/command/router";
 import type { ContextMenuCommand, SlashCommand } from "@/discord/command/types";
 import type { Presenter } from "@/discord/presenter";
@@ -180,5 +181,47 @@ describe("CommandRouter reply language (S17)", () => {
 			expect.anything(),
 			expect.objectContaining({ localeResolver }),
 		);
+	});
+});
+
+describe("CommandRouter deployment transport", () => {
+	it("uses the supplied transport for global and guild scopes without configuring REST", async () => {
+		const rest = createInMemoryDeployRest();
+		const setToken = vi.spyOn(REST.prototype, "setToken");
+		const router = new CommandRouter(makeDeps());
+		router.register({
+			...slashCommand("global"),
+			data: { name: "global", toJSON: () => ({ name: "global" }) },
+		});
+		router.register({
+			...slashCommand("guild"),
+			guildIds: [GUILD_A, GUILD_B],
+			data: { name: "guild", toJSON: () => ({ name: "guild" }) },
+		});
+		router.registerContextMenu({
+			...contextMenuCommand("Inspect"),
+			data: { name: "Inspect", toJSON: () => ({ name: "Inspect" }) },
+		});
+		try {
+			expect(await router.deployCommands("unused", GUILD_A, rest)).toBe(3);
+			expect(rest.requests).toEqual([
+				{
+					route: Routes.applicationCommands(GUILD_A),
+					body: [{ name: "global" }, { name: "Inspect" }],
+				},
+				{ route: Routes.applicationGuildCommands(GUILD_A, GUILD_A), body: [{ name: "guild" }] },
+				{ route: Routes.applicationGuildCommands(GUILD_A, GUILD_B), body: [{ name: "guild" }] },
+			]);
+			expect(setToken).not.toHaveBeenCalled();
+		} finally {
+			setToken.mockRestore();
+		}
+	});
+
+	it("syncs an empty global scope to remove stale commands", async () => {
+		const rest = createInMemoryDeployRest();
+		const router = new CommandRouter(makeDeps());
+		expect(await router.deployCommands("unused", GUILD_A, rest)).toBe(0);
+		expect(rest.requests).toEqual([{ route: Routes.applicationCommands(GUILD_A), body: [] }]);
 	});
 });

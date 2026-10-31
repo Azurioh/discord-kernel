@@ -20,6 +20,7 @@ library in one tree would break every `instanceof` the gateway relies on.
 
 | Area | What it gives you |
 | ---- | ----------------- |
+| `bot/` | `createBot`: shared services, module assembly, interaction routing and command deployment |
 | `discord/command/` | `createCommand` (flat or grouped), typed options, guards (`allOf`/`anyOf`, permissions, roles, cooldowns), the per-interaction `Context`, autocomplete, the `CommandRouter` |
 | `discord/interaction/` | `createButton`, `createModal`, the four typed select menus (`createStringSelect`, `createChannelSelect`, `createRoleSelect`, `createUserSelect`), the `InteractionRouter`/`InteractionDispatcher` seam |
 | `discord/components/` | `ComponentRouter` for persistent `customId` routing, and collector-backed screens: `paginator`, `interactive-message`, `settings-editor` |
@@ -50,6 +51,69 @@ import { type Catalog, createTranslator } from "@azurioh/discord-kernel/i18n";
   (`requireEnv`, `enumEnv`, …); which keys exist is your composition root's call.
 - **A palette.** Embeds render in Discord's blurple until you say otherwise, so a
   bot never starts out wearing someone else's identity.
+
+## Starting a bot
+
+`createBot` takes your modules, a `Logger` and a `SettingsStore`. It registers
+catalogs, validates declarations, builds the shared services and wires slash
+commands, context menus, autocomplete, components and gateway events. Existing
+routers and services remain available through their public entry points for
+custom assembly; settings stay under `settings` and `settings/testing`.
+
+Use `build(context)` for parts that need the finished settings service,
+translator, registry, gate, presenter, clock or client. Its logger carries
+`{ module: name }`. A part belongs either on the module or in its build result;
+declaring it in both places fails creation.
+
+Modules are gated by their per-guild toggle by default. Set `gated: false` for
+administration commands that must always answer; the module then has no toggle.
+`optional: true` declares that a setup failure may disable only that module
+once lifecycle support is added in PR 3.
+
+This example uses in-memory adapters; supply durable storage and your application's
+logger in production. Pass credentials from your composition root.
+
+```ts
+import { createBot } from "@azurioh/discord-kernel/bot/create-bot";
+import { createCommand } from "@azurioh/discord-kernel/discord/command/create-command";
+import { createInMemoryLogger } from "@azurioh/discord-kernel/in-memory-logger";
+import { createInMemorySettingsStore } from "@azurioh/discord-kernel/settings";
+
+const bot = createBot({
+  logger: createInMemoryLogger(),
+  settingsStore: createInMemorySettingsStore(),
+  modules: [{
+    name: "hello",
+    build(context) {
+      return {
+        commands: [createCommand({
+          name: "hello",
+          description: "Say hello",
+          async handler(ctx) {
+            context.logger.info({ guildId: ctx.interaction.guildId }, "Greeting requested");
+            await ctx.confirm("Hello!");
+          },
+        })],
+      };
+    },
+  }],
+});
+
+await bot.deployCommands({ token, clientId }); // Can also run in a separate deployment script.
+await bot.start(token);
+```
+
+`deployCommands` returns the number of slash and context-menu commands deployed,
+with one request per target scope. It performs no gateway login, database
+connection, migration or module setup. Pass `rest: createInMemoryDeployRest()`
+(from `discord/command/in-memory-deploy-rest`) to inspect payloads in tests.
+
+PR 2 exposes creation, services, deployment and `start(token): Promise<void>`,
+which only awaits login and returns no token. State, `stop()`, lifecycle options,
+setup, migrations and job execution arrive additively in PR 3; lifecycle adapters
+may already be supplied but are not run yet. Default presentation and guild
+language resolution are provided; override them through `adapters.presenter`
+and `adapters.localeResolver(services)`.
 
 ## Module settings
 

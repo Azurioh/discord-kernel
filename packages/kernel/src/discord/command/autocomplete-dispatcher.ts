@@ -1,17 +1,21 @@
 import type { Interaction } from "discord.js";
 import type { SlashCommand } from "@/discord/command/types";
 import type { InteractionDispatcher } from "@/discord/interaction/interaction-router";
+import { isModuleDisabled } from "@/discord/settings/is-module-disabled";
 import { errorMessage } from "@/errors/error-message";
 import type { Logger } from "@/logger";
+import type { ModuleGate } from "@/settings/system/module-gate";
 
 /**
  * The slice of the command registry this dispatcher needs. Depending on a
- * one-method port rather than on `CommandRouter` keeps the two dispatchers
+ * lookup port rather than on `CommandRouter` keeps the two dispatchers
  * decoupled while sharing a single registration — the alternative, a second map
  * of commands, would drift the moment a command is registered in only one.
  */
 export interface CommandLookup {
 	get(name: string): SlashCommand | undefined;
+	/** The owning gated module, when the registry supplies module metadata. */
+	moduleName?(command: SlashCommand): string | undefined;
 }
 
 /**
@@ -23,6 +27,7 @@ export class AutocompleteDispatcher implements InteractionDispatcher {
 	constructor(
 		private readonly commands: CommandLookup,
 		private readonly logger: Logger,
+		private readonly gate?: ModuleGate,
 	) {}
 
 	/** Claim autocomplete interactions; ignore everything else. */
@@ -40,6 +45,16 @@ export class AutocompleteDispatcher implements InteractionDispatcher {
 		// error for autocomplete, it just leaves the box spinning until it times
 		// out. Swallow, log, and let the command reply with an empty list.
 		try {
+			if (
+				await isModuleDisabled({
+					gate: this.gate,
+					moduleName: this.commands.moduleName?.(command),
+					guildId: interaction.guildId,
+				})
+			) {
+				await interaction.respond([]);
+				return true;
+			}
 			await command.autocomplete(interaction);
 		} catch (error) {
 			this.logger.error(
