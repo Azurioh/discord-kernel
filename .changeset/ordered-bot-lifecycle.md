@@ -15,4 +15,5 @@ and restarting replies with the new `core.lifecycle.*` catalog keys.
 Stopping during startup prevents remaining startup steps and job registration;
 the interrupted `start()` resolves after cleanup. Ordinary startup failures still
 reject with the original error after cleanup. Existing public subpaths remain
-available; new lifecycle and availability modules have explicit public subpaths.
+available; new lifecycle and availability modules have explicit public subpaths,
+including `bot/bot-lifecycle-options`.

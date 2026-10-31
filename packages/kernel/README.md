@@ -160,8 +160,9 @@ same cleanup path, using the original deadline and grace period. A late successf
 module setup is torn down without becoming ready. Before closing databases or the
 client, shutdown joins pending startup and its cleanup until the absolute grace
 deadline; `start.settle` remains reported as abandoned. Resources acquired after
-shutdown are released best-effort and logged. Late cleanup failures or abandonments
-are logged and appended to the report.
+shutdown are released best-effort and logged. The returned report is an immutable
+snapshot; late cleanup failures or abandonments are logged with their step or
+module name and leave the report unchanged.
 The interrupted `start()` resolves after cleanup; an actual startup failure still
 rejects with its original error.
 

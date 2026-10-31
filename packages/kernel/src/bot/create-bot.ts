@@ -1,9 +1,9 @@
 import { Client, Events, GatewayIntentBits } from "discord.js";
 import { assembleModules, buildModules } from "@/bot/assemble-modules";
+import type { BotLifecycleOptions } from "@/bot/bot-lifecycle-options";
 import { BotLifecycle } from "@/bot/lifecycle";
 import { LifecycleDispatcher } from "@/bot/lifecycle-dispatcher";
 import { ModuleStatus } from "@/bot/module-status";
-import type { ProcessLike } from "@/bot/process-like";
 import type { StopReport } from "@/bot/stop-report";
 import { type Clock, systemClock } from "@/clock";
 import { AutocompleteDispatcher } from "@/discord/command/autocomplete-dispatcher";
@@ -47,13 +47,7 @@ export interface BotOptions {
 		readonly notifier?: SettingsChangedNotifier;
 		readonly clock?: Clock;
 	};
-	readonly lifecycle?: {
-		readonly shutdownTimeoutMs?: number;
-		readonly handleSignals?: boolean;
-		readonly handleCrashes?: boolean;
-		readonly flushes?: readonly NamedFlush[];
-		readonly process?: ProcessLike;
-	};
+	readonly lifecycle?: BotLifecycleOptions;
 	readonly discord?: {
 		readonly client?: Client;
 		readonly intents?: readonly GatewayIntentBits[];
@@ -68,13 +62,10 @@ export interface DeployTarget {
 }
 
 /** A named final log or telemetry flush. */
-export interface NamedFlush {
-	readonly name: string;
-	flush(): Promise<void> | void;
-}
+export type NamedFlush = NonNullable<BotLifecycleOptions["flushes"]>[number];
 
 /** Observable lifecycle phases of a bot. */
-export type BotState = "created" | "starting" | "running" | "stopping" | "stopped";
+export type BotState = BotLifecycle["state"];
 
 /** An assembled bot with ordered startup and graceful shutdown. */
 export interface Bot extends BotServices {

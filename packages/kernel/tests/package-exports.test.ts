@@ -55,6 +55,7 @@ describe("package exports", () => {
 describe("bot building blocks remain public (T030 m, FR-007)", () => {
 	it.each([
 		"bot/bot-errors",
+		"bot/bot-lifecycle-options",
 		"bot/lifecycle-step",
 		"bot/lifecycle",
 		"bot/lifecycle-dispatcher",

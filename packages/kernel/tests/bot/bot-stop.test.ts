@@ -42,6 +42,61 @@ function fixture(params: {
 afterEach(() => vi.useRealTimers());
 
 describe("bot stop", () => {
+	it.each(["failed", "abandoned"] as const)(
+		"keeps the resolved report unchanged when cleanup after shutdown is %s",
+		async (outcome) => {
+			vi.useFakeTimers();
+			const setup = createDeferred<void>();
+			const entered = createDeferred<void>();
+			const cleanup = createDeferred<void>();
+			const f = fixture({
+				modules: [
+					{
+						name: "late",
+						setup: () => {
+							entered.resolve();
+							return setup.promise;
+						},
+						teardown: () => cleanup.promise,
+					},
+				],
+				lifecycle: { shutdownTimeoutMs: 100 },
+			});
+			const starting = f.bot.start("token");
+			await entered.promise;
+			const stopping = f.bot.stop();
+			await vi.advanceTimersByTimeAsync(1100);
+			const report = await stopping;
+			const snapshot = structuredClone(report);
+			expect(snapshot).toEqual({
+				ok: false,
+				reason: "manual",
+				failed: [],
+				abandoned: [{ step: "start.settle" }],
+			});
+			setup.resolve();
+			if (outcome === "failed") {
+				cleanup.reject(new TypeError("late teardown failed"));
+			} else {
+				await vi.advanceTimersByTimeAsync(0);
+				cleanup.resolve();
+			}
+			await vi.advanceTimersByTimeAsync(0);
+			await starting;
+			expect(f.logger.error).toHaveBeenCalledWith(
+				expect.objectContaining({
+					step: "module.teardown",
+					target: "late",
+					outcome,
+					...(outcome === "failed" ? { error: "late teardown failed" } : {}),
+				}),
+				outcome === "failed" ? "Lifecycle step failed" : "Lifecycle step abandoned",
+			);
+			expect(report).toEqual(snapshot);
+			expect(await f.bot.stop()).toEqual(snapshot);
+			expect(vi.getTimerCount()).toBe(0);
+		},
+	);
 	it.each([false, true])(
 		"joins a pending acquisition without another teardown delaying shutdown (after grace: %s)",
 		async (afterGrace) => {

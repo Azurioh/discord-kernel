@@ -507,6 +507,10 @@
 			"types": "./dist/discord/command/in-memory-deploy-rest.d.ts",
 			"default": "./dist/discord/command/in-memory-deploy-rest.js"
 		},
+		"./bot/bot-lifecycle-options": {
+			"types": "./dist/bot/bot-lifecycle-options.d.ts",
+			"default": "./dist/bot/bot-lifecycle-options.js"
+		},
 		"./bot/lifecycle-step": {
 			"types": "./dist/bot/lifecycle-step.d.ts",
 			"default": "./dist/bot/lifecycle-step.js"

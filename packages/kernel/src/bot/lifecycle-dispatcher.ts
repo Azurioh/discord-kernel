@@ -1,5 +1,5 @@
 import type { Interaction } from "discord.js";
-import type { BotState } from "@/bot/create-bot";
+import type { BotLifecycle } from "@/bot/lifecycle";
 import { sendEmbed } from "@/discord/command/send-embed";
 import { CORE_MESSAGES } from "@/discord/i18n";
 import type { InteractionDispatcher } from "@/discord/interaction/interaction-router";
@@ -13,7 +13,7 @@ export class LifecycleDispatcher implements InteractionDispatcher {
 	 */
 	constructor(
 		private readonly deps: ReplyLocaleDeps & {
-			readonly state: () => BotState;
+			readonly state: () => BotLifecycle["state"];
 			readonly presenter: Presenter;
 		},
 	) {}

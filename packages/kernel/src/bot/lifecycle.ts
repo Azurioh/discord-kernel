@@ -1,5 +1,5 @@
 import { type Client, Events } from "discord.js";
-import type { BotOptions, BotState } from "@/bot/create-bot";
+import type { BotLifecycleOptions } from "@/bot/bot-lifecycle-options";
 import { runStep } from "@/bot/lifecycle-step";
 import type { ModuleStatus } from "@/bot/module-status";
 import { installProcessHandlers } from "@/bot/process-handlers";
@@ -24,7 +24,7 @@ type ShutdownBudget = {
 
 /** Own startup acquisitions and release them once, within one shutdown budget. */
 export class BotLifecycle {
-	private currentState: BotState = "created";
+	private currentState: "created" | "starting" | "running" | "stopping" | "stopped" = "created";
 	private startup: Promise<void> | undefined;
 	private stopping: Promise<StopReport> | undefined;
 	private readonly connected: DatabaseConnection[] = [];
@@ -46,13 +46,13 @@ export class BotLifecycle {
 			scheduler: Scheduler;
 			databases: readonly DatabaseConnection[];
 			migrations?: MigrationRunner;
-			options: BotOptions["lifecycle"];
+			options: BotLifecycleOptions | undefined;
 			subscriptions: readonly (() => void)[];
 		},
 	) {}
 
 	/** Current externally visible lifecycle phase. */
-	get state(): BotState {
+	get state() {
 		return this.currentState;
 	}
 
@@ -302,12 +302,14 @@ export class BotLifecycle {
 			this.currentState = "stopped";
 			this.removeHandlers?.();
 		}
+		const failedSnapshot = [...failed];
+		const abandonedSnapshot = [...abandoned];
 		return {
-			ok: failed.length === 0 && abandoned.length === 0,
+			ok: failedSnapshot.length === 0 && abandonedSnapshot.length === 0,
 			reason: params.reason,
 			...(params.signal === undefined ? {} : { signal: params.signal }),
-			failed,
-			abandoned,
+			failed: failedSnapshot,
+			abandoned: abandonedSnapshot,
 		};
 	}
 
@@ -325,11 +327,14 @@ export class BotLifecycle {
 				target,
 				deadline: budget.deadline,
 			});
-			if (result.outcome === "abandoned") {
+			if (result.outcome === "abandoned" && this.currentState !== "stopped") {
 				budget.abandoned.push(identity);
 				budget.deadline = budget.graceDeadline;
 			}
 		} catch (error) {
+			if (this.currentState === "stopped") {
+				return;
+			}
 			budget.failed.push({ ...identity, error: errorMessage(error) });
 			if (step === "flush") {
 				process.stderr.write(`Lifecycle flush failed: ${errorMessage(error)}\n`);
