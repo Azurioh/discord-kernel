@@ -1,13 +1,26 @@
+import { join } from "node:path";
 import { EmbedBuilder, Events } from "discord.js";
 import { describe, expect, it, vi } from "vitest";
+import { assembleModules, buildModules } from "@/bot/assemble-modules";
 import { DuplicateModuleError, ModuleRegistrationError } from "@/bot/bot-errors";
 import { type BotOptions, createBot } from "@/bot/create-bot";
-import { fixedClock } from "@/clock";
+import { fixedClock, systemClock } from "@/clock";
+import { AutocompleteDispatcher } from "@/discord/command/autocomplete-dispatcher";
 import { createCommand } from "@/discord/command/create-command";
+import { CommandRouter } from "@/discord/command/router";
+import { ComponentRouter } from "@/discord/components/component-router";
+import { createDefaultPresenter } from "@/discord/default-presenter";
 import { createEvent } from "@/discord/events/create-event";
-import { CORE_MESSAGES } from "@/discord/i18n";
+import { EventRouter } from "@/discord/events/event-router";
+import { CORE_CATALOG, CORE_MESSAGES } from "@/discord/i18n";
 import { createFixedLocaleResolver } from "@/discord/interaction/fixed-locale-resolver";
+import { InteractionRouter } from "@/discord/interaction/interaction-router";
+import { createDiscordGuildDirectory } from "@/discord/settings/discord-guild-directory";
+import { createGuildLocaleResolver } from "@/discord/settings/guild-locale-resolver";
+import { TranslationRegistry } from "@/i18n/catalog";
 import { DuplicateTranslationKeyError } from "@/i18n/errors";
+import { SOURCE_LOCALE } from "@/i18n/locale";
+import { createTranslator } from "@/i18n/translator";
 import { createInMemoryLogger } from "@/in-memory-logger";
 import type { BotModule } from "@/module/module";
 import type { ModuleContext } from "@/module/module-context";
@@ -15,7 +28,13 @@ import { defineSettings } from "@/settings/define-settings";
 import { field } from "@/settings/fields/builders";
 import { createInMemoryGuildDirectory } from "@/settings/in-memory/in-memory-guild-directory";
 import { createInMemorySettingsStore } from "@/settings/in-memory/in-memory-settings-store";
+import { createInProcessNotifier } from "@/settings/in-memory/in-process-notifier";
+import { SETTINGS_CATALOG } from "@/settings/messages";
+import { createSettingsRegistry } from "@/settings/registry";
 import { SettingsDeclarationError } from "@/settings/settings-declaration-error";
+import { createSettingsService } from "@/settings/settings-service";
+import { createModuleGate } from "@/settings/system/module-gate";
+import packageManifest from "../../package.json";
 import { createBotInteraction, dispatchClientEvent } from "../support/bot-interaction";
 import { createFakeClient } from "../support/fake-client";
 
@@ -338,6 +357,55 @@ describe("createBot", () => {
 		expect(await starting).toBeUndefined();
 		expect(input.discord.client.login).toHaveBeenCalledWith("secret");
 	});
+
+	it.each([
+		["bot/assemble-modules", { assembleModules, buildModules }],
+		["i18n/translator", { createTranslator }],
+		["i18n/catalog", { TranslationRegistry }],
+		["i18n/locale", { SOURCE_LOCALE }],
+		["discord/i18n", { CORE_CATALOG }],
+		[
+			"settings",
+			{
+				createSettingsRegistry,
+				createSettingsService,
+				createInProcessNotifier,
+				createModuleGate,
+				SETTINGS_CATALOG,
+			},
+		],
+		["discord/settings/discord-guild-directory", { createDiscordGuildDirectory }],
+		["clock", { systemClock }],
+		["discord/default-presenter", { createDefaultPresenter }],
+		["discord/settings/guild-locale-resolver", { createGuildLocaleResolver }],
+		["discord/command/router", { CommandRouter }],
+		["discord/components/component-router", { ComponentRouter }],
+		["discord/events/event-router", { EventRouter }],
+		["discord/command/autocomplete-dispatcher", { AutocompleteDispatcher }],
+		["discord/interaction/interaction-router", { InteractionRouter }],
+	] as const)(
+		"(m) exposes the assembly's exact building blocks through @azurioh/discord-kernel/%s",
+		async (subpath, expected) => {
+			// Self-references load dist separately from the source graph used by createBot.
+			// Resolve the real public export to its source so this also works before build.
+			const target = packageManifest.exports[`./${subpath}`].default;
+			expect(target).toMatch(/^\.\/dist\/.+\.js$/);
+			const source = join(
+				__dirname,
+				"../..",
+				target.replace("./dist/", "src/").replace(/\.js$/, ".ts"),
+			);
+			const publicModule = await import(source);
+			for (const [name, implementation] of Object.entries(expected)) {
+				expect(publicModule[name], `${subpath}: ${name}`).toBe(implementation);
+			}
+			if ("CommandRouter" in expected) {
+				expect(publicModule.CommandRouter.prototype.registerAllContextMenus).toBe(
+					CommandRouter.prototype.registerAllContextMenus,
+				);
+			}
+		},
+	);
 
 	it("(n) gates command, component and event handlers per guild", async () => {
 		const slash = command("test");
