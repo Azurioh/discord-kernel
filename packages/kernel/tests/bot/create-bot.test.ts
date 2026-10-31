@@ -475,6 +475,134 @@ describe("createBot", () => {
 		expect(autocomplete).toHaveBeenCalledOnce();
 	});
 
+	it("gates autocomplete per guild while ungated modules always run", async () => {
+		const autocomplete = vi.fn(async () => undefined);
+		const adminAutocomplete = vi.fn(async () => undefined);
+		const bot = createBot(
+			options([
+				{ name: "test", commands: [{ ...command("search"), autocomplete }] },
+				{
+					name: "admin",
+					gated: false,
+					commands: [{ ...command("admin"), autocomplete: adminAutocomplete }],
+				},
+			]),
+		);
+		await bot.settings.set(
+			bot.registry.kernel,
+			GUILD_A,
+			{ modules: { test: false } },
+			{
+				guildId: GUILD_A,
+				userId: "admin",
+				locale: "en",
+			},
+		);
+		const disabled = await interact({
+			bot,
+			kind: "autocomplete",
+			name: "search",
+			guildId: GUILD_A,
+		});
+		expect(disabled.respond).toHaveBeenCalledExactlyOnceWith([]);
+		expect(autocomplete).not.toHaveBeenCalled();
+		await interact({ bot, kind: "autocomplete", name: "search", guildId: GUILD_B });
+		expect(autocomplete).toHaveBeenCalledExactlyOnceWith(
+			expect.objectContaining({ guildId: GUILD_B }),
+		);
+		await interact({ bot, kind: "autocomplete", name: "admin", guildId: GUILD_A });
+		expect(adminAutocomplete).toHaveBeenCalledExactlyOnceWith(
+			expect.objectContaining({ guildId: GUILD_A }),
+		);
+	});
+
+	it.each(["static", "build"] as const)(
+		"rejects %s interactionCreate contributions before attaching listeners",
+		(source) => {
+			const events = [
+				createEvent({ name: Events.InteractionCreate, execute: vi.fn(async () => undefined) }),
+			];
+			const input = options([
+				{ name: "broken", ...(source === "static" ? { events } : { build: () => ({ events }) }) },
+			]);
+			const notifier = createInProcessNotifier(input.logger);
+			const subscribe = vi.spyOn(notifier, "subscribe");
+			expect(() => createBot({ ...input, adapters: { ...input.adapters, notifier } })).toThrowError(
+				expect.objectContaining({
+					name: "ModuleRegistrationError",
+					moduleName: "broken",
+					part: "events",
+					cause: expect.objectContaining({
+						message: expect.stringContaining(Events.InteractionCreate),
+					}),
+				}),
+			);
+			expect(input.discord.client.login).not.toHaveBeenCalled();
+			expect(input.discord.client.listenerCount(Events.InteractionCreate)).toBe(0);
+			if (source === "static") {
+				expect(subscribe).not.toHaveBeenCalled();
+			}
+		},
+	);
+
+	it.each(["throw", "duplicate", "event"] as const)(
+		"unsubscribes the abandoned settings cache after a build %s failure",
+		async (failure) => {
+			let context: ModuleContext | undefined;
+			const input = options([
+				{
+					name: "test",
+					translations: CATALOG,
+					settings: [DECLARATION],
+					commands: [],
+					build(services) {
+						context = services;
+						if (failure === "throw") {
+							throw new TypeError("build failed");
+						}
+						if (failure === "duplicate") {
+							return { commands: [] };
+						}
+						return {
+							events: [
+								createEvent({
+									name: Events.InteractionCreate,
+									execute: vi.fn(async () => undefined),
+								}),
+							],
+						};
+					},
+				},
+			]);
+			const notifier = createInProcessNotifier(input.logger);
+			expect(() => createBot({ ...input, adapters: { ...input.adapters, notifier } })).toThrowError(
+				ModuleRegistrationError,
+			);
+			expect(context).toBeDefined();
+			expect(await context?.settings.get(DECLARATION, GUILD_A)).toEqual({ enabled: true });
+			await input.settingsStore.write(
+				{
+					guildId: GUILD_A,
+					moduleId: DECLARATION.id,
+					version: 1,
+					revision: 1,
+					values: { enabled: false },
+					updatedAt: "2026-01-01T00:00:00Z",
+				},
+				{ expectedRevision: null },
+			);
+			notifier.notify({
+				guildId: GUILD_A,
+				moduleId: DECLARATION.id,
+				changedKeys: ["enabled"],
+				revision: 1,
+			});
+			expect(await context?.settings.get(DECLARATION, GUILD_A)).toEqual({ enabled: true });
+			expect(input.discord.client.listenerCount(Events.InteractionCreate)).toBe(0);
+			expect(input.discord.client.login).not.toHaveBeenCalled();
+		},
+	);
+
 	it("(q) attaches exactly one interaction listener", () => {
 		const bot = createBot(options([{ name: "one" }, { name: "two" }]));
 		expect(bot.client.listenerCount(Events.InteractionCreate)).toBe(1);

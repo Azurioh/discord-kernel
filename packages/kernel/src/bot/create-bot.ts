@@ -77,56 +77,87 @@ export function createBot(options: BotOptions): Bot {
 	const logger = options.logger;
 	const translator = createTranslator(translations, { defaultLocale: SOURCE_LOCALE, logger });
 	const clock = options.adapters?.clock ?? systemClock;
-	const settings = createSettingsService({
-		registry,
-		store: options.settingsStore,
-		translator,
-		logger,
-		clock,
-		guilds: options.adapters?.guilds ?? createDiscordGuildDirectory(client),
-		notifier: options.adapters?.notifier ?? createInProcessNotifier(logger),
-	});
-	const gate = createModuleGate({ service: settings, registry, logger });
-	const presenter = options.adapters?.presenter ?? createDefaultPresenter(translator);
-	const services: BotServices = {
-		client,
-		logger,
-		translator,
-		registry,
-		settings,
-		gate,
-		presenter,
-		clock,
-	};
-	const localeResolver =
-		options.adapters?.localeResolver?.(services) ??
-		createGuildLocaleResolver({ service: settings, registry, translator });
-	const modules = buildModules({ modules: options.modules, services });
-	const deps = { logger, translator, presenter, gate, localeResolver };
-	const commands = new CommandRouter(deps);
-	const components = new ComponentRouter(deps);
-	const events = new EventRouter(logger, gate);
-	for (const module of modules) {
-		const moduleName = module.gated === false ? undefined : module.name;
-		commands.registerAll(module.commands ?? [], moduleName);
-		commands.registerAllContextMenus(module.contextMenuCommands ?? [], moduleName);
-		components.registerAll(module.components ?? [], moduleName);
-		events.registerAll(module.events ?? [], moduleName);
+	const notifier = options.adapters?.notifier ?? createInProcessNotifier(logger);
+	const subscriptions: (() => void)[] = [];
+	try {
+		const settings = createSettingsService({
+			registry,
+			store: options.settingsStore,
+			translator,
+			logger,
+			clock,
+			guilds: options.adapters?.guilds ?? createDiscordGuildDirectory(client),
+			notifier: {
+				notify: notifier.notify.bind(notifier),
+				subscribe(listener) {
+					const unsubscribe = notifier.subscribe(listener);
+					subscriptions.push(unsubscribe);
+					return unsubscribe;
+				},
+			},
+		});
+		const gate = createModuleGate({ service: settings, registry, logger });
+		const presenter = options.adapters?.presenter ?? createDefaultPresenter(translator);
+		const services: BotServices = {
+			client,
+			logger,
+			translator,
+			registry,
+			settings,
+			gate,
+			presenter,
+			clock,
+		};
+		const localeResolver =
+			options.adapters?.localeResolver?.(services) ??
+			createGuildLocaleResolver({ service: settings, registry, translator });
+		const modules = buildModules({ modules: options.modules, services });
+		const deps = { logger, translator, presenter, gate, localeResolver };
+		const commands = new CommandRouter(deps);
+		const components = new ComponentRouter(deps);
+		const events = new EventRouter(logger, gate);
+		for (const module of modules) {
+			const moduleName = module.gated === false ? undefined : module.name;
+			commands.registerAll(module.commands ?? [], moduleName);
+			commands.registerAllContextMenus(module.contextMenuCommands ?? [], moduleName);
+			components.registerAll(module.components ?? [], moduleName);
+			events.registerAll(module.events ?? [], moduleName);
+		}
+		const interactions = new InteractionRouter([
+			commands,
+			new AutocompleteDispatcher(
+				{
+					get: commands.get.bind(commands),
+					moduleName(command) {
+						let owner: BotModule | undefined;
+						for (const module of modules) {
+							if (module.commands?.includes(command)) {
+								owner = module;
+							}
+						}
+						return owner?.gated === false ? undefined : owner?.name;
+					},
+				},
+				logger,
+				gate,
+			),
+			components,
+		]);
+		client.on(Events.InteractionCreate, (interaction) => interactions.dispatch(interaction));
+		events.bind(client);
+		return {
+			...services,
+			async start(token) {
+				await client.login(token);
+			},
+			deployCommands(target) {
+				return commands.deployCommands(target.token, target.clientId, target.rest);
+			},
+		};
+	} catch (error) {
+		for (const unsubscribe of subscriptions) {
+			unsubscribe();
+		}
+		throw error;
 	}
-	const interactions = new InteractionRouter([
-		commands,
-		new AutocompleteDispatcher(commands, logger),
-		components,
-	]);
-	client.on(Events.InteractionCreate, (interaction) => interactions.dispatch(interaction));
-	events.bind(client);
-	return {
-		...services,
-		async start(token) {
-			await client.login(token);
-		},
-		deployCommands(target) {
-			return commands.deployCommands(target.token, target.clientId, target.rest);
-		},
-	};
 }

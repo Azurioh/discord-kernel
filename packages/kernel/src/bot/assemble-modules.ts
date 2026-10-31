@@ -1,3 +1,4 @@
+import { Events } from "discord.js";
 import { DuplicateModuleError, ModuleRegistrationError } from "@/bot/bot-errors";
 import { CORE_CATALOG } from "@/discord/i18n";
 import { TranslationRegistry } from "@/i18n/catalog";
@@ -34,6 +35,7 @@ export function assembleModules(modules: readonly BotModule[]): {
 			throw new DuplicateModuleError(module.name, module.name);
 		}
 		names.add(module.name);
+		validateEvents(module);
 	}
 	const translations = new TranslationRegistry();
 	translations.register(CORE_CATALOG);
@@ -116,6 +118,7 @@ export function buildModules(params: {
 				);
 			}
 		}
+		validateEvents({ ...module, ...parts });
 		built.push({ ...module, ...parts });
 	}
 	return built;
@@ -123,4 +126,18 @@ export function buildModules(params: {
 
 function isGated(module: BotModule): boolean {
 	return module.gated !== false;
+}
+
+function validateEvents(module: BotModule): void {
+	for (const event of module.events ?? []) {
+		if (event.name === Events.InteractionCreate) {
+			throw new ModuleRegistrationError(
+				module.name,
+				new TypeError(
+					`Module event "${Events.InteractionCreate}" is reserved for the shared interaction router`,
+				),
+				"events",
+			);
+		}
+	}
 }
