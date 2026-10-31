@@ -15,6 +15,13 @@ import type { ScheduledJob, Scheduler } from "@/scheduler/scheduler";
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 const SHUTDOWN_GRACE_MS = 1_000;
 
+type ShutdownBudget = {
+	deadline: number;
+	graceDeadline: number;
+	failed: { step: string; target?: string; error: string }[];
+	abandoned: { step: string; target?: string }[];
+};
+
 /** Own startup acquisitions and release them once, within one shutdown budget. */
 export class BotLifecycle {
 	private currentState: BotState = "created";
@@ -22,6 +29,7 @@ export class BotLifecycle {
 	private stopping: Promise<StopReport> | undefined;
 	private readonly connected: DatabaseConnection[] = [];
 	private loginCalled = false;
+	private cleanupBudget: ShutdownBudget | undefined;
 	private cancelReady: (() => void) | undefined;
 	private removeHandlers: (() => void) | undefined;
 	private notifyStop: (() => void) | undefined;
@@ -113,7 +121,12 @@ export class BotLifecycle {
 				logger: this.deps.logger,
 				target: database.driver,
 			});
-			this.connected.push(database);
+			await this.recordAcquisition({
+				retain: () => this.connected.push(database),
+				step: "databases.close",
+				target: database.driver,
+				release: () => database.close(),
+			});
 		}
 		if (this.currentState !== "starting") {
 			return;
@@ -137,6 +150,10 @@ export class BotLifecycle {
 		await runStep("gateway.login", () => this.deps.client.login(token), {
 			logger: this.deps.logger,
 		});
+		await this.recordAcquisition({
+			step: "gateway.destroy",
+			release: () => this.deps.client.destroy(),
+		});
 		if (this.currentState !== "starting") {
 			return;
 		}
@@ -152,9 +169,12 @@ export class BotLifecycle {
 						target: module.name,
 					});
 				}
-				if (this.state !== "stopped") {
-					this.deps.statuses.markReady(module.name);
-				}
+				await this.recordAcquisition({
+					retain: () => this.deps.statuses.markReady(module.name),
+					step: "module.teardown",
+					target: module.name,
+					release: module.teardown === undefined ? undefined : () => module.teardown?.(),
+				});
 			} catch (error) {
 				if (module.optional !== true) {
 					throw error;
@@ -174,8 +194,31 @@ export class BotLifecycle {
 		await runStep("jobs.start", () => this.deps.scheduler.start(jobs), {
 			logger: this.deps.logger,
 		});
+		await this.recordAcquisition({
+			step: "jobs.stop",
+			release: () => this.deps.scheduler.stop(),
+		});
 		if (this.currentState === "starting") {
 			this.currentState = "running";
+		}
+	}
+
+	// Once traversal starts, acquisitions bypass its snapshots and use the same cleanup budget.
+	private async recordAcquisition(params: {
+		retain?: () => unknown;
+		step: string;
+		target?: string;
+		release?: (() => unknown) | undefined;
+	}): Promise<void> {
+		if (this.cleanupBudget === undefined) {
+			params.retain?.();
+		} else if (params.release !== undefined) {
+			await this.stopStep({
+				step: params.step,
+				target: params.target,
+				action: params.release,
+				budget: this.cleanupBudget,
+			});
 		}
 	}
 
@@ -195,6 +238,7 @@ export class BotLifecycle {
 				budget,
 			});
 		}
+		this.cleanupBudget = budget;
 		if (this.deps.scheduler.started) {
 			await this.stopStep({ step: "jobs.stop", action: () => this.deps.scheduler.stop(), budget });
 		}
@@ -250,12 +294,7 @@ export class BotLifecycle {
 		step: string;
 		target?: string;
 		action: () => unknown;
-		budget: {
-			deadline: number;
-			graceDeadline: number;
-			failed: { step: string; target?: string; error: string }[];
-			abandoned: { step: string; target?: string }[];
-		};
+		budget: ShutdownBudget;
 	}): Promise<void> {
 		const { step, target, budget } = params;
 		const identity = { step, ...(target === undefined ? {} : { target }) };

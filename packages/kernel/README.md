@@ -139,9 +139,10 @@ list. Modules without setup become ready too.
 and `abandoned` (and `signal` for a signal stop). It waits for any active startup
 step, stops jobs, tears down ready modules in reverse declaration order, closes
 connected databases in reverse connection order, destroys the client if login was
-called, then runs named `lifecycle.flushes` in declaration order. Unavailable or
-pending modules are never torn down. Finally it releases the settings notifier
-subscription and process handlers, including after failed startup or a stop before
+called, then runs named `lifecycle.flushes` in declaration order. Unavailable
+modules are never torn down; pending modules wait for successful setup. Finally it
+releases the settings notifier subscription and process handlers, including after
+failed startup or a stop before
 startup. Step failures are recorded and later cleanup still runs. Flush failures
 use `process.stderr` because the logger may already be closed.
 
@@ -154,6 +155,11 @@ steps hang. `ok` is false for any failed or abandoned step.
 Calling `stop()` during `starting` interrupts startup between steps. A pending
 step may settle, but no remaining startup steps run, no later jobs are scheduled
 and the bot cannot become `running`. Shutdown releases what startup acquired.
+If an abandoned startup step succeeds later, its resource is released through the
+same cleanup path, using the original deadline and grace period. A late successful
+module setup is torn down without becoming ready. Late cleanup does not delay the
+returned shutdown report; `start.settle` remains reported as abandoned, and late
+cleanup failures or abandonments are logged and appended to that report.
 The interrupted `start()` resolves after cleanup; an actual startup failure still
 rejects with its original error.
 

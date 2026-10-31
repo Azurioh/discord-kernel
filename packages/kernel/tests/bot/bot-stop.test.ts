@@ -36,6 +36,133 @@ function fixture(params: { modules?: readonly BotModule[]; lifecycle?: BotOption
 afterEach(() => vi.useRealTimers());
 
 describe("bot stop", () => {
+	it.each([false, true])(
+		"closes a late database exactly once (after shutdown: %s)",
+		async (afterShutdown) => {
+			vi.useFakeTimers();
+			const pending = createDeferred<void>();
+			const entered = createDeferred<void>();
+			const f = fixture({ lifecycle: { shutdownTimeoutMs: 100 } });
+			const connect = f.first.connect.bind(f.first);
+			vi.spyOn(f.first, "connect").mockImplementation(async () => {
+				entered.resolve();
+				await pending.promise;
+				await connect();
+			});
+			const schedule = vi.spyOn(f.scheduler, "start");
+			const starting = f.bot.start("token");
+			await entered.promise;
+			const stopping = f.bot.stop();
+			if (afterShutdown) {
+				await vi.advanceTimersByTimeAsync(1100);
+				await stopping;
+			}
+			pending.resolve();
+			await vi.advanceTimersByTimeAsync(0);
+			await starting;
+			expect(f.first.closeCount).toBe(1);
+			expect(f.first.connected).toBe(false);
+			expect(f.second.connectCount).toBe(0);
+			expect(f.client.login).not.toHaveBeenCalled();
+			expect(schedule).not.toHaveBeenCalled();
+			expect(f.bot.state).toBe("stopped");
+			expect(await stopping).toEqual({
+				ok: !afterShutdown,
+				reason: "manual",
+				failed: [],
+				abandoned: afterShutdown ? [{ step: "start.settle" }] : [],
+			});
+			expect(f.bot.stop()).toBe(stopping);
+			expect(vi.getTimerCount()).toBe(0);
+		},
+	);
+	it.each([false, true])("destroys a late login (after shutdown: %s)", async (afterShutdown) => {
+		vi.useFakeTimers();
+		const pending = createDeferred<void>();
+		const entered = createDeferred<void>();
+		const f = fixture({ lifecycle: { shutdownTimeoutMs: 100 } });
+		let connected = false;
+		vi.mocked(f.client.login).mockImplementation(async () => {
+			entered.resolve();
+			await pending.promise;
+			connected = true;
+			emitReady(f.client);
+			return "token";
+		});
+		vi.mocked(f.client.destroy).mockImplementation(async () => {
+			connected = false;
+		});
+		const schedule = vi.spyOn(f.scheduler, "start");
+		const starting = f.bot.start("token");
+		await entered.promise;
+		const stopping = f.bot.stop();
+		if (afterShutdown) {
+			await vi.advanceTimersByTimeAsync(1100);
+			await stopping;
+		}
+		pending.resolve();
+		await vi.advanceTimersByTimeAsync(0);
+		await starting;
+		expect(connected).toBe(false);
+		expect(f.client.destroy).toHaveBeenCalledTimes(afterShutdown ? 2 : 1);
+		expect(schedule).not.toHaveBeenCalled();
+		expect(f.bot.state).toBe("stopped");
+		expect(await stopping).toEqual({
+			ok: !afterShutdown,
+			reason: "manual",
+			failed: [],
+			abandoned: afterShutdown ? [{ step: "start.settle" }] : [],
+		});
+		expect(vi.getTimerCount()).toBe(0);
+	});
+	it.each([false, true])(
+		"tears down a late successful setup (after shutdown: %s)",
+		async (afterShutdown) => {
+			vi.useFakeTimers();
+			const pending = createDeferred<void>();
+			const entered = createDeferred<void>();
+			const teardown = vi.fn();
+			const later = vi.fn();
+			const f = fixture({
+				modules: [
+					{
+						name: "pending",
+						setup: () => {
+							entered.resolve();
+							return pending.promise;
+						},
+						teardown,
+					},
+					{ name: "later", setup: later },
+				],
+				lifecycle: { shutdownTimeoutMs: 100 },
+			});
+			const schedule = vi.spyOn(f.scheduler, "start");
+			const starting = f.bot.start("token");
+			await entered.promise;
+			const stopping = f.bot.stop();
+			if (afterShutdown) {
+				await vi.advanceTimersByTimeAsync(1100);
+				await stopping;
+				expect(teardown).not.toHaveBeenCalled();
+			}
+			pending.resolve();
+			await vi.advanceTimersByTimeAsync(0);
+			await starting;
+			expect(teardown).toHaveBeenCalledOnce();
+			expect(later).not.toHaveBeenCalled();
+			expect(schedule).not.toHaveBeenCalled();
+			expect(f.bot.state).toBe("stopped");
+			expect(await stopping).toEqual({
+				ok: !afterShutdown,
+				reason: "manual",
+				failed: [],
+				abandoned: afterShutdown ? [{ step: "start.settle" }] : [],
+			});
+			expect(vi.getTimerCount()).toBe(0);
+		},
+	);
+
 	it("stops jobs, tears down all ready modules in reverse, closes databases in reverse, destroys, then flushes", async () => {
 		const order: string[] = [];
 		const f = fixture({
@@ -221,7 +348,7 @@ describe("bot stop", () => {
 		expect(f.first.closeCount).toBe(1);
 		expect(f.client.destroy).toHaveBeenCalledOnce();
 	});
-	it("settles interrupted start after abandoning pending setup and ignores its late completion", async () => {
+	it("settles interrupted start after abandoning pending setup and releases its late acquisition", async () => {
 		vi.useFakeTimers();
 		const pending = createDeferred<void>();
 		const entered = createDeferred<void>();
@@ -259,7 +386,7 @@ describe("bot stop", () => {
 		pending.resolve();
 		await vi.advanceTimersByTimeAsync(0);
 		expect(later).not.toHaveBeenCalled();
-		expect(teardown).not.toHaveBeenCalled();
+		expect(teardown).toHaveBeenCalledOnce();
 		expect(f.scheduler.started).toBe(false);
 		expect(f.bot.state).toBe("stopped");
 	});
