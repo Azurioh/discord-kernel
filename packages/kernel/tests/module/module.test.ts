@@ -1,5 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
-import type { BotModule } from "@/module/module";
+import type { BotModule, ModuleParts } from "@/module/module";
+import type { BotServices, ModuleContext } from "@/module/module-context";
 import type { SettingsDeclaration } from "@/settings/define-settings";
 import { defineSettings } from "@/settings/define-settings";
 import { field } from "@/settings/fields/builders";
@@ -36,5 +37,22 @@ describe("BotModule — settings contribution", () => {
 			readonly SettingsDeclaration[] | undefined
 		>();
 		expectTypeOf<BotModule["defaultEnabled"]>().toEqualTypeOf<boolean | undefined>();
+	});
+});
+
+describe("BotModule service-aware parts", () => {
+	it("keeps new declarations optional and accepts existing modules", () => {
+		expectTypeOf<BotModule["gated"]>().toEqualTypeOf<boolean | undefined>();
+		expectTypeOf<BotModule["optional"]>().toEqualTypeOf<boolean | undefined>();
+		expectTypeOf<BotModule["build"]>().toEqualTypeOf<
+			((context: ModuleContext) => ModuleParts) | undefined
+		>();
+		expectTypeOf<ModuleContext>().toEqualTypeOf<BotServices>();
+		expectTypeOf({}).toExtend<ModuleParts>();
+		expectTypeOf<keyof ModuleParts>().toEqualTypeOf<
+			"commands" | "contextMenuCommands" | "components" | "events" | "jobs" | "setup" | "teardown"
+		>();
+		const module: BotModule = { name: "legacy" };
+		expect(module.build).toBeUndefined();
 	});
 });

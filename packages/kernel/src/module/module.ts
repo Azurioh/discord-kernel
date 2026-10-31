@@ -2,6 +2,7 @@ import type { ContextMenuCommand, SlashCommand } from "@/discord/command/types";
 import type { ComponentHandler } from "@/discord/components/component-router";
 import type { DiscordEvent } from "@/discord/events/types";
 import type { Catalog } from "@/i18n/catalog";
+import type { ModuleContext } from "@/module/module-context";
 import type { ScheduledJob } from "@/scheduler/scheduler";
 import type { SettingsDeclaration } from "@/settings/define-settings";
 
@@ -16,6 +17,12 @@ import type { SettingsDeclaration } from "@/settings/define-settings";
  * module is wired.
  */
 export interface BotModule {
+	/** False means never gated and no toggle. Defaults to true. */
+	readonly gated?: boolean;
+	/** A failed setup disables only this module. Used by the lifecycle in PR 3. */
+	readonly optional?: boolean;
+	/** Build service-dependent parts once after all kernel services exist. */
+	build?(context: ModuleContext): ModuleParts;
 	/** Stable identifier, used in logs. */
 	readonly name: string;
 	/**
@@ -52,5 +59,16 @@ export interface BotModule {
 	 * and the framework cannot see — timers, collectors, third-party connections.
 	 * A rejecting teardown is logged and never aborts the shutdown of the others.
 	 */
+	teardown?(): Promise<void> | void;
+}
+
+/** Service-dependent contributions returned by a module's build function. */
+export interface ModuleParts {
+	readonly commands?: readonly SlashCommand[];
+	readonly contextMenuCommands?: readonly ContextMenuCommand[];
+	readonly components?: readonly ComponentHandler[];
+	readonly events?: readonly DiscordEvent[];
+	readonly jobs?: readonly ScheduledJob[];
+	setup?(): Promise<void> | void;
 	teardown?(): Promise<void> | void;
 }

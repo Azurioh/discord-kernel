@@ -1,4 +1,5 @@
 import { type CommandInteraction, type Interaction, REST, Routes } from "discord.js";
+import type { CommandDeployRest } from "@/discord/command/command-deploy-rest";
 import { sendEmbed } from "@/discord/command/send-embed";
 import type {
 	CommandRuntime,
@@ -162,8 +163,8 @@ export class CommandRouter implements InteractionDispatcher {
 	 * global scope is always synced — even when empty — so stale global commands
 	 * are pruned. Returns the number of commands deployed.
 	 */
-	async deployCommands(token: string, clientId: string): Promise<number> {
-		const rest = new REST({ version: "10" }).setToken(token);
+	async deployCommands(token: string, clientId: string, rest?: CommandDeployRest): Promise<number> {
+		const transport = rest ?? new REST({ version: "10" }).setToken(token);
 		const global: unknown[] = [];
 		const byGuild = new Map<string, unknown[]>();
 		let deployed = 0;
@@ -190,11 +191,11 @@ export class CommandRouter implements InteractionDispatcher {
 			}
 		}
 
-		await rest.put(Routes.applicationCommands(clientId), { body: global });
+		await transport.put(Routes.applicationCommands(clientId), { body: global });
 		this.deps.logger.info({ count: global.length }, "Global slash commands deployed");
 
 		for (const [guildId, body] of byGuild) {
-			await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body });
+			await transport.put(Routes.applicationGuildCommands(clientId, guildId), { body });
 			this.deps.logger.info({ guildId, count: body.length }, "Guild slash commands deployed");
 		}
 

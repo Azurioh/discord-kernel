@@ -482,6 +482,30 @@
 		"./testing/contract-runner": {
 			"types": "./dist/testing/contract-runner.d.ts",
 			"default": "./dist/testing/contract-runner.js"
+		},
+		"./bot/bot-errors": {
+			"types": "./dist/bot/bot-errors.d.ts",
+			"default": "./dist/bot/bot-errors.js"
+		},
+		"./bot/assemble-modules": {
+			"types": "./dist/bot/assemble-modules.d.ts",
+			"default": "./dist/bot/assemble-modules.js"
+		},
+		"./bot/create-bot": {
+			"types": "./dist/bot/create-bot.d.ts",
+			"default": "./dist/bot/create-bot.js"
+		},
+		"./module/module-context": {
+			"types": "./dist/module/module-context.d.ts",
+			"default": "./dist/module/module-context.js"
+		},
+		"./discord/command/command-deploy-rest": {
+			"types": "./dist/discord/command/command-deploy-rest.d.ts",
+			"default": "./dist/discord/command/command-deploy-rest.js"
+		},
+		"./discord/command/in-memory-deploy-rest": {
+			"types": "./dist/discord/command/in-memory-deploy-rest.d.ts",
+			"default": "./dist/discord/command/in-memory-deploy-rest.js"
 		}
 	},
 	"files": [

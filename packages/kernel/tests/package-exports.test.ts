@@ -51,3 +51,50 @@ describe("package exports", () => {
 		});
 	});
 });
+
+describe("bot building blocks remain public (T030 m, FR-007)", () => {
+	it.each([
+		"bot/bot-errors",
+		"bot/assemble-modules",
+		"bot/create-bot",
+		"module/module-context",
+		"module/module",
+		"clock",
+		"logger",
+		"i18n/catalog",
+		"i18n/translator",
+		"i18n/locale",
+		"discord/i18n",
+		"discord/default-presenter",
+		"discord/command/router",
+		"discord/command/autocomplete-dispatcher",
+		"discord/command/command-deploy-rest",
+		"discord/command/in-memory-deploy-rest",
+		"discord/components/component-router",
+		"discord/events/event-router",
+		"discord/interaction/interaction-router",
+		"discord/settings/discord-guild-directory",
+		"discord/settings/guild-locale-resolver",
+	])("keeps ./%s importable at its own entry point", (subpath) => {
+		expect(packageExports[`./${subpath}`]).toEqual({
+			types: `./dist/${subpath}.d.ts`,
+			default: `./dist/${subpath}.js`,
+		});
+	});
+
+	it("keeps settings composition and its contract suite on the two settings entry points", () => {
+		const settings = readFileSync(join(ROOT, "src/settings/index.ts"), "utf8");
+		for (const symbol of [
+			"createSettingsRegistry",
+			"createSettingsService",
+			"createModuleGate",
+			"createInProcessNotifier",
+			"SETTINGS_CATALOG",
+		]) {
+			expect(settings).toContain(symbol);
+		}
+		expect(readFileSync(join(ROOT, "src/settings/testing/index.ts"), "utf8")).toContain(
+			"runSettingsStoreContract",
+		);
+	});
+});
