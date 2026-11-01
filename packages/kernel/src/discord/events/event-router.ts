@@ -1,6 +1,7 @@
 import type { Client } from "discord.js";
 import { eventGuildId } from "@/discord/events/event-guild-id";
 import type { DiscordEvent, EventListener } from "@/discord/events/types";
+import type { ModuleAvailability } from "@/discord/module-availability";
 import { isModuleDisabled } from "@/discord/settings/is-module-disabled";
 import { errorMessage } from "@/errors/error-message";
 import type { Logger } from "@/logger";
@@ -10,6 +11,7 @@ import type { ModuleGate } from "@/settings/system/module-gate";
 interface RegisteredEvent {
 	readonly event: DiscordEvent;
 	readonly moduleName: string | undefined;
+	readonly gated: boolean;
 }
 
 /**
@@ -21,12 +23,23 @@ function createEventListener(params: {
 	registered: RegisteredEvent;
 	logger: Logger;
 	gate: ModuleGate | undefined;
+	availability: ModuleAvailability | undefined;
 }): EventListener {
-	const { registered, logger, gate } = params;
+	const { registered, logger, gate, availability } = params;
 	const { event, moduleName } = registered;
 	return async (...args) => {
 		try {
-			if (await isModuleDisabled({ gate, moduleName, guildId: eventGuildId(args) })) {
+			if (moduleName !== undefined && availability?.isAvailable(moduleName) === false) {
+				logger.debug({ module: moduleName, event: event.name }, "Unavailable module event skipped");
+				return;
+			}
+			if (
+				await isModuleDisabled({
+					gate,
+					moduleName: registered.gated ? moduleName : undefined,
+					guildId: eventGuildId(args),
+				})
+			) {
 				return;
 			}
 			await event.execute(...args);
@@ -47,27 +60,30 @@ export class EventRouter {
 	 * @param logger - where a failing handler is reported.
 	 * @param gate - when given, a handler registered with a module is skipped,
 	 * silently, for a guild where that module is disabled (FR-036). Events bound
-	 * to no guild always run.
+	 * to no guild bypass that gate.
+	 * @param availability - Process-wide module readiness, checked before the guild gate.
 	 */
 	constructor(
 		private readonly logger: Logger,
 		private readonly gate?: ModuleGate,
+		private readonly availability?: ModuleAvailability,
 	) {}
 
 	/**
 	 * @param moduleName - the module the handler belongs to, so the gate can
 	 * skip it for guilds where that module is disabled. Omit it for a handler
-	 * that always runs.
+	 * without module ownership.
+	 * @param gated - Whether this owner uses per-guild gating.
 	 */
-	register(event: DiscordEvent, moduleName?: string): this {
-		this.events.push({ event, moduleName });
+	register(event: DiscordEvent, moduleName?: string, gated = true): this {
+		this.events.push({ event, moduleName, gated });
 		return this;
 	}
 
 	/** Register many handlers at once, all of `moduleName` when given. */
-	registerAll(events: Iterable<DiscordEvent>, moduleName?: string): this {
+	registerAll(events: Iterable<DiscordEvent>, moduleName?: string, gated = true): this {
 		for (const event of events) {
-			this.register(event, moduleName);
+			this.register(event, moduleName, gated);
 		}
 		return this;
 	}
@@ -75,7 +91,12 @@ export class EventRouter {
 	bind(client: Client): void {
 		for (const registered of this.events) {
 			const { event } = registered;
-			const listener = createEventListener({ registered, logger: this.logger, gate: this.gate });
+			const listener = createEventListener({
+				registered,
+				logger: this.logger,
+				gate: this.gate,
+				availability: this.availability,
+			});
 			if (event.once) {
 				client.once(event.name, listener);
 			} else {

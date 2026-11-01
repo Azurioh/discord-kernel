@@ -7,14 +7,17 @@ import {
 } from "discord.js";
 import type { Guard } from "@/discord/command/guard";
 import { passesGuard } from "@/discord/command/passes-guard";
+import { sendEmbed } from "@/discord/command/send-embed";
 import { CORE_MESSAGES } from "@/discord/i18n";
 import type { InteractionDispatcher } from "@/discord/interaction/interaction-router";
 import type { LocaleResolver } from "@/discord/interaction/locale-resolver";
 import { replyLocale } from "@/discord/interaction/reply-locale";
+import type { ModuleAvailability } from "@/discord/module-availability";
 import { formatPermissions, missingPermissions, type PermissionBit } from "@/discord/permissions";
 import type { Presenter } from "@/discord/presenter";
 import { isModuleDisabled } from "@/discord/settings/is-module-disabled";
 import { moduleDisabledEmbed } from "@/discord/settings/module-disabled-embed";
+import { moduleUnavailableEmbed } from "@/discord/settings/module-unavailable-embed";
 import { errorMessage } from "@/errors/error-message";
 import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
@@ -92,6 +95,8 @@ export interface ComponentHandler {
 }
 
 export interface ComponentRouterDeps {
+	/** Owning modules that failed setup are denied before any per-guild gate. */
+	availability?: ModuleAvailability;
 	presenter: Presenter;
 	logger: Logger;
 	translator: Translator;
@@ -122,8 +127,9 @@ function isRoutable(interaction: Interaction): interaction is RoutableInteractio
  */
 export class ComponentRouter implements InteractionDispatcher {
 	private readonly handlers: ComponentHandler[] = [];
-	/** The module each handler was registered for; absent means never gated. */
+	/** The owning module of each handler, independent of per-guild gating. */
 	private readonly modules = new Map<ComponentHandler, string>();
+	private readonly ungated = new Set<ComponentHandler>();
 	private readonly runtime: ComponentRuntime;
 
 	constructor(private readonly deps: ComponentRouterDeps) {
@@ -138,10 +144,14 @@ export class ComponentRouter implements InteractionDispatcher {
 	/**
 	 * @param moduleName - the module the handler belongs to, so the gate can
 	 * skip it on guilds where that module is disabled. Omit it for a handler
-	 * that always runs.
+	 * without module ownership.
+	 * @param gated - Whether to consult the per-guild gate; ownership is always retained.
 	 */
-	register(handler: ComponentHandler, moduleName?: string): this {
+	register(handler: ComponentHandler, moduleName?: string, gated = true): this {
 		this.handlers.push(handler);
+		if (!gated) {
+			this.ungated.add(handler);
+		}
 		if (moduleName !== undefined) {
 			this.modules.set(handler, moduleName);
 		}
@@ -149,9 +159,9 @@ export class ComponentRouter implements InteractionDispatcher {
 	}
 
 	/** Register many handlers at once, all of `moduleName` when given. */
-	registerAll(handlers: Iterable<ComponentHandler>, moduleName?: string): this {
+	registerAll(handlers: Iterable<ComponentHandler>, moduleName?: string, gated = true): this {
 		for (const handler of handlers) {
-			this.register(handler, moduleName);
+			this.register(handler, moduleName, gated);
 		}
 		return this;
 	}
@@ -202,9 +212,19 @@ export class ComponentRouter implements InteractionDispatcher {
 		interaction: RoutableInteraction,
 		handler: ComponentHandler,
 	): Promise<boolean> {
+		const owner = this.modules.get(handler);
+		if (owner !== undefined && this.deps.availability?.isAvailable(owner) === false) {
+			await sendEmbed(
+				interaction,
+				await moduleUnavailableEmbed(interaction, this.deps),
+				true,
+				this.deps.logger,
+			);
+			return false;
+		}
 		const disabled = await isModuleDisabled({
 			gate: this.deps.gate,
-			moduleName: this.modules.get(handler),
+			moduleName: this.ungated.has(handler) ? undefined : owner,
 			guildId: interaction.guildId,
 		});
 		if (disabled) {

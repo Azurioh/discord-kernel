@@ -20,7 +20,7 @@ library in one tree would break every `instanceof` the gateway relies on.
 
 | Area | What it gives you |
 | ---- | ----------------- |
-| `bot/` | `createBot`: shared services, module assembly, interaction routing and command deployment |
+| `bot/` | `createBot`: shared services, module assembly, ordered startup and shutdown, interaction routing and command deployment |
 | `discord/command/` | `createCommand` (flat or grouped), typed options, guards (`allOf`/`anyOf`, permissions, roles, cooldowns), the per-interaction `Context`, autocomplete, the `CommandRouter` |
 | `discord/interaction/` | `createButton`, `createModal`, the four typed select menus (`createStringSelect`, `createChannelSelect`, `createRoleSelect`, `createUserSelect`), the `InteractionRouter`/`InteractionDispatcher` seam |
 | `discord/components/` | `ComponentRouter` for persistent `customId` routing, and collector-backed screens: `paginator`, `interactive-message`, `settings-editor` |
@@ -30,7 +30,7 @@ library in one tree would break every `instanceof` the gateway relies on.
 | `authz/` | An `Authorizer` port with `viewer`/`editor` grants, a `requireLevel` guard, an in-memory authorizer and its contract suite (`authz/testing`) |
 | `errors/` | `BusinessError` and friends, carrying an optional translation key beside the English source |
 | `scheduler/` | A `Scheduler` port, a node-cron implementation and an in-memory twin |
-| Ports | `Logger`, `Clock`, `DatabaseConnection`, `MigrationRunner`, `Authorizer`, `Scheduler`, `ChannelExporter`, `Presenter`, `LocaleResolver`, `ModuleGate`, and the settings ports — declared here (tagged `@port`), implemented by your app, each with an [in-memory twin](#testing-with-in-memory-twins) |
+| Ports | `Logger`, `Clock`, `DatabaseConnection`, `MigrationRunner`, `Authorizer`, `Scheduler`, `ChannelExporter`, `Presenter`, `LocaleResolver`, `ModuleGate`, `ModuleAvailability`, `ProcessLike`, and the settings ports — declared here (tagged `@port`), implemented by your app, each with an [in-memory twin](#testing-with-in-memory-twins) |
 
 Every path is imported directly; there is no root barrel:
 
@@ -66,54 +66,119 @@ translator, registry, gate, presenter, clock or client. Its logger carries
 declaring it in both places fails creation.
 
 Modules are gated by their per-guild toggle by default. Set `gated: false` for
-administration commands that must always answer; the module then has no toggle.
-`optional: true` declares that a setup failure may disable only that module
-once lifecycle support is added in PR 3.
+administration commands that must answer independently of guild toggles. Module
+ownership is preserved: an unavailable optional module cannot run handlers,
+even when it is ungated.
 
-This example uses in-memory adapters; supply durable storage and your application's
-logger in production. Pass credentials from your composition root.
+This executable smoke example uses the same start → serve → stop flow as
+`tests/bot/minimal-bot.test.ts`, with in-memory adapters and shared test helpers.
+The fake client never connects to Discord. In an application, supply durable
+storage and your logger, use the real client and `await bot.start(token)`, and let
+gateway interactions reach the registered handlers.
 
 ```ts
 import { createBot } from "@azurioh/discord-kernel/bot/create-bot";
+import { createInMemoryProcess } from "@azurioh/discord-kernel/bot/in-memory-process";
 import { createCommand } from "@azurioh/discord-kernel/discord/command/create-command";
 import { createInMemoryLogger } from "@azurioh/discord-kernel/in-memory-logger";
+import { createInMemoryScheduler } from "@azurioh/discord-kernel/scheduler/in-memory-scheduler";
 import { createInMemorySettingsStore } from "@azurioh/discord-kernel/settings";
+import { createBotInteraction, dispatchClientEvent, startFakeBot } from "./tests/support/bot-interaction";
+import { createFakeClient } from "./tests/support/fake-client";
+
+const ping = {
+  name: "ping",
+  commands: [createCommand({
+    name: "ping",
+    description: "Check availability",
+    async handler(context) {
+      await context.confirm("Pong");
+    },
+  })],
+};
 
 const bot = createBot({
+  modules: [ping],
   logger: createInMemoryLogger(),
   settingsStore: createInMemorySettingsStore(),
-  modules: [{
-    name: "hello",
-    build(context) {
-      return {
-        commands: [createCommand({
-          name: "hello",
-          description: "Say hello",
-          async handler(ctx) {
-            context.logger.info({ guildId: ctx.interaction.guildId }, "Greeting requested");
-            await ctx.confirm("Hello!");
-          },
-        })],
-      };
-    },
-  }],
+  discord: { client: createFakeClient() },
+  adapters: { scheduler: createInMemoryScheduler() },
+  lifecycle: { process: createInMemoryProcess() },
 });
-
-await bot.deployCommands({ token, clientId }); // Can also run in a separate deployment script.
-await bot.start(token);
+await startFakeBot({ bot });
+const interaction = createBotInteraction({ kind: "slash", name: "ping", guildId: "100000000000000001" });
+await dispatchClientEvent({ client: bot.client, event: "interactionCreate", args: [interaction] });
+await bot.stop();
 ```
 
-`deployCommands` returns the number of slash and context-menu commands deployed,
-with one request per target scope. It performs no gateway login, database
-connection, migration or module setup. Pass `rest: createInMemoryDeployRest()`
-(from `discord/command/in-memory-deploy-rest`) to inspect payloads in tests.
+`deployCommands({ token, clientId })` returns the number of slash and context-menu
+commands deployed, with one request per target scope. It performs no gateway login,
+database connection, migration or module setup and can run in a separate deployment
+script. Pass `rest: createInMemoryDeployRest()` (from
+`discord/command/in-memory-deploy-rest`) to inspect payloads in tests.
 
-PR 2 exposes creation, services, deployment and `start(token): Promise<void>`,
-which only awaits login and returns no token. State, `stop()`, lifecycle options,
-setup, migrations and job execution arrive additively in PR 3; lifecycle adapters
-may already be supplied but are not run yet. Default presentation and guild
-language resolution are provided; override them through `adapters.presenter`
-and `adapters.localeResolver(services)`.
+Default presentation and guild language resolution are provided; override them
+through `adapters.presenter` and `adapters.localeResolver(services)`.
+
+### Lifecycle
+
+`bot.state` moves through `created → starting → running → stopping → stopped`.
+`start(token)` connects databases in declaration order, runs migrations, installs
+the readiness listener before logging in, awaits `clientReady`, runs module setup
+in declaration order, then starts the available modules' jobs. Without an injected
+scheduler, it uses `CronScheduler`. Each step logs its name, duration and optional
+target through the logger.
+
+A required startup failure stops acquired resources and rejects `start()` with the
+original error. An `optional: true` module whose setup fails becomes unavailable:
+its jobs and every owned command, context menu, component, event and autocomplete
+handler are skipped, independently of `gated`. Autocomplete answers with an empty
+list. Modules without setup become ready too.
+
+`stop()` shares one promise and returns a `StopReport` with `ok`, `reason`, `failed`
+and `abandoned` (and `signal` for a signal stop). It waits for any active startup
+step, stops jobs, tears down ready modules in reverse declaration order, closes
+connected databases in reverse connection order, destroys the client if login was
+called, then runs named `lifecycle.flushes` in declaration order. Unavailable
+modules are never torn down; pending modules wait for successful setup. Finally it
+releases the settings notifier subscription and process handlers, including after
+failed startup or a stop before
+startup. Step failures are recorded and later cleanup still runs. Flush failures
+use `process.stderr` because the logger may already be closed.
+
+One global shutdown deadline defaults to 10 seconds; override it through
+`lifecycle.shutdownTimeoutMs`. An overdue step is listed in `abandoned`; all
+remaining steps share one additional 1-second grace period. Total shutdown time is
+bounded by the configured timeout plus that single grace period, even when several
+steps hang. `ok` is false for any failed or abandoned step.
+
+Calling `stop()` during `starting` interrupts startup between steps. A pending
+step may settle, but no remaining startup steps run, no later jobs are scheduled
+and the bot cannot become `running`. Shutdown releases what startup acquired.
+If an abandoned startup step succeeds later, its resource is released through the
+same cleanup path, using the original deadline and grace period. A late successful
+module setup is torn down without becoming ready. Before closing databases or the
+client, shutdown joins pending startup and its cleanup until the absolute grace
+deadline; `start.settle` remains reported as abandoned. Resources acquired after
+shutdown are released best-effort and logged. The returned report is an immutable
+snapshot; late cleanup failures or abandonments are logged with their step or
+module name and leave the report unchanged.
+The interrupted `start()` resolves after cleanup; an actual startup failure still
+rejects with its original error.
+
+By default, `SIGINT` and `SIGTERM` request one stop with reason `signal`, then exit
+with 0 on success or 1 when cleanup fails or abandons a step. Crashes from
+`uncaughtException` or `unhandledRejection` are logged once at `fatal`, stop with
+reason `crash`, then exit with 1. A crash during a signal stop retains one stop and
+one exit, with exit code 1. Programmatic `stop()` does not exit the process.
+Disable handlers with `lifecycle.handleSignals: false` or
+`lifecycle.handleCrashes: false`, and inject `lifecycle.process` for tests.
+
+Outside `running`, interactions receive an ephemeral denial in the resolved locale
+using `CORE_MESSAGES.botRestarting` (`core.lifecycle.restarting`); autocomplete
+receives an empty list. Unavailable-module replies use
+`CORE_MESSAGES.moduleUnavailable` (`core.lifecycle.module-unavailable`). Both keys
+are supplied in English and French by `CORE_CATALOG`.
 
 ## Module settings
 

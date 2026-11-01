@@ -1,12 +1,14 @@
 import type { Client } from "discord.js";
 import { vi } from "vitest";
+import type { Bot } from "@/bot/create-bot";
+import { emitReady } from "./fake-client";
 
 /** An interaction fixture shared by bot integration tests.
  * @param params - Interaction kind, identity and locale.
  * @returns A reply-observable interaction without a Discord connection.
  */
 export function createBotInteraction(params: {
-	kind: "slash" | "contextMenu" | "button" | "autocomplete";
+	kind: "slash" | "contextMenu" | "button" | "selectMenu" | "modal" | "autocomplete";
 	name: string;
 	guildId: string;
 	locale?: string;
@@ -26,8 +28,8 @@ export function createBotInteraction(params: {
 		isContextMenuCommand: () => params.kind === "contextMenu",
 		isAutocomplete: () => params.kind === "autocomplete",
 		isButton: () => params.kind === "button",
-		isAnySelectMenu: () => false,
-		isModalSubmit: () => false,
+		isAnySelectMenu: () => params.kind === "selectMenu",
+		isModalSubmit: () => params.kind === "modal",
 		reply: vi.fn(async (_payload: unknown) => undefined),
 		respond: vi.fn(async (_payload: unknown) => undefined),
 	};
@@ -47,4 +49,22 @@ export async function dispatchClientEvent(params: {
 			.rawListeners(params.event)
 			.map((listener) => Reflect.apply(listener, params.client, params.args)),
 	);
+}
+
+/** Start a fake-client bot and deliver the gateway readiness event.
+ * @param params - Bot and optional token used by the fake login.
+ * @returns Resolves once startup has completed.
+ * @throws When startup fails.
+ */
+export async function startFakeBot(params: { bot: Bot; token?: string }): Promise<void> {
+	const starting = params.bot.start(params.token ?? "test-token");
+	await vi.waitFor(() => expectLogin(params.bot.client));
+	emitReady(params.bot.client);
+	await starting;
+}
+
+function expectLogin(client: Client): void {
+	if (vi.mocked(client.login).mock.calls.length === 0) {
+		throw new TypeError("The fake client has not logged in yet");
+	}
 }

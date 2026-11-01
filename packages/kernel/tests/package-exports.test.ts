@@ -55,6 +55,19 @@ describe("package exports", () => {
 describe("bot building blocks remain public (T030 m, FR-007)", () => {
 	it.each([
 		"bot/bot-errors",
+		"bot/bot-lifecycle-options",
+		"bot/lifecycle-step",
+		"bot/lifecycle",
+		"bot/lifecycle-dispatcher",
+		"bot/module-status",
+		"bot/process-like",
+		"bot/stop-report",
+		"bot/in-memory-process",
+		"bot/process-handlers",
+		"discord/module-availability",
+		"discord/in-memory-module-availability",
+		"discord/settings/module-unavailable-embed",
+
 		"bot/assemble-modules",
 		"bot/create-bot",
 		"module/module-context",

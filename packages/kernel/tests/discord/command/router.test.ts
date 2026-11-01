@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { createInMemoryDeployRest } from "@/discord/command/in-memory-deploy-rest";
 import { CommandRouter } from "@/discord/command/router";
 import type { ContextMenuCommand, SlashCommand } from "@/discord/command/types";
+import { CORE_MESSAGES } from "@/discord/i18n";
+import { createInMemoryModuleAvailability } from "@/discord/in-memory-module-availability";
 import type { Presenter } from "@/discord/presenter";
 import type { Translator } from "@/i18n/translator";
 import { SETTINGS_MESSAGES } from "@/settings/messages";
@@ -224,4 +226,30 @@ describe("CommandRouter deployment transport", () => {
 		expect(await router.deployCommands("unused", GUILD_A, rest)).toBe(0);
 		expect(rest.requests).toEqual([{ route: Routes.applicationCommands(GUILD_A), body: [] }]);
 	});
+});
+
+describe("CommandRouter availability", () => {
+	it.each(["slash", "contextMenu"] as const)(
+		"denies an unavailable ungated %s before checking the guild gate",
+		async (kind) => {
+			const deps = { ...makeDeps(), availability: createInMemoryModuleAvailability(["tickets"]) };
+			vi.spyOn(deps.gate, "isEnabled");
+			const command = kind === "slash" ? slashCommand("ticket") : contextMenuCommand("ticket");
+			const router = new CommandRouter(deps);
+			if (kind === "slash") {
+				router.registerAll([command], "tickets", false);
+			} else {
+				router.registerAllContextMenus([command], "tickets", false);
+			}
+			const interaction = fakeCommandInteraction({ name: "ticket", guildId: GUILD_A, kind });
+			await router.handle(interaction as never);
+			expect(command.dispatch).not.toHaveBeenCalled();
+			expect(deps.gate.isEnabled).not.toHaveBeenCalled();
+			expect(deps.translator.translate).toHaveBeenCalledWith("fr", CORE_MESSAGES.moduleUnavailable);
+			expect(interaction.reply).toHaveBeenCalledWith({
+				embeds: [DISABLED_EMBED],
+				flags: MessageFlags.Ephemeral,
+			});
+		},
+	);
 });

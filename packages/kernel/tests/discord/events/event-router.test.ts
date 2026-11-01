@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createEvent } from "@/discord/events/create-event";
 import { EventRouter } from "@/discord/events/event-router";
 import type { EventListener } from "@/discord/events/types";
+import { createInMemoryModuleAvailability } from "@/discord/in-memory-module-availability";
 import { createFakeLogger } from "../../support/fake-logger";
 import { createFakeModuleGate } from "../../support/fake-module-gate";
 
@@ -191,4 +192,19 @@ describe("EventRouter module gate (S15)", () => {
 
 		expect(execute).toHaveBeenCalledTimes(1);
 	});
+});
+
+it("skips and logs an unavailable ungated event owner", async () => {
+	const { client, bindings } = createFakeClient();
+	const logger = createFakeLogger();
+	const execute = vi.fn();
+	new EventRouter(logger, undefined, createInMemoryModuleAvailability(["tickets"]))
+		.registerAll([createEvent({ name: "clientReady", execute })], "tickets", false)
+		.bind(client);
+	await takeListener(bindings, 0)(...([] as unknown as ClientEvents["clientReady"]));
+	expect(execute).not.toHaveBeenCalled();
+	expect(logger.debug).toHaveBeenCalledWith(
+		{ module: "tickets", event: "clientReady" },
+		"Unavailable module event skipped",
+	);
 });

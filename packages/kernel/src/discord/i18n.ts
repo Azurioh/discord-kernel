@@ -2,6 +2,8 @@ import type { KeyedCatalog, MessageKey } from "@/i18n/catalog";
 
 /** Catalog keys for the framework's own feedback, under the `core.` namespace. */
 export const CORE_MESSAGES = {
+	botRestarting: "core.lifecycle.restarting",
+	moduleUnavailable: "core.lifecycle.module-unavailable",
 	presenterSuccessTitle: "core.presenter.success-title",
 	presenterWarningTitle: "core.presenter.warning-title",
 	presenterErrorTitle: "core.presenter.error-title",
@@ -75,6 +77,14 @@ export const SETTINGS_EDITOR_MESSAGES = {
 export const CORE_CATALOG: KeyedCatalog<
 	MessageKey<typeof CORE_MESSAGES> | MessageKey<typeof SETTINGS_EDITOR_MESSAGES>
 > = {
+	[CORE_MESSAGES.botRestarting]: {
+		en: "The bot is restarting. Try again in a moment.",
+		fr: "Le bot redémarre. Réessayez dans un instant.",
+	},
+	[CORE_MESSAGES.moduleUnavailable]: {
+		en: "This feature is unavailable right now.",
+		fr: "Cette fonctionnalité est indisponible pour le moment.",
+	},
 	[CORE_MESSAGES.presenterSuccessTitle]: { en: "Success", fr: "Succès" },
 	[CORE_MESSAGES.presenterWarningTitle]: { en: "Warning", fr: "Avertissement" },
 	[CORE_MESSAGES.presenterErrorTitle]: { en: "Error", fr: "Erreur" },
