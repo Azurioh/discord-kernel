@@ -1,5 +1,80 @@
 # @azurioh/discord-kernel
 
+## 2.0.0
+
+### Major Changes
+
+- a2e918e: `InteractiveMessagePayload` moved to its own module, to break an import cycle between the interactive message collector and `toMessageEditOptions`.
+  
+  ## Breaking change: migration
+  
+  | Symbol | Old import | New import |
+  |---|---|---|
+  | `InteractiveMessagePayload` (type) | `@azurioh/discord-kernel/discord/components/interactive-message/interactive-message-collector` | `@azurioh/discord-kernel/discord/components/interactive-message/interactive-message-payload` (still exported by `.../interactive-message`) |
+  
+  The type itself is unchanged, so changing the import is the whole migration.
+
+### Minor Changes
+
+- ad1b5a7: Create a bot from static or service-aware modules with shared settings, translation,
+  presentation, guild gating, command/component/event routing and autocomplete. Deploy
+  slash and context-menu commands through an injectable transport without starting the bot.
+  
+  New public subpaths: `bot/create-bot`, `bot/assemble-modules`, `bot/bot-errors`,
+  `module/module-context`, `discord/command/command-deploy-rest` and
+  `discord/command/in-memory-deploy-rest`. Existing settings entry points stay unchanged.
+- aeb0c78: Start bots in order: connect databases, migrate, await gateway readiness, set up
+  modules and schedule their jobs. Expose lifecycle state and an idempotent `stop()`
+  that tears down ready modules, closes resources and flushes within one shutdown
+  budget, returning a complete `StopReport`.
+  
+  Handle signals and crashes through an injectable `ProcessLike` port and its
+  in-memory twin. Track module availability independently of guild toggles; failed
+  optional setup disables every owned handler and job. Localize unavailable-module
+  and restarting replies with the new `core.lifecycle.*` catalog keys.
+  
+  Stopping during startup prevents remaining startup steps and job registration;
+  the interrupted `start()` resolves after cleanup. Ordinary startup failures still
+  reject with the original error after cleanup. Existing public subpaths remain
+  available; new lifecycle and availability modules have explicit public subpaths,
+  including `bot/bot-lifecycle-options`.
+- 1b25a43: An in-memory twin for every port, contract suites for the stateful ones, and a default presenter.
+  
+  Every port interface is now tagged `@port` in its JSDoc, and a test fails when a tagged port has no twin. Twins are plain code (no test framework import), so a bot's tests use them with any runner, and a bot that needs no persistence can run on them.
+  
+  ## New public subpaths
+  
+  | Subpath | Exports |
+  |---|---|
+  | `@azurioh/discord-kernel/in-memory-logger` | `createInMemoryLogger`, `InMemoryLogger`, `LogEntry`: every entry kept, children append to the same `entries` |
+  | `@azurioh/discord-kernel/authz/in-memory-authorizer` | `createInMemoryAuthorizer(initial?)` |
+  | `@azurioh/discord-kernel/authz/testing` | `runAuthorizerContract(name, factory, { describe, it, expect })` |
+  | `@azurioh/discord-kernel/persistence/migration-runner` | the `MigrationRunner` port, `Migration`, `MigrationReport` |
+  | `@azurioh/discord-kernel/persistence/in-memory-migration-runner` | `createInMemoryMigrationRunner(migrations)` |
+  | `@azurioh/discord-kernel/persistence/testing` | `runMigrationRunnerContract(name, factory, { describe, it, expect })` |
+  | `@azurioh/discord-kernel/persistence/in-memory-database` | `createInMemoryDatabase(driver?)`, `InMemoryDatabase` (`connected`, `connectCount`, `closeCount`, `failOnConnect`) |
+  | `@azurioh/discord-kernel/scheduler/in-memory-scheduler` | `createInMemoryScheduler(logger?)`, `InMemoryScheduler` (`jobs`, `run(name)`): same validation and logs as `CronScheduler`, nothing runs by timer |
+  | `@azurioh/discord-kernel/discord/default-presenter` | `createDefaultPresenter(translator)`: titles from `CORE_MESSAGES`, colours from `EMBED_COLORS`, incident footer |
+  | `@azurioh/discord-kernel/discord/in-memory-channel-exporter` | `createInMemoryChannelExporter(outcome?)`, `InMemoryChannelExporter` (`exports`) |
+  | `@azurioh/discord-kernel/discord/interaction/fixed-locale-resolver` | `createFixedLocaleResolver(locale)` |
+  | `@azurioh/discord-kernel/testing/contract-runner` | `DescribeFn`, `ItFn`, `ExpectFn`, `ContractAssertion`, shared by every contract suite |
+  
+  Also added:
+  
+  - `@azurioh/discord-kernel/settings` exports `createInMemoryModuleGate(disabled?)` and `InMemoryModuleGate` (`disable`, `enable`), the twin of `ModuleGate`.
+  - `@azurioh/discord-kernel/scheduler/errors` exports `UnknownJobError`, thrown by `InMemoryScheduler.run` for a name no job carries.
+  
+  No symbol moved: `@azurioh/discord-kernel/settings/testing` still exports `DescribeFn`, `ItFn`, `ExpectFn` and `ContractAssertion`.
+- 778d2ef: Add `promptModal`, `PromptableModal`, `ModalPromptResult`, and the five-minute
+  `MODAL_PROMPT_TIMEOUT_MS` default at `discord/interaction/prompt-modal`, plus
+  `ModalPromptError` at `discord/interaction/prompt-modal-errors`. Modal prompts
+  isolate concurrent openings and members, return dismissed on collector timeout,
+  and propagate other errors.
+  
+  The settings editor now uses the shared prompt and logs modal show/collect
+  failures with the field or group key instead of silently swallowing them.
+  Members still see the unchanged screen on failure; timeouts remain unlogged.
+
 ## 1.0.0
 
 ### Major Changes
