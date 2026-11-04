@@ -76,7 +76,7 @@ yet), **Idea** (to brainstorm).
 - Convert the repo to a pnpm workspace (`packages/kernel`, then sibling packages), with
   changesets. Pure restructuring; no spec needed.
 
-### 1. Rendering: `View` V1/V2 — Decided
+### 1. Rendering: `View` V1/V2 — Specified (`specs/003-view-rendering`)
 
 - Today: V1 covered (`buildEmbed`, action rows, buttons, the four selects). V2 partial:
   `createCard` (single container: Container, Section, TextDisplay, Separator, MediaGallery,
@@ -89,7 +89,10 @@ yet), **Idea** (to brainstorm).
   - Full V2 DSL: several containers, top-level text displays, `File` component.
   - Later, the settings-editor can be re-rendered on `View` (spec 001 uses an adapter onto the
     current settings-editor).
-- Open: exact DSL shape; migration path for existing `createCard` users.
+- Resolved (spec 003): V2 components are plain data tagged by `type` (`text`, `container`,
+  `section`, `separator`, `gallery`, `file`, `buttons`, `select`); V1 rows reuse the `buttons` and
+  `select` nodes. `createCard` is removed in 3.0.0, each card block mapping to a container child
+  (migration table in the changeset). The `Presenter` returns a `View`. Delivery: four stacked PRs.
 
 ### 2. Bootstrap and lifecycle — Specified and delivered (`specs/002-bot-bootstrap`)
 
