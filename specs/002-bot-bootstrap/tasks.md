@@ -227,14 +227,14 @@ and the exit code is 1; no listener remains after stop.
 
 ## Phase 11: Sandbox and polish (PR 5, FR-028, SC-001)
 
-- [ ] T061 [P] Rewrite the demo module to `build(context)` in `apps/sandbox-bot/src/modules/demo/demo.module.ts`; replace `settings: () => SettingsService` by `settings: SettingsService` in its command deps and every `settings()` call site under `apps/sandbox-bot/src/modules/demo/`
-- [ ] T062 [P] Rewrite the admin module to `build(context)` with `gated: false` in `apps/sandbox-bot/src/modules/admin/admin.module.ts`; same accessor removal under `apps/sandbox-bot/src/modules/admin/` (`kernelSettings` accessor becomes `context.registry.kernel`)
-- [ ] T063 [P] Rewrite the basics module to `build(context)` in `apps/sandbox-bot/src/modules/basics/basics.module.ts`
-- [ ] T064 Replace `apps/sandbox-bot/src/bootstrap/create-sandbox.ts` with one `createBot` call (modules, pino logger, `createSettingsStore(config.settingsStore)`, paginator catalog through a module's `translations`, pino flush in `lifecycle.flushes`), under 40 lines (SC-001); delete `apps/sandbox-bot/src/shared/discord/embed-presenter.ts`
-- [ ] T065 Rewrite `apps/sandbox-bot/src/main.ts` to `await bot.start(config.token)` (no hand-written signal handling) and `apps/sandbox-bot/src/register.ts` to `bot.deployCommands({ token, clientId })`; run `pnpm knip` to confirm nothing is left unused
-- [ ] T066 Update `apps/sandbox-bot/README.md` ("Project layout": `bootstrap/` holds only the `createBot` call; modules use `build(context)`)
+- [X] T061 [P] Rewrite the demo module to `build(context)` in `apps/sandbox-bot/src/modules/demo/demo.module.ts`; replace `settings: () => SettingsService` by `settings: SettingsService` in its command deps and every `settings()` call site under `apps/sandbox-bot/src/modules/demo/`
+- [X] T062 [P] Rewrite the admin module to `build(context)` with `gated: false` in `apps/sandbox-bot/src/modules/admin/admin.module.ts`; same accessor removal under `apps/sandbox-bot/src/modules/admin/` (`kernelSettings` accessor becomes `context.registry.kernel`)
+- [X] T063 [P] Rewrite the basics module to `build(context)` in `apps/sandbox-bot/src/modules/basics/basics.module.ts`
+- [X] T064 Replace `apps/sandbox-bot/src/bootstrap/create-sandbox.ts` with one `createBot` call (modules, pino logger, `createSettingsStore(config.settingsStore)`, paginator catalog through a module's `translations`, pino flush in `lifecycle.flushes`), under 40 lines (SC-001); delete `apps/sandbox-bot/src/shared/discord/embed-presenter.ts`
+- [X] T065 Rewrite `apps/sandbox-bot/src/main.ts` to `await bot.start(config.token)` (no hand-written signal handling) and `apps/sandbox-bot/src/register.ts` to `bot.deployCommands({ token, clientId })`; run `pnpm knip` to confirm nothing is left unused
+- [X] T066 Update `apps/sandbox-bot/README.md` ("Project layout": `bootstrap/` holds the `createBot` call and small factories, including the settings store and startup failure reporter; modules use `build(context)`)
 - [ ] T067 Run `quickstart.md` §1 (full gate) and §3 (sandbox by hand: register, start, `/config`, `/server` with every module off, Ctrl+C order and exit code 0, "restarting" reply at start); record the results in the PR description
-- [ ] T068 Update `docs/roadmap.md` spec 2 status to "Specified and delivered", check that PRs 1 to 4 each carry their changeset (no new one), and open PR 5 (`refactor(sandbox): boot the sandbox with createBot`) stacked on PR 4
+- [X] T068 Update `docs/roadmap.md` spec 2 status to "Delivered pending PR 4": PRs 1–3 merged, PR 4 in review (#46), PR 5 this sandbox migration. Confirm existing `port-twins`, `bright-bots-assemble`, and `ordered-bot-lifecycle` changesets; PR 4 owns `shared-modal-prompts.md` on #46. No new changeset for the private sandbox; no PR creation in this task
 
 ---
 
@@ -248,7 +248,7 @@ and the exit code is 1; no listener remains after stop.
 - US2 needs US1. US3 needs US2 (a started bot). US4 needs US3 (the stop it triggers).
 - US6 is independent of US1 to US5 (only the settings editor); stacked after PR 3 for review order,
   but can be developed in parallel from `main`.
-- Phase 11 needs every earlier phase.
+- Phase 11 needs PRs 1–3; PR 4 (US6) is independent and remains in review (#46).
 
 ### Story graph
 
@@ -262,7 +262,6 @@ graph LR
   US6
   US4 --> P[Phase 11]
   US5 --> P
-  US6 --> P
   US8 --> P
 ```
 

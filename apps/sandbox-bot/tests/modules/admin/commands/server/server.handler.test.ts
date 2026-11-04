@@ -35,8 +35,8 @@ describe("createServerHandler", () => {
 		} as unknown as Context<Record<string, never>>;
 
 		await createServerHandler({
-			settings: () => settings,
-			kernelSettings: () => registry.kernel,
+			settings,
+			kernelSettings: registry.kernel,
 			translator,
 			logger,
 		})(ctx);

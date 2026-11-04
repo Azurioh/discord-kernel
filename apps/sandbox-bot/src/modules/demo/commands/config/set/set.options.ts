@@ -12,10 +12,10 @@ import { localizedDescription } from "@/shared/discord/localized-description";
  * when it parses and plain text otherwise; both autocompleted, the value
  * with the kernel's suggestions for the key.
  *
- * @param settings - resolves the settings service on each use.
+ * @param settings - the shared settings service.
  * @param translator - translates the key suggestions in the member's language.
  */
-export function createSetOptions(settings: () => SettingsService, translator: Translator) {
+export function createSetOptions(settings: SettingsService, translator: Translator) {
 	const value = localizedDescription(DEMO_CATALOG, DEMO_MESSAGES.setValueDescription);
 	return {
 		key: createSettingKeyOption({ translator, description: DEMO_MESSAGES.setKeyDescription }),

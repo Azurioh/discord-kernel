@@ -36,7 +36,7 @@ const translator = { defaultLocale: "en" } as never;
 describe("createSettingValueAutocomplete", () => {
 	it("returns the service's suggestions for the picked key, asked in the member's language", async () => {
 		const { service, suggest } = createService([{ name: "Asia · Tokyo", value: "Asia/Tokyo" }]);
-		const resolve = createSettingValueAutocomplete(() => service, translator);
+		const resolve = createSettingValueAutocomplete(service, translator);
 
 		const choices = await resolve(request({ key: "timezone", typed: "tok" }));
 
@@ -51,7 +51,7 @@ describe("createSettingValueAutocomplete", () => {
 
 	it("sends an item of a list field as the one-item JSON list /config set parses", async () => {
 		const { service } = createService([{ name: "Staff", value: ROLE }]);
-		const resolve = createSettingValueAutocomplete(() => service, translator);
+		const resolve = createSettingValueAutocomplete(service, translator);
 
 		const choices = await resolve(request({ key: "pingRoles", typed: "" }));
 
@@ -64,7 +64,7 @@ describe("createSettingValueAutocomplete", () => {
 		["outside a guild", { key: "timezone", typed: "", guildId: null }],
 	])("suggests nothing for %s", async (_title, params) => {
 		const { service, suggest } = createService([{ name: "x", value: "x" }]);
-		const resolve = createSettingValueAutocomplete(() => service, translator);
+		const resolve = createSettingValueAutocomplete(service, translator);
 
 		await expect(resolve(request(params))).resolves.toStrictEqual([]);
 		expect(suggest).not.toHaveBeenCalled();

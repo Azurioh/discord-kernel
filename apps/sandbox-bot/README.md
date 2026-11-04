@@ -73,14 +73,15 @@ Every piece of a module has one predictable place, so a real bot built on the
 kernel can follow the same map:
 
 ```
+src/bootstrap/                # createBot call and small factories (settings store, startup failure reporter)
 src/components/<component>/   # app-owned UI building blocks, see below
   <component>.component.ts    # the entry a command calls
   <component>.view.ts         # how a state is laid out
   <component>.buttons.ts      # its controls: labels, emojis, styles
   i18n/                       # its own *_MESSAGES and catalog
-src/shared/                   # what the whole app uses: logging, i18n helpers, presenter
+src/shared/                   # what the whole app uses: logging, i18n helpers, settings adapters
 src/modules/<module>/
-  <module>.module.ts          # the BotModule: commands, events, catalog, settings
+  <module>.module.ts          # BotModule: static catalog/settings, build(context) for commands/events
   i18n/
     <module>.messages.ts      # *_MESSAGES: the catalog keys, the only way code names them
     <module>.catalog.ts       # the English/French wording, typed over those keys
@@ -127,9 +128,18 @@ src/modules/<module>/
 | `.event.ts` | `createEvent(...)`: the gateway event name and `once`, wired to its handler |
 | `.helper.ts` | A function a command, subcommand or component needs that is not one of the roles above (formatting, parsing, building a context) |
 | `.constant.ts` | A named value a command, subcommand or component needs |
-| `.module.ts` | The `BotModule`: commands, events, catalog, settings |
+| `.module.ts` | The `BotModule`: static catalog/settings, `build(context)` for service-aware commands and events |
 | `.messages.ts` / `.catalog.ts` | The catalog keys, and their wording |
 | `.settings.ts` | The module's `defineSettings(...)` declaration |
+
+`src/bootstrap/create-sandbox.ts` assembles the bot with one `createBot` call.
+Modules keep catalogs and settings static; `build(context)` receives the finished
+settings service, registry, translator and module-bound kernel `Logger`. Commands
+receive these services directly. The kernel owns the default presenter, routing,
+startup and signal handling. `main.ts` awaits `bot.start`; `register.ts` calls
+`bot.deployCommands` without logging in. Settings changes use a logging notifier
+adapter, and shutdown awaits the pino adapter's flush, propagating flush failures.
+Startup errors still reach the small reporter shared with `copy-settings.ts`.
 
 Only the files a command needs exist: `/ping` has no options file, `/config
 show` no options nor autocomplete. Tests mirror this tree under `tests/`.
@@ -140,8 +150,9 @@ a component built on them, free to change its labels, layout, styling and
 defaults. Commands call the app's component (`showPaginator`), never the
 kernel primitive directly, so the whole bot looks and behaves the same. A
 component only one module needs sits in that module's `components/` instead.
-A component's wording is registered by the composition root, beside the
-kernel's own catalogs.
+A component's wording is included in its consuming module's static translations:
+`basics` combines its catalog with the paginator catalog. The kernel registers
+each module's translations beside its own catalogs.
 
 Anything two users need — an autocomplete, an option, a type, a helper — exists
 once, in the `shared/` folder of the smallest level that holds both users:
@@ -183,10 +194,10 @@ Three modules: `basics`, `demo` and `admin`.
 Modules are gated per server. Disable a module in `/server` and, on that
 server, its commands answer that the module is disabled on this server, its
 components do the same, and its gateway events are skipped; the other servers
-are untouched. The composition root registers each module's commands,
-components and events with the module's name, which is what the kernel's
-`ModuleGate` checks. `admin` is never gated: its commands are registered without
-a module name, so turning every module off can never lock you out of `/server`.
+are untouched. `createBot` registers each module's commands, components and events with the
+module's name, which is what the kernel's `ModuleGate` checks. `admin` declares
+`gated: false`: it keeps its ownership while turning every module off can never
+lock you out of `/server`.
 The language picked there applies when a member's Discord client language is not
 one the bot supports, as described below.
 
@@ -234,8 +245,28 @@ stores it under version 3. To reshape a module's settings, raise `version` and e
 so it handles every older version; keep it pure (see the kernel README,
 "Evolving module settings").
 
-The bot also logs when it is ready, when it joins a guild and every settings
-change. The reply language is, in order: your Discord client language when the
+`main.ts` logs `Sandbox bot is ready` once `bot.start` resolves with the bot running.
+The sandbox has no once-ready event because modules are still pending when that event fires;
+the kernel logs lifecycle steps but has no final running log.
+The bot also logs when it joins a guild and every settings change. The reply language is, in order: your Discord client language when the
 bot supports it (English or French), the language picked in `/server`, the
-server's Discord language, then English. The composition root plugs this order in
-as the kernel's `createGuildLocaleResolver`; a bot can pass its own resolver instead.
+server's Discord language, then English. `createBot` supplies this order through the kernel's `createGuildLocaleResolver`;
+a bot can pass its own resolver instead.
+
+## Manual lifecycle validation (human only)
+
+Automated checks use fake login/readiness and the in-memory deploy REST transport.
+The real Discord checks in `specs/002-bot-bootstrap/quickstart.md` §3 remain pending:
+
+1. With your local environment configured, run `pnpm --filter sandbox-bot register`;
+   check `Commands registered`, guild deployment and global pruning, without login.
+2. Run `pnpm --filter sandbox-bot dev`; check timed startup steps and `Sandbox bot is ready`.
+3. Exercise `/config`, `/server` and demo commands; disable every module and confirm
+   `/server` still answers.
+4. Press Ctrl+C; check jobs stop, module teardown, database close, gateway destroy
+   and pino flush ordering, then exit code 0. The pretty-printing pipe reports its
+   own exit status; use a terminal running
+   `pnpm --filter sandbox-bot exec tsx --env-file-if-exists=.env src/main.ts`
+   to check the bot's status with `echo $?`.
+5. Restart and send a command during startup after gateway login; confirm the
+   restarting reply instead of an unanswered interaction.

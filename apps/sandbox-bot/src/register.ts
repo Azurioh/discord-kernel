@@ -11,8 +11,8 @@ const logger = createPinoLogger("sandbox-bot");
  */
 async function register(): Promise<void> {
 	const config = loadConfig();
-	const { commands } = createSandbox(config, logger);
-	const count = await commands.deployCommands(config.token, config.clientId);
+	const bot = createSandbox(config, logger);
+	const count = await bot.deployCommands({ token: config.token, clientId: config.clientId });
 	logger.info({ count, guildId: config.devGuildId }, "Commands registered");
 }
 

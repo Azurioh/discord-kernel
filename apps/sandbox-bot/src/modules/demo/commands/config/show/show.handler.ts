@@ -15,14 +15,14 @@ import { requestContext } from "@/shared/discord/request-context";
 /**
  * `/config show`: every demo setting in one embed, secrets shown as set or not.
  *
- * @param settings - resolves the settings service on each use.
+ * @param settings - the shared settings service.
  */
 export function createShowHandler(
-	settings: () => SettingsService,
+	settings: SettingsService,
 ): <O extends Options>(ctx: Context<O>) => Promise<void> {
 	return async (ctx) => {
 		const { guildId } = requestContext(ctx);
-		const values: Readonly<Record<string, unknown>> = await settings().getForSurface(
+		const values: Readonly<Record<string, unknown>> = await settings.getForSurface(
 			demoSettings,
 			guildId,
 		);

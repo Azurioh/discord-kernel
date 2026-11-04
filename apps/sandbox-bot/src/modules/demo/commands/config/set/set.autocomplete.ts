@@ -14,11 +14,11 @@ const KEY_OPTION = "key";
  * field as a one-item JSON list, anything else as is. Nothing is suggested
  * before a declared key is picked, or outside a guild.
  *
- * @param settings - resolves the settings service on each use.
+ * @param settings - the shared settings service.
  * @param translator - picks the member's language for the suggestions.
  */
 export function createSettingValueAutocomplete(
-	settings: () => SettingsService,
+	settings: SettingsService,
 	translator: Translator,
 ): AutocompleteResolver {
 	return async (interaction) => {
@@ -27,9 +27,8 @@ export function createSettingValueAutocomplete(
 		if (key === null || guildId === null || !Object.hasOwn(demoSettings.fields, key)) {
 			return [];
 		}
-		const service = settings();
-		const values = await service.getForSurface(demoSettings, guildId);
-		const choices = await service.suggest(demoSettings, key, interaction.options.getFocused(), {
+		const values = await settings.getForSurface(demoSettings, guildId);
+		const choices = await settings.suggest(demoSettings, key, interaction.options.getFocused(), {
 			guildId,
 			userId: interaction.user.id,
 			locale: interactionLocale(interaction, translator),

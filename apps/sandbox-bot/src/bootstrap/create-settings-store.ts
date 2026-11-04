@@ -8,9 +8,11 @@ import { createSqliteSettingsStore } from "@/shared/settings/sqlite/sqlite-setti
  * knows the adapters: everything else sees the `SettingsStore` port.
  *
  * @param config - the adapter and its file.
- * @returns the store.
+ * @returns the store, including a pending-write drain when the adapter needs one.
  */
-export function createSettingsStore(config: SettingsStoreConfig): SettingsStore {
+export function createSettingsStore(config: SettingsStoreConfig): SettingsStore & {
+	drain?: () => Promise<void>;
+} {
 	switch (config.adapter) {
 		case "json":
 			return createJsonFileSettingsStore(config.file);

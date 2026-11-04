@@ -13,11 +13,11 @@ import { localizedDescription } from "@/shared/discord/localized-description";
 /**
  * `/config reset key`: put one demo setting, or all of them, back to the default.
  *
- * @param settings - resolves the settings service on each use.
+ * @param settings - the shared settings service.
  * @param translator - translates the key suggestions.
  */
 export function createResetSubcommand(
-	settings: () => SettingsService,
+	settings: SettingsService,
 	translator: Translator,
 ): CompiledSubcommand {
 	return createSubCommand({
