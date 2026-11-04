@@ -384,6 +384,7 @@ export async function mountSettingsEditor<S, A, F extends string>(
 			options.currentValue(ctx.state.subject, fieldKey),
 			translator,
 			locale,
+			options.logger,
 		);
 		if (submission === null) {
 			return;
@@ -428,6 +429,7 @@ export async function mountSettingsEditor<S, A, F extends string>(
 			options.groupLegend?.(ctx.state.subject, group.key) ?? null,
 			translator,
 			locale,
+			options.logger,
 		);
 		if (prompt === null) {
 			return;

@@ -323,6 +323,14 @@
 			"types": "./dist/discord/interaction/locale-resolver.d.ts",
 			"default": "./dist/discord/interaction/locale-resolver.js"
 		},
+		"./discord/interaction/prompt-modal": {
+			"types": "./dist/discord/interaction/prompt-modal.d.ts",
+			"default": "./dist/discord/interaction/prompt-modal.js"
+		},
+		"./discord/interaction/prompt-modal-errors": {
+			"types": "./dist/discord/interaction/prompt-modal-errors.d.ts",
+			"default": "./dist/discord/interaction/prompt-modal-errors.js"
+		},
 		"./discord/interaction/modal": {
 			"types": "./dist/discord/interaction/modal.d.ts",
 			"default": "./dist/discord/interaction/modal.js"

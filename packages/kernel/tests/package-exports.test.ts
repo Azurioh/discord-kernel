@@ -86,6 +86,8 @@ describe("bot building blocks remain public (T030 m, FR-007)", () => {
 		"discord/components/component-router",
 		"discord/events/event-router",
 		"discord/interaction/interaction-router",
+		"discord/interaction/prompt-modal",
+		"discord/interaction/prompt-modal-errors",
 		"discord/settings/discord-guild-directory",
 		"discord/settings/guild-locale-resolver",
 	])("keeps ./%s importable at its own entry point", (subpath) => {
