@@ -91,11 +91,11 @@ yet), **Idea** (to brainstorm).
     current settings-editor).
 - Open: exact DSL shape; migration path for existing `createCard` users.
 
-### 2. Bootstrap and lifecycle — Delivered pending PR 4 (`specs/002-bot-bootstrap`)
+### 2. Bootstrap and lifecycle — Specified and delivered (`specs/002-bot-bootstrap`)
 
-PRs 1–3 are merged (port twins, module assembly, ordered lifecycle). PR 4 is in
-review (#46, shared modal prompts); PR 5 is this sandbox migration to `createBot`.
-Manual sandbox lifecycle validation remains pending human execution.
+Delivered in five PRs: port twins, module assembly, ordered lifecycle, shared modal prompts
+(`promptModal`) and the sandbox migration to `createBot`. The sandbox lifecycle was validated by
+hand against Discord.
 
 - Upstream from the BSK bot:
   - process handlers (SIGINT/SIGTERM, crash handlers, graceful shutdown with injected flush);
@@ -189,7 +189,7 @@ Manual sandbox lifecycle validation remains pending human execution.
   Differences: bot-only `modal-prompt.ts`; bot `color-input.ts` imports `@bsk/brand` where the
   kernel offers `registerColorAliases` and `EmbedColors`.
 - Plan (a plan in `bsk-apps`, not a kernel spec; branch from `demo`, PR to `demo`):
-  1. wait for `modal-prompt` in the kernel (spec 2) or align the settings-editor usage;
+  1. replace the bot `modal-prompt.ts` with the kernel `promptModal` (spec 2);
   2. register BSK colours with `registerColorAliases` / `EmbedColors` at boot;
   3. `pnpm add @azurioh/discord-kernel`, delete `src/core/`, rewrite `@/core/...` imports in the
      285 importing files (mechanical `sd`);
