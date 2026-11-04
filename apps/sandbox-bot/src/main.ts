@@ -11,10 +11,13 @@ async function start(): Promise<void> {
 		const config = loadConfig();
 		const bot = createSandbox(config, logger);
 		await bot.start(config.token);
-		logger.info(
-			{ user: bot.client.user?.tag, guilds: bot.client.guilds.cache.size },
-			"Sandbox bot is ready",
-		);
+		// A stop requested during startup also resolves start(): only a running bot is ready.
+		if (bot.state === "running") {
+			logger.info(
+				{ user: bot.client.user?.tag, guilds: bot.client.guilds.cache.size },
+				"Sandbox bot is ready",
+			);
+		}
 	} catch (error) {
 		reportStartupFailure(logger, error);
 	}

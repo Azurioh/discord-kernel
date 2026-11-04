@@ -245,7 +245,7 @@ stores it under version 3. To reshape a module's settings, raise `version` and e
 so it handles every older version; keep it pure (see the kernel README,
 "Evolving module settings").
 
-The basics module setup logs `Sandbox bot is ready` after gateway readiness.
+`main.ts` logs `Sandbox bot is ready` once `bot.start` resolves with the bot running.
 The sandbox has no once-ready event because modules are still pending when that event fires;
 the kernel logs lifecycle steps but has no final running log.
 The bot also logs when it joins a guild and every settings change. The reply language is, in order: your Discord client language when the
