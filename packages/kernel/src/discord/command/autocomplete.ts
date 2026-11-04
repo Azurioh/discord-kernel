@@ -1,6 +1,5 @@
 import type { AutocompleteInteraction } from "discord.js";
 import { MAX_AUTOCOMPLETE_CHOICES } from "@/discord/command/autocomplete-limits";
-import type { CompiledSubcommand } from "@/discord/command/create-command";
 import type { Options } from "@/discord/command/options";
 import { routeKey } from "@/discord/command/route-key";
 import type { Choice } from "@/settings/choice";
@@ -59,10 +58,13 @@ function truncate(choices: readonly Choice[]): Choice[] {
 /**
  * The options a given autocomplete interaction applies to: the focused option
  * belongs to the invoked subcommand, not to the command as a whole.
+ *
+ * `routes` asks only for each subcommand's options, so this file never imports
+ * `create-command`, which imports it.
  */
 export function resolveRouteOptions(
 	interaction: AutocompleteInteraction,
-	routes: Map<string, CompiledSubcommand>,
+	routes: ReadonlyMap<string, { readonly options: Options }>,
 	flatOptions: Options | null,
 ): Options {
 	if (flatOptions) {

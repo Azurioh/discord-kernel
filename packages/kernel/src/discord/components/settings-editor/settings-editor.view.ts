@@ -5,10 +5,8 @@ import {
 	type MessageMentionOptions,
 } from "discord.js";
 import type { Clock } from "@/clock";
-import type {
-	InteractiveMessagePayload,
-	InteractiveView,
-} from "@/discord/components/interactive-message/interactive-message-collector";
+import type { InteractiveView } from "@/discord/components/interactive-message/interactive-message-collector";
+import type { InteractiveMessagePayload } from "@/discord/components/interactive-message/interactive-message-payload";
 import {
 	canReturn,
 	currentLevelKey,
