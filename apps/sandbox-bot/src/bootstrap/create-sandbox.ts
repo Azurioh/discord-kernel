@@ -15,6 +15,7 @@ import { createLoggingSettingsNotifier } from "@/shared/settings/logging-setting
  */
 export function createSandbox(config: SandboxConfig, logger: PinoLogger): Bot {
 	const guildIds = [config.devGuildId];
+	const settingsStore = createSettingsStore(config.settingsStore);
 	return createBot({
 		modules: [
 			createAdminModule({ guildIds }),
@@ -22,8 +23,13 @@ export function createSandbox(config: SandboxConfig, logger: PinoLogger): Bot {
 			createDemoModule({ guildIds }),
 		],
 		logger,
-		settingsStore: createSettingsStore(config.settingsStore),
+		settingsStore,
 		adapters: { notifier: createLoggingSettingsNotifier(logger) },
-		lifecycle: { flushes: [{ name: "pino", flush: () => logger.flush() }] },
+		lifecycle: {
+			flushes: [
+				...(settingsStore.drain ? [{ name: "settings", flush: settingsStore.drain }] : []),
+				{ name: "pino", flush: () => logger.flush() },
+			],
+		},
 	});
 }

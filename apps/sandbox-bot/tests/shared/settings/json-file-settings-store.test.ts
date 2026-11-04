@@ -1,12 +1,27 @@
+import * as fs from "node:fs/promises";
 import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runSettingsStoreContract } from "@azurioh/discord-kernel/settings/testing";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { createJsonFileSettingsStore } from "@/shared/settings/json-file-settings-store";
 import { CorruptSettingsFileError } from "@/shared/settings/json-file-settings-store-errors";
 
+vi.mock("node:fs/promises", async (importOriginal) => {
+	const actual = await importOriginal<typeof fs>();
+	return { ...actual, rename: vi.fn(actual.rename) };
+});
+
 const directories: string[] = [];
+
+/** A manually released barrier for pausing persistence at the atomic rename. */
+function createBarrier() {
+	let resolve!: () => void;
+	const promise = new Promise<void>((complete) => {
+		resolve = complete;
+	});
+	return { promise, resolve };
+}
 
 /** A store over a file in a fresh directory, so no two tests share state. */
 async function createStore() {
@@ -27,6 +42,61 @@ afterAll(async () => {
 runSettingsStoreContract(async () => (await createStore()).store, { describe, it, expect });
 
 describe("createJsonFileSettingsStore", () => {
+	it("drains a pending write only after its atomic rename persists the record", async () => {
+		const { directory } = await createStore();
+		const file = join(directory, "settings.json");
+		const store = createJsonFileSettingsStore(file);
+		const record = {
+			guildId: "1",
+			moduleId: "demo",
+			version: 1,
+			revision: 1,
+			values: { mode: "strict" },
+			updatedAt: "2026-01-01T00:00:00.000Z",
+		};
+		const renaming = createBarrier();
+		const release = createBarrier();
+		const { rename } = await vi.importActual<typeof fs>("node:fs/promises");
+		const pausedRename = vi.mocked(fs.rename).mockImplementationOnce(async (...args) => {
+			renaming.resolve();
+			await release.promise;
+			await rename(...args);
+		});
+		const write = store.write(record, { expectedRevision: null });
+		try {
+			await renaming.promise;
+			const drained = vi.fn();
+			const drain = store.drain().then(drained);
+			await new Promise<void>((resolve) => setImmediate(resolve));
+			expect(drained).not.toHaveBeenCalled();
+			expect(await createJsonFileSettingsStore(file).read("1", "demo")).toBeNull();
+			release.resolve();
+			await drain;
+			expect(await createJsonFileSettingsStore(file).read("1", "demo")).toEqual(record);
+		} finally {
+			release.resolve();
+			await write;
+			pausedRename.mockReset();
+			pausedRename.mockImplementation(rename);
+		}
+	});
+
+	it("propagates a pending persistence failure through drain", async () => {
+		const { store } = await createStore();
+		expect(store.drain).toBeTypeOf("function");
+		const failure = new CorruptSettingsFileError("settings.json");
+		const failedRename = vi.mocked(fs.rename).mockRejectedValueOnce(failure);
+		try {
+			const deletion = store.delete("1", "demo");
+			await Promise.all([
+				expect(deletion).rejects.toBe(failure),
+				expect(store.drain()).rejects.toBe(failure),
+			]);
+		} finally {
+			failedRename.mockClear();
+		}
+	});
+
 	it("keeps records across store instances over the same file", async () => {
 		const { directory } = await createStore();
 		const file = join(directory, "settings.json");
