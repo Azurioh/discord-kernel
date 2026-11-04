@@ -18,12 +18,6 @@ export function createBasicsModule(params: { guildIds: readonly string[] }): Bot
 		translations: { ...BASICS_CATALOG, ...PAGINATOR_CATALOG },
 		build(context) {
 			return {
-				setup() {
-					context.logger.info(
-						{ user: context.client.user?.tag, guilds: context.client.guilds.cache.size },
-						"Sandbox bot is ready",
-					);
-				},
 				commands: [
 					createPingCommand(params.guildIds),
 					createRollCommand(params.guildIds),

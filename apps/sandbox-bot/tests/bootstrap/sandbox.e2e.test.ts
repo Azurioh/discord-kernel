@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Bot } from "@azurioh/discord-kernel/bot/create-bot";
+import { AutocompleteDispatcher } from "@azurioh/discord-kernel/discord/command/autocomplete-dispatcher";
 import {
 	KERNEL_SETTINGS_ID,
 	kernelSettings,
@@ -144,6 +145,7 @@ describe("sandbox, end to end", () => {
 		const starting = sandbox.start(config.token);
 		await vi.waitFor(() => expect(sandbox.client.login).toHaveBeenCalledOnce());
 		await dispatch({ bot: sandbox, event: Events.ClientReady, value: sandbox.client });
+		expect(records.filter((line) => line.includes('"msg":"Sandbox bot is ready"'))).toHaveLength(0);
 		await starting;
 		sqlite = createSqliteSettingsStore(join(directory, "settings.sqlite"));
 	});
@@ -154,12 +156,9 @@ describe("sandbox, end to end", () => {
 		rmSync(directory, { recursive: true, force: true });
 	});
 
-	it("logs readiness once from basics setup after gateway readiness", () => {
+	it("leaves readiness logging to the entry point after startup", () => {
 		const ready = records.filter((line) => line.includes('"msg":"Sandbox bot is ready"'));
-		expect(ready).toHaveLength(1);
-		expect(ready[0]).toContain('"user":"sandbox#0001"');
-		expect(ready[0]).toContain('"guilds":0');
-		expect(ready[0]).toContain('"module":"basics"');
+		expect(ready).toHaveLength(0);
 		expect(sandbox.state).toBe("running");
 	});
 
@@ -428,9 +427,13 @@ describe("sandbox, end to end", () => {
 
 		it("S9: autocompletes /config set's value with the same suggestions", async () => {
 			const { interaction, respond } = autocomplete("timezone", "tok");
+			const handle = vi.spyOn(AutocompleteDispatcher.prototype, "handle");
 
 			await dispatch({ bot: sandbox, event: Events.InteractionCreate, value: interaction });
 
+			expect(handle).toHaveBeenCalledOnce();
+			const claimed = await handle.mock.results[0]?.value;
+			expect(claimed).toBe(true);
 			expect(respond).toHaveBeenCalledOnce();
 			expect(respond).toHaveBeenCalledWith([{ name: "Asia · Tokyo", value: "Asia/Tokyo" }]);
 		});

@@ -11,6 +11,10 @@ async function start(): Promise<void> {
 		const config = loadConfig();
 		const bot = createSandbox(config, logger);
 		await bot.start(config.token);
+		logger.info(
+			{ user: bot.client.user?.tag, guilds: bot.client.guilds.cache.size },
+			"Sandbox bot is ready",
+		);
 	} catch (error) {
 		reportStartupFailure(logger, error);
 	}
