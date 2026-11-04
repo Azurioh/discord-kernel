@@ -91,7 +91,11 @@ yet), **Idea** (to brainstorm).
     current settings-editor).
 - Open: exact DSL shape; migration path for existing `createCard` users.
 
-### 2. Bootstrap and lifecycle — Decided, spec drafted (`specs/002-bot-bootstrap`)
+### 2. Bootstrap and lifecycle — Delivered pending PR 4 (`specs/002-bot-bootstrap`)
+
+PRs 1–3 are merged (port twins, module assembly, ordered lifecycle). PR 4 is in
+review (#46, shared modal prompts); PR 5 is this sandbox migration to `createBot`.
+Manual sandbox lifecycle validation remains pending human execution.
 
 - Upstream from the BSK bot:
   - process handlers (SIGINT/SIGTERM, crash handlers, graceful shutdown with injected flush);
@@ -104,7 +108,7 @@ yet), **Idea** (to brainstorm).
   in-process scheduling of functions; no scheduler adapter package.
 - A failing module `setup` fails the start, unless the module is declared optional (then only that
   module is disabled).
-- Open: exact `createBot` API shape (to settle in the plan).
+- API: `createBot` and module `build(context)` are defined in the public API contract.
 
 ### 3. Module settings — Specified (`specs/001-module-settings`)
 

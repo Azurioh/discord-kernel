@@ -11,20 +11,20 @@ import { requestContext } from "@/shared/discord/request-context";
 /**
  * `/config reset`: put one demo setting, or all of them, back to the default.
  *
- * @param settings - resolves the settings service on each use.
+ * @param settings - the shared settings service.
  */
 export function createResetHandler(
-	settings: () => SettingsService,
+	settings: SettingsService,
 ): (ctx: Context<ResetOptions>) => Promise<void> {
 	return async (ctx) => {
 		const { key } = ctx.options;
 		const request = requestContext(ctx);
 		await confirmOrReportIssues(ctx, async () => {
 			if (key === ALL_FIELDS) {
-				await settings().reset(demoSettings, request.guildId, "all", request);
+				await settings.reset(demoSettings, request.guildId, "all", request);
 				return ctx.t(DEMO_MESSAGES.resetAll);
 			}
-			await settings().reset(demoSettings, request.guildId, [key], request);
+			await settings.reset(demoSettings, request.guildId, [key], request);
 			return ctx.t(DEMO_MESSAGES.resetOne, { field: labelOf(key, ctx.t) });
 		});
 	};

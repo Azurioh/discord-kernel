@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createPinoLogger } from "@/shared/logging/pino-logger";
 
 /** A destination that keeps each written line, parsed. */
@@ -41,5 +41,32 @@ describe("createPinoLogger", () => {
 		expect(destination.records[0]?.err).toEqual(
 			expect.objectContaining({ message: "boom", stack: expect.any(String) }),
 		);
+	});
+	it("waits for the destination flush callback", async () => {
+		let finish: (() => void) | undefined;
+		const destination = {
+			write: vi.fn(),
+			flush: vi.fn((callback: () => void) => {
+				finish = callback;
+			}),
+		};
+		const logger = createPinoLogger("test", destination);
+		const settled = vi.fn();
+		const flushing = logger.flush().then(settled);
+		await Promise.resolve();
+		expect(settled).not.toHaveBeenCalled();
+		expect(destination.flush).toHaveBeenCalledOnce();
+		finish?.();
+		await flushing;
+		expect(settled).toHaveBeenCalledOnce();
+	});
+
+	it("propagates a destination flush failure", async () => {
+		const error = new TypeError("flush failed");
+		const destination = {
+			write: vi.fn(),
+			flush: (callback: (error: Error) => void) => callback(error),
+		};
+		await expect(createPinoLogger("test", destination).flush()).rejects.toBe(error);
 	});
 });

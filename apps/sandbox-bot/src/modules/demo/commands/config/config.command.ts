@@ -19,8 +19,7 @@ import { localizedDescription } from "@/shared/discord/localized-description";
 
 export interface ConfigCommandDeps {
 	readonly guildIds: readonly string[];
-	/** Resolved on each use: the service is built after the modules declared their settings. */
-	readonly settings: () => SettingsService;
+	readonly settings: SettingsService;
 	readonly translator: Translator;
 	readonly logger: Logger;
 }

@@ -10,14 +10,14 @@ import { requestContext } from "@/shared/discord/request-context";
  * `/demo-log`: post a test message in the configured log channel. The
  * command's `requireConfigured` guard already ensured the channel is set.
  *
- * @param settings - resolves the settings service on each use.
+ * @param settings - the shared settings service.
  */
 export function createDemoLogHandler(
-	settings: () => SettingsService,
+	settings: SettingsService,
 ): <O extends Options>(ctx: Context<O>) => Promise<void> {
 	return async (ctx) => {
 		const { guildId, userId } = requestContext(ctx);
-		const { logChannel } = await settings().get(demoSettings, guildId);
+		const { logChannel } = await settings.get(demoSettings, guildId);
 		const channel =
 			logChannel === undefined ? null : await ctx.interaction.client.channels.fetch(logChannel);
 		if (!channel?.isSendable()) {

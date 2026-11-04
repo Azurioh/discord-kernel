@@ -11,7 +11,7 @@ import { demoSettings } from "@/modules/demo/settings/demo.settings";
 const EDITOR_ID_PREFIX = "demo-config";
 
 export interface EditHandlerDeps {
-	readonly settings: () => SettingsService;
+	readonly settings: SettingsService;
 	readonly translator: Translator;
 	readonly logger: Logger;
 }
@@ -28,7 +28,7 @@ export function createEditHandler(
 	return async (ctx) => {
 		await showSettingsScreen(ctx, {
 			declaration: demoSettings,
-			settings: deps.settings(),
+			settings: deps.settings,
 			translator: deps.translator,
 			logger: deps.logger,
 			idPrefix: EDITOR_ID_PREFIX,

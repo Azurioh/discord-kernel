@@ -14,12 +14,12 @@ import { localizedDescription } from "@/shared/discord/localized-description";
  * `/config edit`: the settings screen the kernel builds from the declaration,
  * deferred while the stored values load.
  *
- * @param settings - resolves the settings service on each use.
+ * @param settings - the shared settings service.
  * @param translator - translates the screen.
  * @param logger - receives the screen's failures.
  */
 export function createEditSubcommand(
-	settings: () => SettingsService,
+	settings: SettingsService,
 	translator: Translator,
 	logger: Logger,
 ): CompiledSubcommand {

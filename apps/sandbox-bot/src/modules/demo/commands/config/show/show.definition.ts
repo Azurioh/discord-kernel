@@ -11,9 +11,9 @@ import { localizedDescription } from "@/shared/discord/localized-description";
 /**
  * `/config show`: every demo setting in one embed.
  *
- * @param settings - resolves the settings service on each use.
+ * @param settings - the shared settings service.
  */
-export function createShowSubcommand(settings: () => SettingsService): CompiledSubcommand {
+export function createShowSubcommand(settings: SettingsService): CompiledSubcommand {
 	return createSubCommand({
 		...localizedDescription(DEMO_CATALOG, DEMO_MESSAGES.showDescription),
 		handler: createShowHandler(settings),

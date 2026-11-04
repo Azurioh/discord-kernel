@@ -11,16 +11,16 @@ import { requestContext } from "@/shared/discord/request-context";
 /**
  * `/config set`: write one demo setting and confirm with its new revision.
  *
- * @param settings - resolves the settings service on each use.
+ * @param settings - the shared settings service.
  */
 export function createSetHandler(
-	settings: () => SettingsService,
+	settings: SettingsService,
 ): (ctx: Context<SetOptions>) => Promise<void> {
 	return async (ctx) => {
 		const { key, value } = ctx.options;
 		const request = requestContext(ctx);
 		await confirmOrReportIssues(ctx, async () => {
-			const written = await settings().set(
+			const written = await settings.set(
 				demoSettings,
 				request.guildId,
 				{ [key]: parseValueInput(value) },

@@ -13,11 +13,11 @@ import { localizedDescription } from "@/shared/discord/localized-description";
 /**
  * `/config set key value`: change one demo setting.
  *
- * @param settings - resolves the settings service on each use.
+ * @param settings - the shared settings service.
  * @param translator - picks the language of the key and value suggestions.
  */
 export function createSetSubcommand(
-	settings: () => SettingsService,
+	settings: SettingsService,
 	translator: Translator,
 ): CompiledSubcommand {
 	return createSubCommand({

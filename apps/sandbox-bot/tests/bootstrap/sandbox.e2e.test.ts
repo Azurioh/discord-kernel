@@ -1,15 +1,15 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { AutocompleteDispatcher } from "@azurioh/discord-kernel/discord/command/autocomplete-dispatcher";
+import type { Bot } from "@azurioh/discord-kernel/bot/create-bot";
 import {
 	KERNEL_SETTINGS_ID,
 	kernelSettings,
 	type SettingsStore,
 } from "@azurioh/discord-kernel/settings";
-import { ChannelType, type Guild } from "discord.js";
+import { ChannelType, Events, type Guild } from "discord.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createSandbox, type Sandbox } from "@/bootstrap/create-sandbox";
+import { createSandbox } from "@/bootstrap/create-sandbox";
 import type { SandboxConfig } from "@/config";
 import { demoSettings } from "@/modules/demo/settings/demo.settings";
 import { createPinoLogger } from "@/shared/logging/pino-logger";
@@ -32,7 +32,8 @@ const OTHER_GUILD = "100000000000000002";
 const ADMIN = "200000000000000001";
 const LOG_CHANNEL = "300000000000000001";
 
-const logger = createPinoLogger("test", { write: () => undefined });
+const records: string[] = [];
+const logger = createPinoLogger("test", { write: (line) => records.push(line) });
 
 interface Sent {
 	readonly description: string | undefined;
@@ -111,14 +112,22 @@ function slash(params: {
 	return { interaction, sent };
 }
 
+/** Await gateway listeners without opening a Discord connection. */
+async function dispatch(params: { bot: Bot; event: string; value: unknown }): Promise<void> {
+	for (const listener of params.bot.client.rawListeners(params.event)) {
+		await Reflect.apply(listener, params.bot.client, [params.value]);
+	}
+}
+
 describe("sandbox, end to end", () => {
 	let directory: string;
-	let sandbox: Sandbox;
+	let sandbox: Bot;
 	let config: SandboxConfig;
 	/** A second connection to the sandbox's SQLite file, as another process would open it. */
 	let sqlite: SettingsStore;
 
-	beforeEach(() => {
+	beforeEach(async () => {
+		records.length = 0;
 		directory = mkdtempSync(join(tmpdir(), "sandbox-e2e-"));
 		config = {
 			token: "token",
@@ -127,12 +136,31 @@ describe("sandbox, end to end", () => {
 			settingsStore: { adapter: "sqlite", file: join(directory, "settings.sqlite") },
 		};
 		sandbox = createSandbox(config, logger);
+		vi.spyOn(sandbox.client, "login").mockResolvedValue("fake-login");
+		Object.defineProperty(sandbox.client, "user", {
+			value: { tag: "sandbox#0001" },
+			configurable: true,
+		});
+		const starting = sandbox.start(config.token);
+		await vi.waitFor(() => expect(sandbox.client.login).toHaveBeenCalledOnce());
+		await dispatch({ bot: sandbox, event: Events.ClientReady, value: sandbox.client });
+		await starting;
 		sqlite = createSqliteSettingsStore(join(directory, "settings.sqlite"));
 	});
 
 	afterEach(async () => {
-		await sandbox.client.destroy();
+		await sandbox.stop();
+		vi.restoreAllMocks();
 		rmSync(directory, { recursive: true, force: true });
+	});
+
+	it("logs readiness once from basics setup after gateway readiness", () => {
+		const ready = records.filter((line) => line.includes('"msg":"Sandbox bot is ready"'));
+		expect(ready).toHaveLength(1);
+		expect(ready[0]).toContain('"user":"sandbox#0001"');
+		expect(ready[0]).toContain('"guilds":0');
+		expect(ready[0]).toContain('"module":"basics"');
+		expect(sandbox.state).toBe("running");
 	});
 
 	/** Write the guild's kernel settings straight into the store the sandbox reads. */
@@ -165,8 +193,8 @@ describe("sandbox, end to end", () => {
 
 	async function run(params: Parameters<typeof slash>[0]) {
 		const { interaction, sent } = slash(params);
-		const claimed = await sandbox.commands.handle(interaction as never);
-		return { claimed, sent, interaction };
+		await dispatch({ bot: sandbox, event: Events.InteractionCreate, value: interaction });
+		return { sent, interaction };
 	}
 
 	it("runs /ping on a guild that never toggled anything (modules start enabled)", async () => {
@@ -365,6 +393,8 @@ describe("sandbox, end to end", () => {
 				guildLocale: null,
 				user: { id: ADMIN },
 				isAutocomplete: () => true,
+				isChatInputCommand: () => false,
+				isContextMenuCommand: () => false,
 				options: {
 					getSubcommandGroup: () => null,
 					getSubcommand: () => "set",
@@ -399,10 +429,9 @@ describe("sandbox, end to end", () => {
 		it("S9: autocompletes /config set's value with the same suggestions", async () => {
 			const { interaction, respond } = autocomplete("timezone", "tok");
 
-			const dispatcher = new AutocompleteDispatcher(sandbox.commands, logger);
-			const claimed = await dispatcher.handle(interaction as never);
+			await dispatch({ bot: sandbox, event: Events.InteractionCreate, value: interaction });
 
-			expect(claimed).toBe(true);
+			expect(respond).toHaveBeenCalledOnce();
 			expect(respond).toHaveBeenCalledWith([{ name: "Asia · Tokyo", value: "Asia/Tokyo" }]);
 		});
 

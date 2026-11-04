@@ -10,8 +10,8 @@ import { ADMIN_MESSAGES } from "@/modules/admin/i18n/admin.messages";
 const SERVER_SCREEN_ID_PREFIX = "admin-server";
 
 export interface ServerHandlerDeps {
-	readonly settings: () => SettingsService;
-	readonly kernelSettings: () => KernelSettings;
+	readonly settings: SettingsService;
+	readonly kernelSettings: KernelSettings;
 	readonly translator: Translator;
 	readonly logger: Logger;
 }
@@ -27,8 +27,8 @@ export function createServerHandler(
 ): <O extends Options>(ctx: Context<O>) => Promise<void> {
 	return async (ctx) => {
 		await showSettingsScreen(ctx, {
-			declaration: deps.kernelSettings(),
-			settings: deps.settings(),
+			declaration: deps.kernelSettings,
+			settings: deps.settings,
 			translator: deps.translator,
 			logger: deps.logger,
 			idPrefix: SERVER_SCREEN_ID_PREFIX,
