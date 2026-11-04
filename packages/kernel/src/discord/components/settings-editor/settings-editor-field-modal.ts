@@ -23,61 +23,14 @@ import {
 	type TextFieldDef,
 	type UserFieldDef,
 } from "@/discord/interaction/modal";
+import { promptModal } from "@/discord/interaction/prompt-modal";
 import type { SelectBounds } from "@/discord/interaction/select-bounds";
 import type { Locale } from "@/i18n/locale";
 import type { Translator } from "@/i18n/translator";
+import type { Logger } from "@/logger";
 
 const EDITOR_FIELD_MODAL_ID = "settings-editor:field-value";
 const EDITOR_GROUP_MODAL_ID = "settings-editor:group-value";
-
-/** Generous enough to write a whole embed description without racing a timeout. */
-const MODAL_TIMEOUT_MS = 5 * 60 * 1000;
-
-/**
- * `createModal(...).build()` with no state produces the same constant
- * customId for every field modal (`EDITOR_FIELD_MODAL_ID`) and every group
- * modal (`EDITOR_GROUP_MODAL_ID`) — one identifier shared by the whole
- * editor. Combined with a `filter` that only checked the user, a stale
- * `awaitModalSubmit` left behind by a modal the administrator opened and then
- * dismissed (it keeps listening for the rest of {@link MODAL_TIMEOUT_MS})
- * would resolve on the *next* modal that same user submitted, whatever field
- * it belonged to — reported as opening "Add a game", abandoning it, then
- * declaring a request field named "Date" ending up creating a game named
- * "Date".
- *
- * The fix needs an identifier that is unique per *opening*, not just per
- * field: the field/group key alone is not enough, because the same field can
- * be reopened while an earlier, dismissed opening's wait is still alive. A
- * process-local monotonic counter appended to the key is enough for that —
- * it only has to distinguish opens within this process's own lifetime, never
- * survive a restart, and carries no notion of time, so a `Clock` would be the
- * wrong tool (and untestable without faking time for no reason).
- *
- * Making the customId dynamic like this is safe *here*: unlike a persistent
- * component, this modal is never registered on the `ComponentRouter` — both
- * `promptEditorFieldValue` and `promptEditorGroupValue` collect their
- * submission directly with `awaitModalSubmit`, a one-shot collector that
- * matches by whatever customId it is told to expect, not by the router's
- * `customId`/`customId:*` rule. A dynamic id would break the router (it needs
- * a stable prefix to keep matching after a restart); it does not break a
- * collector.
- */
-let modalOpenSequence = 0;
-
-/**
- * A customId suffix unique to one modal opening: `key` for readability when
- * debugging, plus a counter so reopening the same field still yields a
- * different id from the opening before it.
- */
-function nextModalOpenState(key: string): string {
-	modalOpenSequence += 1;
-	return `${key}-${modalOpenSequence}`;
-}
-
-/** The customId a built modal actually carries, read back rather than reassembled. */
-function customIdOf(modal: ModalBuilder): string {
-	return (modal.toJSON() as { custom_id: string }).custom_id;
-}
 
 /** One image per override — the embed has exactly one slot for each. */
 const MAX_UPLOADS = 1;
@@ -121,6 +74,7 @@ export async function promptEditorFieldValue<F extends string>(
 	current: SettingsEditorFieldValue,
 	translator: Translator,
 	locale: Locale,
+	logger: Logger,
 ): Promise<SettingsEditorSubmission | null> {
 	const modal = isPickerField(field)
 		? createPickerModal(field, current, translator, locale)
@@ -128,41 +82,29 @@ export async function promptEditorFieldValue<F extends string>(
 			? createImageModal(field, current, translator, locale)
 			: createTextModal(field, current, translator, locale);
 
-	const submitted = await collectModalSubmission(
-		interaction,
-		modal.build(nextModalOpenState(field.key)),
-	);
-	return submitted === null ? null : { interaction: submitted, ...modal.read(submitted) };
-}
-
-/**
- * Show `built` and wait for this very opening's submission. `null` on timeout,
- * on any failure to show or collect it, and on a submission that did not come
- * from a message.
- */
-async function collectModalSubmission(
-	interaction: MessageComponentInteraction,
-	built: ModalBuilder,
-): Promise<ModalMessageModalSubmitInteraction | null> {
+	let submission: ModalMessageModalSubmitInteraction | null;
 	try {
-		const expectedCustomId = customIdOf(built);
-		await interaction.showModal(built);
-		const submitted = await interaction.awaitModalSubmit({
-			time: MODAL_TIMEOUT_MS,
-			filter: (submission) =>
-				submission.user.id === interaction.user.id && submission.customId === expectedCustomId,
+		const result = await promptModal(interaction, {
+			build: (state) => modal.build(`${field.key}-${state}`),
+			read: (submission) => {
+				if (!submission.isFromMessage()) {
+					return null;
+				}
+				return submission;
+			},
 		});
-		// A modal opened from a message submits as a `ModalMessageModalSubmit`
-		// interaction — the only kind that can `.update()` the screen in place.
-		// Anything else did not come from it, so it is dropped rather than answered
-		// on a message it has no claim to.
-		if (!submitted.isFromMessage()) {
-			return null;
-		}
-		return submitted;
-	} catch {
+		submission = result.status === "submitted" ? result.values : null;
+	} catch (error) {
+		logger.error(
+			{ err: error, fieldKey: field.key },
+			"Failed to prompt settings editor field modal",
+		);
 		return null;
 	}
+	if (submission === null) {
+		return null;
+	}
+	return { interaction: submission, ...modal.read(submission) };
 }
 
 /** What one member field of a group came back with — the group's own per-member slice. */
@@ -208,13 +150,32 @@ export async function promptEditorGroupValue<F extends string>(
 	legend: string | null,
 	translator: Translator,
 	locale: Locale,
+	logger: Logger,
 ): Promise<SettingsEditorGroupPrompt<F> | null> {
 	const modal = createGroupModal(group, currentValue, legend, translator, locale);
-	const submitted = await collectModalSubmission(
-		interaction,
-		modal.build(nextModalOpenState(group.key)),
-	);
-	return submitted === null ? null : { interaction: submitted, values: modal.read(submitted) };
+	let submission: ModalMessageModalSubmitInteraction | null;
+	try {
+		const result = await promptModal(interaction, {
+			build: (state) => modal.build(`${group.key}-${state}`),
+			read: (submission) => {
+				if (!submission.isFromMessage()) {
+					return null;
+				}
+				return submission;
+			},
+		});
+		submission = result.status === "submitted" ? result.values : null;
+	} catch (error) {
+		logger.error(
+			{ err: error, groupKey: group.key },
+			"Failed to prompt settings editor group modal",
+		);
+		return null;
+	}
+	if (submission === null) {
+		return null;
+	}
+	return { interaction: submission, values: modal.read(submission) };
 }
 
 /** Reading a group's submission back — the group's own counterpart of {@link EditorFieldModal}. */

@@ -13,6 +13,8 @@ import type {
 import type { Locale } from "@/i18n/locale";
 import type { Translator } from "@/i18n/translator";
 
+import { createFakeLogger } from "../../../support/fake-logger";
+
 const LOCALE: Locale = "en";
 
 /** Echoes the key, matching the convention `settings-editor-view.test.ts` uses. */
@@ -176,6 +178,7 @@ describe("promptEditorFieldValue custom ids", () => {
 			textFieldValue(null),
 			translator,
 			LOCALE,
+			createFakeLogger(),
 		);
 		await flush();
 		void promptEditorFieldValue(
@@ -184,6 +187,7 @@ describe("promptEditorFieldValue custom ids", () => {
 			textFieldValue(null),
 			translator,
 			LOCALE,
+			createFakeLogger(),
 		);
 		await flush();
 
@@ -206,6 +210,7 @@ describe("promptEditorFieldValue crosstalk", () => {
 			textFieldValue(null),
 			translator,
 			LOCALE,
+			createFakeLogger(),
 		);
 		await flush();
 
@@ -215,6 +220,7 @@ describe("promptEditorFieldValue crosstalk", () => {
 			textFieldValue(null),
 			translator,
 			LOCALE,
+			createFakeLogger(),
 		);
 		await flush();
 
@@ -247,6 +253,7 @@ describe("promptEditorFieldValue matching submission", () => {
 			textFieldValue(null),
 			translator,
 			LOCALE,
+			createFakeLogger(),
 		);
 		await flush();
 
@@ -273,6 +280,7 @@ describe("promptEditorFieldValue matching submission", () => {
 			textFieldValue(null),
 			translator,
 			LOCALE,
+			createFakeLogger(),
 		);
 		await flush();
 
@@ -299,6 +307,7 @@ describe("promptEditorGroupValue matching submission", () => {
 			null,
 			translator,
 			LOCALE,
+			createFakeLogger(),
 		);
 		await flush();
 
@@ -326,6 +335,7 @@ describe("promptEditorGroupValue matching submission", () => {
 			null,
 			translator,
 			LOCALE,
+			createFakeLogger(),
 		);
 		await flush();
 
@@ -336,6 +346,7 @@ describe("promptEditorGroupValue matching submission", () => {
 			null,
 			translator,
 			LOCALE,
+			createFakeLogger(),
 		);
 		await flush();
 
