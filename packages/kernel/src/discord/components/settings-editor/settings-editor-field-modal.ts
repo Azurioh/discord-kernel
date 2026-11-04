@@ -82,17 +82,18 @@ export async function promptEditorFieldValue<F extends string>(
 			? createImageModal(field, current, translator, locale)
 			: createTextModal(field, current, translator, locale);
 
+	let submission: ModalMessageModalSubmitInteraction | null;
 	try {
 		const result = await promptModal(interaction, {
-			build: modal.build,
+			build: (state) => modal.build(`${field.key}-${state}`),
 			read: (submission) => {
 				if (!submission.isFromMessage()) {
 					return null;
 				}
-				return { interaction: submission, ...modal.read(submission) };
+				return submission;
 			},
 		});
-		return result.status === "submitted" ? result.values : null;
+		submission = result.status === "submitted" ? result.values : null;
 	} catch (error) {
 		logger.error(
 			{ err: error, fieldKey: field.key },
@@ -100,6 +101,10 @@ export async function promptEditorFieldValue<F extends string>(
 		);
 		return null;
 	}
+	if (submission === null) {
+		return null;
+	}
+	return { interaction: submission, ...modal.read(submission) };
 }
 
 /** What one member field of a group came back with — the group's own per-member slice. */
@@ -148,17 +153,18 @@ export async function promptEditorGroupValue<F extends string>(
 	logger: Logger,
 ): Promise<SettingsEditorGroupPrompt<F> | null> {
 	const modal = createGroupModal(group, currentValue, legend, translator, locale);
+	let submission: ModalMessageModalSubmitInteraction | null;
 	try {
 		const result = await promptModal(interaction, {
-			build: modal.build,
+			build: (state) => modal.build(`${group.key}-${state}`),
 			read: (submission) => {
 				if (!submission.isFromMessage()) {
 					return null;
 				}
-				return { interaction: submission, values: modal.read(submission) };
+				return submission;
 			},
 		});
-		return result.status === "submitted" ? result.values : null;
+		submission = result.status === "submitted" ? result.values : null;
 	} catch (error) {
 		logger.error(
 			{ err: error, groupKey: group.key },
@@ -166,6 +172,10 @@ export async function promptEditorGroupValue<F extends string>(
 		);
 		return null;
 	}
+	if (submission === null) {
+		return null;
+	}
+	return { interaction: submission, values: modal.read(submission) };
 }
 
 /** Reading a group's submission back — the group's own counterpart of {@link EditorFieldModal}. */

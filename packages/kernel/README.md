@@ -180,6 +180,34 @@ receives an empty list. Unavailable-module replies use
 `CORE_MESSAGES.moduleUnavailable` (`core.lifecycle.module-unavailable`). Both keys
 are supplied in English and French by `CORE_CATALOG`.
 
+### Prompting a modal
+
+Use `promptModal` on an unanswered command or component interaction. It collects
+only the opening member's submission for this opening and infers values from
+`createModal`:
+
+```ts
+import { createModal } from "@azurioh/discord-kernel/discord/interaction/modal";
+import { promptModal } from "@azurioh/discord-kernel/discord/interaction/prompt-modal";
+
+const report = createModal({
+  id: "report",
+  title: "Report a message",
+  fields: { reason: { label: "Reason" } },
+});
+const result = await promptModal(interaction, report, { timeoutMs: 60_000 });
+if (result.status === "submitted") {
+  await result.interaction.reply({ content: result.values.reason });
+}
+```
+
+The default deadline is five minutes. Closing a modal produces no Discord event;
+the collector eventually returns `{ status: "dismissed" }`. Already answered or
+deferred interactions throw `ModalPromptError` from the `prompt-modal-errors`
+subpath. Other build, show, collect and read failures propagate to the caller.
+The settings editor logs modal show/collect failures and keeps its screen unchanged;
+timeouts remain quiet.
+
 ## Module settings
 
 A module declares its per-guild settings once. The kernel then validates,
@@ -567,31 +595,3 @@ CommonJS with declaration files, resolved through explicit subpath `exports`.
 ## License
 
 MIT
-
-### Prompting a modal
-
-Use `promptModal` on an unanswered command or component interaction. It collects
-only the opening member's submission for this opening and infers values from
-`createModal`:
-
-```ts
-import { createModal } from "@azurioh/discord-kernel/discord/interaction/modal";
-import { promptModal } from "@azurioh/discord-kernel/discord/interaction/prompt-modal";
-
-const report = createModal({
-  id: "report",
-  title: "Report a message",
-  fields: { reason: { label: "Reason" } },
-});
-const result = await promptModal(interaction, report, { timeoutMs: 60_000 });
-if (result.status === "submitted") {
-  await result.interaction.reply({ content: result.values.reason });
-}
-```
-
-The default deadline is five minutes. Closing a modal produces no Discord event;
-the collector eventually returns `{ status: "dismissed" }`. Already answered or
-deferred interactions throw `ModalPromptError` from the `prompt-modal-errors`
-subpath. Other build, show, collect and read failures propagate to the caller.
-The settings editor logs modal show/collect failures and keeps its screen unchanged;
-timeouts remain quiet.
