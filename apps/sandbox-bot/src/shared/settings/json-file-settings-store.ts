@@ -33,11 +33,20 @@ export function createJsonFileSettingsStore(filePath: string): SettingsStore & {
 
 	return {
 		async drain() {
-			const results = await Promise.allSettled(pending);
-			for (const result of results) {
-				if (result.status === "rejected") {
-					throw result.reason;
+			const failures: unknown[] = [];
+			while (pending.size > 0) {
+				const results = await Promise.allSettled(pending);
+				for (const result of results) {
+					if (result.status === "rejected") {
+						failures.push(result.reason);
+					}
 				}
+			}
+			if (failures.length > 1) {
+				throw new AggregateError(failures, "Settings mutations failed during drain");
+			}
+			if (failures.length === 1) {
+				throw failures[0];
 			}
 		},
 
