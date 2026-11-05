@@ -10,7 +10,7 @@ import {
 	ThumbnailBuilder,
 } from "discord.js";
 import { type Button, createActionRow } from "@/discord/interaction/button";
-import type { AnySelectMenuBuilder } from "@/discord/interaction/select-menu";
+import type { AnySelectMenu, AnySelectMenuBuilder } from "@/discord/interaction/select-menu";
 
 /** Discord refuses a message carrying more components than this, container included. */
 export const MAX_CARD_COMPONENTS = 40;
@@ -45,22 +45,8 @@ export type CardEntryAccessory<S> =
 	| { readonly action: Button<S>; readonly thumbnail?: never }
 	| { readonly action?: never; readonly thumbnail: string };
 
-/**
- * What a compiled select menu must offer for a card to render it — `apply`
- * only, never `onSelect`.
- *
- * `SelectMenu<B, I>` (the DSL's own compiled shape) is contravariant in `I`,
- * so a `SelectMenu<StringSelectMenuBuilder, StringSelectMenuInteraction>` —
- * what `createStringSelect` hands back — is not assignable to a version
- * fixed at the union `AnySelectMenuInteraction`. A card never reads
- * `onSelect` (that is wired separately, through the module's
- * `ComponentRouter`), so this asks for nothing beyond what it actually
- * calls, and every flavour of compiled select menu satisfies it as-is.
- */
-export interface CardSelectMenu {
-	readonly id: string;
-	apply(forceDisabled?: boolean): AnySelectMenuBuilder;
-}
+/** Kept for 2.x consumers until `card.ts` is deleted; use `AnySelectMenu`. */
+export type CardSelectMenu = AnySelectMenu;
 
 /**
  * One piece of a card, declared as data rather than built. `createCard`

@@ -399,6 +399,22 @@
 			"types": "./dist/discord/ui/message-attachments.d.ts",
 			"default": "./dist/discord/ui/message-attachments.js"
 		},
+		"./discord/view/render-view": {
+			"types": "./dist/discord/view/render-view.d.ts",
+			"default": "./dist/discord/view/render-view.js"
+		},
+		"./discord/view/view": {
+			"types": "./dist/discord/view/view.d.ts",
+			"default": "./dist/discord/view/view.js"
+		},
+		"./discord/view/view-errors": {
+			"types": "./dist/discord/view/view-errors.d.ts",
+			"default": "./dist/discord/view/view-errors.js"
+		},
+		"./discord/view/view-limits": {
+			"types": "./dist/discord/view/view-limits.d.ts",
+			"default": "./dist/discord/view/view-limits.js"
+		},
 		"./errors/business-error": {
 			"types": "./dist/errors/business-error.d.ts",
 			"default": "./dist/errors/business-error.js"
