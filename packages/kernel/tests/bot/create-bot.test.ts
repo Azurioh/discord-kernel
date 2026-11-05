@@ -313,12 +313,13 @@ describe("createBot", () => {
 
 	it("(k) uses custom presenter and locale resolver factory", async () => {
 		const embed = new EmbedBuilder().setDescription("custom");
+		const view = { embeds: [embed] };
 		const presenter = {
-			confirmation: vi.fn(() => embed),
-			warning: vi.fn(() => embed),
-			error: vi.fn(() => embed),
-			denial: vi.fn(() => embed),
-			systemError: vi.fn(() => embed),
+			confirmation: vi.fn(() => view),
+			warning: vi.fn(() => view),
+			error: vi.fn(() => view),
+			denial: vi.fn(() => view),
+			systemError: vi.fn(() => view),
 		};
 		const localeResolver = vi.fn(() => createFixedLocaleResolver("fr"));
 		const input = options([

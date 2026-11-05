@@ -66,7 +66,9 @@ describe("bot building blocks remain public (T030 m, FR-007)", () => {
 		"bot/process-handlers",
 		"discord/module-availability",
 		"discord/in-memory-module-availability",
-		"discord/settings/module-unavailable-embed",
+		"discord/settings/module-unavailable-view",
+		"discord/settings/module-disabled-view",
+		"discord/command/send-view",
 
 		"bot/assemble-modules",
 		"bot/create-bot",

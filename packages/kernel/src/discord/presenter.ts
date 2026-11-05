@@ -1,10 +1,10 @@
-import type { EmbedBuilder } from "discord.js";
+import type { View } from "@/discord/view/view";
 import type { Locale } from "@/i18n/locale";
 
 /**
  * Port that renders framework-level responses (errors, denials, confirmations)
- * as embeds. The command pipeline depends on this interface, never on a concrete
- * embed module — so a bot can fully restyle/localise feedback by providing its
+ * as views, in either layout. The command pipeline depends on this interface, never on a concrete
+ * view module — so a bot can fully restyle/localise feedback by providing its
  * own implementation, with zero changes to the core.
  *
  * Every method receives the locale resolved for the interaction being answered,
@@ -16,13 +16,13 @@ import type { Locale } from "@/i18n/locale";
  */
 export interface Presenter {
 	/** A successful, affirmative action. */
-	confirmation(message: string, locale: Locale): EmbedBuilder;
+	confirmation(message: string, locale: Locale): View;
 	/** A benign business problem (bad input, missing resource, conflict). */
-	warning(message: string, locale: Locale): EmbedBuilder;
+	warning(message: string, locale: Locale): View;
 	/** A serious—but expected—business error. */
-	error(message: string, locale: Locale): EmbedBuilder;
+	error(message: string, locale: Locale): View;
 	/** An authorization denial from a guard. */
-	denial(message: string, locale: Locale): EmbedBuilder;
+	denial(message: string, locale: Locale): View;
 	/** An unexpected failure, carrying a quotable incident reference. */
-	systemError(message: string, reference: string, locale: Locale): EmbedBuilder;
+	systemError(message: string, reference: string, locale: Locale): View;
 }

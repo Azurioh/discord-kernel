@@ -49,7 +49,8 @@ describe("LifecycleDispatcher", () => {
 				expect(interaction.reply).not.toHaveBeenCalled();
 			} else {
 				expect(interaction.reply).toHaveBeenCalledExactlyOnceWith({
-					flags: MessageFlags.Ephemeral,
+					flags: [MessageFlags.Ephemeral],
+					components: [],
 					embeds: [
 						expect.objectContaining({
 							data: expect.objectContaining({

@@ -17,7 +17,7 @@ import { createFakeModuleGate } from "../../support/fake-module-gate";
 
 function makeDeps() {
 	const presenter = {
-		denial: vi.fn(() => new EmbedBuilder().setDescription("denied")),
+		denial: vi.fn(() => ({ embeds: [new EmbedBuilder().setDescription("denied")] })),
 	} as unknown as Presenter;
 	const translator = {
 		defaultLocale: "en",
@@ -178,7 +178,8 @@ describe("ComponentRouter module gate (S15)", () => {
 		expect(deps.presenter.denial).toHaveBeenCalledWith(SETTINGS_MESSAGES.moduleDisabled, "fr");
 		expect(interaction.reply).toHaveBeenCalledWith({
 			embeds: [expect.any(EmbedBuilder)],
-			flags: MessageFlags.Ephemeral,
+			components: [],
+			flags: [MessageFlags.Ephemeral],
 		});
 	});
 
@@ -299,7 +300,8 @@ it.each(["button", "select", "modal"])(
 		expect(deps.translator.translate).toHaveBeenCalledWith("en", CORE_MESSAGES.moduleUnavailable);
 		expect(interaction.reply).toHaveBeenCalledWith({
 			embeds: [expect.any(EmbedBuilder)],
-			flags: MessageFlags.Ephemeral,
+			components: [],
+			flags: [MessageFlags.Ephemeral],
 		});
 	},
 );

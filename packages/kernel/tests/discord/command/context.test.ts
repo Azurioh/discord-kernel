@@ -1,8 +1,10 @@
+import { EmbedBuilder, MessageFlags, TextDisplayBuilder } from "discord.js";
 import { describe, expect, it, vi } from "vitest";
 import { createContext } from "@/discord/command/context";
 import type { Presenter } from "@/discord/presenter";
 import { TranslationRegistry } from "@/i18n/catalog";
 import { createTranslator, type Translator } from "@/i18n/translator";
+import { createBotInteraction } from "../../support/bot-interaction";
 import { createFakeLogger } from "../../support/fake-logger";
 
 function makeTranslator(defaultLocale: "en" | "fr" = "en"): Translator {
@@ -82,5 +84,49 @@ describe("createContext locale resolution", () => {
 		);
 		expect(ctx.locale).toBe("fr");
 		expect(ctx.t("test.greeting", { name: "Ana" })).toBe("Bonjour Ana");
+	});
+});
+
+describe("createContext reply", () => {
+	it("sends a V1 view through sendView", async () => {
+		const interaction = createBotInteraction({ kind: "slash", name: "test", guildId: "guild" });
+		const embed = new EmbedBuilder().setDescription("hello");
+		const ctx = createContext(
+			interaction as never,
+			{},
+			true,
+			presenterStub,
+			createFakeLogger(),
+			makeTranslator(),
+		);
+		await ctx.reply({ embeds: [embed] });
+		expect(interaction.sentPayloads()).toEqual([
+			{
+				method: "reply",
+				payload: { embeds: [embed], components: [], flags: [MessageFlags.Ephemeral] },
+			},
+		]);
+	});
+
+	it("sends a V2 view through sendView, flagged Components V2", async () => {
+		const interaction = createBotInteraction({ kind: "slash", name: "test", guildId: "guild" });
+		const ctx = createContext(
+			interaction as never,
+			{},
+			false,
+			presenterStub,
+			createFakeLogger(),
+			makeTranslator(),
+		);
+		await ctx.reply({ components: [{ type: "text", content: "hello" }] });
+		expect(interaction.sentPayloads()).toEqual([
+			{
+				method: "reply",
+				payload: {
+					components: [expect.any(TextDisplayBuilder)],
+					flags: [MessageFlags.IsComponentsV2],
+				},
+			},
+		]);
 	});
 });

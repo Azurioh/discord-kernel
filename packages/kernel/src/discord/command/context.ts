@@ -1,12 +1,13 @@
-import type { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
+import type { ChatInputCommandInteraction } from "discord.js";
 import {
 	type CommandResponders,
 	createCommandResponders,
 } from "@/discord/command/command-responders";
 import type { Options, Values } from "@/discord/command/options";
-import { sendEmbed } from "@/discord/command/send-embed";
+import { sendView } from "@/discord/command/send-view";
 import { interactionLocale } from "@/discord/interaction/interaction-locale";
 import type { Presenter } from "@/discord/presenter";
+import type { View } from "@/discord/view/view";
 import type { Locale } from "@/i18n/locale";
 import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
@@ -20,7 +21,8 @@ import type { Logger } from "@/logger";
 export interface Context<O extends Options> extends CommandResponders {
 	readonly interaction: ChatInputCommandInteraction;
 	readonly options: Values<O>;
-	reply(embed: EmbedBuilder): Promise<void>;
+	/** Answer with a view in either layout, whatever the interaction state. */
+	reply(view: View): Promise<void>;
 }
 
 /**
@@ -40,6 +42,6 @@ export function createContext<O extends Options>(
 		...createCommandResponders(interaction, locale, ephemeral, { presenter, logger, translator }),
 		interaction,
 		options,
-		reply: (embed) => sendEmbed(interaction, embed, ephemeral, logger),
+		reply: (view) => sendView(interaction, view, { ephemeral }, logger),
 	};
 }

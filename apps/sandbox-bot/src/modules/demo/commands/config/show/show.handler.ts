@@ -38,6 +38,6 @@ export function createShowHandler(
 			})),
 			(count) => ctx.t(DEMO_MESSAGES.hiddenFields, { count }),
 		);
-		await ctx.reply(embed);
+		await ctx.reply({ embeds: [embed] });
 	};
 }

@@ -13,6 +13,7 @@ import type { Options, Values } from "@/discord/command/options";
 import { passesGuard } from "@/discord/command/passes-guard";
 import { renderCommandFailure } from "@/discord/command/render-command-failure";
 import { routeKey } from "@/discord/command/route-key";
+import { sendView } from "@/discord/command/send-view";
 import type { CommandRuntime, SlashCommand } from "@/discord/command/types";
 import { CORE_MESSAGES } from "@/discord/i18n";
 import { replyLocale } from "@/discord/interaction/reply-locale";
@@ -255,15 +256,15 @@ async function dispatchGrouped(
 
 	if (!route) {
 		const locale = await replyLocale(interaction, runtime);
-		await interaction.reply({
-			embeds: [
-				runtime.presenter.error(
-					runtime.translator.translate(locale, CORE_MESSAGES.unknownSubcommand),
-					locale,
-				),
-			],
-			flags: MessageFlags.Ephemeral,
-		});
+		await sendView(
+			interaction,
+			runtime.presenter.error(
+				runtime.translator.translate(locale, CORE_MESSAGES.unknownSubcommand),
+				locale,
+			),
+			{ ephemeral: true },
+			runtime.logger,
+		);
 		return;
 	}
 
