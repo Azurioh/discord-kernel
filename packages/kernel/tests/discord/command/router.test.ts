@@ -17,7 +17,7 @@ const GUILD_B = "100000000000000002";
 const DISABLED_EMBED = new EmbedBuilder().setDescription("disabled");
 
 function makeDeps() {
-	const presenter = { denial: vi.fn(() => DISABLED_EMBED) } as unknown as Presenter;
+	const presenter = { denial: vi.fn(() => ({ embeds: [DISABLED_EMBED] })) } as unknown as Presenter;
 	const translator = {
 		defaultLocale: "en",
 		translate: vi.fn((_locale: string, key: string) => key),
@@ -74,7 +74,8 @@ describe("CommandRouter module gate (S15)", () => {
 		expect(deps.presenter.denial).toHaveBeenCalledWith(SETTINGS_MESSAGES.moduleDisabled, "fr");
 		expect(interaction.reply).toHaveBeenCalledWith({
 			embeds: [DISABLED_EMBED],
-			flags: MessageFlags.Ephemeral,
+			components: [],
+			flags: [MessageFlags.Ephemeral],
 		});
 	});
 
@@ -248,7 +249,8 @@ describe("CommandRouter availability", () => {
 			expect(deps.translator.translate).toHaveBeenCalledWith("fr", CORE_MESSAGES.moduleUnavailable);
 			expect(interaction.reply).toHaveBeenCalledWith({
 				embeds: [DISABLED_EMBED],
-				flags: MessageFlags.Ephemeral,
+				components: [],
+				flags: [MessageFlags.Ephemeral],
 			});
 		},
 	);

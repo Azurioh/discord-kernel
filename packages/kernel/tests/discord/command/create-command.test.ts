@@ -99,11 +99,11 @@ function runtimeWith(localeResolver?: LocaleResolver): CommandRuntime & {
 	presenter: Record<string, ReturnType<typeof vi.fn>>;
 } {
 	const presenter = {
-		confirmation: vi.fn(() => new EmbedBuilder()),
-		error: vi.fn(() => new EmbedBuilder()),
-		warning: vi.fn(() => new EmbedBuilder()),
-		denial: vi.fn(() => new EmbedBuilder()),
-		systemError: vi.fn(() => new EmbedBuilder()),
+		confirmation: vi.fn(() => ({ embeds: [new EmbedBuilder()] })),
+		error: vi.fn(() => ({ embeds: [new EmbedBuilder()] })),
+		warning: vi.fn(() => ({ embeds: [new EmbedBuilder()] })),
+		denial: vi.fn(() => ({ embeds: [new EmbedBuilder()] })),
+		systemError: vi.fn(() => ({ embeds: [new EmbedBuilder()] })),
 	};
 	return {
 		presenter: presenter as unknown as Presenter & Record<string, ReturnType<typeof vi.fn>>,

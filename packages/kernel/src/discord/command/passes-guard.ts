@@ -1,10 +1,10 @@
-import {
-	type CommandInteraction,
-	type MessageComponentInteraction,
-	MessageFlags,
-	type ModalSubmitInteraction,
+import type {
+	CommandInteraction,
+	MessageComponentInteraction,
+	ModalSubmitInteraction,
 } from "discord.js";
 import type { Guard } from "@/discord/command/guard";
+import { sendView } from "@/discord/command/send-view";
 import { type ReplyLocaleDeps, replyLocale } from "@/discord/interaction/reply-locale";
 import type { Presenter } from "@/discord/presenter";
 
@@ -29,9 +29,11 @@ export async function passesGuard<
 		return true;
 	}
 	const locale = await replyLocale(interaction, runtime);
-	await interaction.reply({
-		embeds: [runtime.presenter.denial(runtime.translator.resolve(locale, result.message), locale)],
-		flags: MessageFlags.Ephemeral,
-	});
+	await sendView(
+		interaction,
+		runtime.presenter.denial(runtime.translator.resolve(locale, result.message), locale),
+		{ ephemeral: true },
+		runtime.logger,
+	);
 	return false;
 }

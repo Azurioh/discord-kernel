@@ -3,6 +3,12 @@ import { vi } from "vitest";
 import type { Bot } from "@/bot/create-bot";
 import { emitReady } from "./fake-client";
 
+/** One payload an interaction fixture sent, with the method that sent it. */
+interface SentPayload {
+	readonly method: "reply" | "editReply" | "followUp" | "update";
+	readonly payload: unknown;
+}
+
 /** An interaction fixture shared by bot integration tests.
  * @param params - Interaction kind, identity and locale.
  * @returns A reply-observable interaction without a Discord connection.
@@ -13,7 +19,8 @@ export function createBotInteraction(params: {
 	guildId: string;
 	locale?: string;
 }) {
-	return {
+	const sent: SentPayload[] = [];
+	const interaction = {
 		id: "900000000000000001",
 		user: { id: "900000000000000002" },
 		commandName: params.name,
@@ -30,9 +37,30 @@ export function createBotInteraction(params: {
 		isButton: () => params.kind === "button",
 		isAnySelectMenu: () => params.kind === "selectMenu",
 		isModalSubmit: () => params.kind === "modal",
-		reply: vi.fn(async (_payload: unknown) => undefined),
+		reply: vi.fn(async (payload: unknown) => {
+			sent.push({ method: "reply", payload });
+			interaction.replied = true;
+		}),
+		deferReply: vi.fn(async (_payload?: unknown) => {
+			interaction.deferred = true;
+		}),
+		editReply: vi.fn(async (payload: unknown) => {
+			sent.push({ method: "editReply", payload });
+			interaction.replied = true;
+		}),
+		followUp: vi.fn(async (payload: unknown) => {
+			sent.push({ method: "followUp", payload });
+			interaction.replied = true;
+		}),
+		update: vi.fn(async (payload: unknown) => {
+			sent.push({ method: "update", payload });
+			interaction.replied = true;
+		}),
 		respond: vi.fn(async (_payload: unknown) => undefined),
+		/** Every payload sent through reply, editReply, followUp or update, in order. */
+		sentPayloads: (): readonly SentPayload[] => [...sent],
 	};
+	return interaction;
 }
 
 /** Run bound client listeners and await their observable async completion.

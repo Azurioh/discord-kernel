@@ -1,5 +1,5 @@
 import type { CommandInteraction } from "discord.js";
-import { sendEmbed } from "@/discord/command/send-embed";
+import { sendView } from "@/discord/command/send-view";
 import type { Presenter } from "@/discord/presenter";
 import type { Locale } from "@/i18n/locale";
 import type { TranslationParams, Translator } from "@/i18n/translator";
@@ -32,8 +32,10 @@ export function createCommandResponders(
 		locale,
 		t: (key, params) => translator.translate(locale, key, params),
 		confirm: (message) =>
-			sendEmbed(interaction, presenter.confirmation(message, locale), ephemeral, logger),
-		error: (message) => sendEmbed(interaction, presenter.error(message, locale), ephemeral, logger),
-		deny: (message) => sendEmbed(interaction, presenter.denial(message, locale), ephemeral, logger),
+			sendView(interaction, presenter.confirmation(message, locale), { ephemeral }, logger),
+		error: (message) =>
+			sendView(interaction, presenter.error(message, locale), { ephemeral }, logger),
+		deny: (message) =>
+			sendView(interaction, presenter.denial(message, locale), { ephemeral }, logger),
 	};
 }

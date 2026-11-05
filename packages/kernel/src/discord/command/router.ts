@@ -1,6 +1,6 @@
 import { type CommandInteraction, type Interaction, REST, Routes } from "discord.js";
 import type { CommandDeployRest } from "@/discord/command/command-deploy-rest";
-import { sendEmbed } from "@/discord/command/send-embed";
+import { sendView } from "@/discord/command/send-view";
 import type {
 	CommandRuntime,
 	ContextMenuCommand,
@@ -12,8 +12,8 @@ import type { LocaleResolver } from "@/discord/interaction/locale-resolver";
 import type { ModuleAvailability } from "@/discord/module-availability";
 import type { Presenter } from "@/discord/presenter";
 import { isModuleDisabled } from "@/discord/settings/is-module-disabled";
-import { moduleDisabledEmbed } from "@/discord/settings/module-disabled-embed";
-import { moduleUnavailableEmbed } from "@/discord/settings/module-unavailable-embed";
+import { moduleDisabledView } from "@/discord/settings/module-disabled-view";
+import { moduleUnavailableView } from "@/discord/settings/module-unavailable-view";
 import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 import type { ModuleGate } from "@/settings/system/module-gate";
@@ -161,10 +161,10 @@ export class CommandRouter implements InteractionDispatcher {
 	): Promise<boolean> {
 		const owner = this.modules.get(command);
 		if (owner !== undefined && this.deps.availability?.isAvailable(owner) === false) {
-			await sendEmbed(
+			await sendView(
 				interaction,
-				await moduleUnavailableEmbed(interaction, this.deps),
-				true,
+				await moduleUnavailableView(interaction, this.deps),
+				{ ephemeral: true },
 				this.deps.logger,
 			);
 			return false;
@@ -175,10 +175,10 @@ export class CommandRouter implements InteractionDispatcher {
 			guildId: interaction.guildId,
 		});
 		if (disabled) {
-			await sendEmbed(
+			await sendView(
 				interaction,
-				await moduleDisabledEmbed(interaction, this.deps),
-				true,
+				await moduleDisabledView(interaction, this.deps),
+				{ ephemeral: true },
 				this.deps.logger,
 			);
 		}

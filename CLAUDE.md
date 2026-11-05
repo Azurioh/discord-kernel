@@ -55,7 +55,7 @@ Already defined once, reuse them:
 | Creating a bot from modules and shared services | `createBot` (`@/bot/create-bot`); `BotServices` and `ModuleContext` (`@/module/module-context`) |
 | Owning startup acquisitions and ordered shutdown | `BotLifecycle` (`@/bot/lifecycle`) and `runStep` (`@/bot/lifecycle-step`); never duplicate startup or deadline handling |
 | Module availability independently of guild toggles | `ModuleStatus` (`@/bot/module-status`) over `ModuleAvailability` (`@/discord/module-availability`); twin: `createInMemoryModuleAvailability` (`@/discord/in-memory-module-availability`) |
-| The unavailable-module reply | `moduleUnavailableEmbed` (`@/discord/settings/module-unavailable-embed`) |
+| The unavailable-module reply | `moduleUnavailableView` (`@/discord/settings/module-unavailable-view`) |
 | Blocking interactions outside the running state | `LifecycleDispatcher` (`@/bot/lifecycle-dispatcher`), first in the existing `InteractionRouter` |
 | Process signals, crashes and observable exits in tests | `installProcessHandlers` (`@/bot/process-handlers`) over `ProcessLike` (`@/bot/process-like`); twin: `createInMemoryProcess` (`@/bot/in-memory-process`) |
 | The result of ordered shutdown | `StopReport` and `StopReason` (`@/bot/stop-report`) |
@@ -66,7 +66,7 @@ Already defined once, reuse them:
 | The message of an unknown error | `errorMessage` (`@/errors/error-message`) |
 | Discord's 25-choice cap | `MAX_AUTOCOMPLETE_CHOICES` (`@/discord/command/autocomplete-limits`), `MAX_SELECT_OPTIONS` |
 | Colour names and aliases | `@/color`, `@/discord/ui/color-aliases` |
-| Sending a reply whatever the interaction state | `sendEmbed` (`@/discord/command/send-embed`) |
+| Sending a reply whatever the interaction state | `sendView` (`@/discord/command/send-view`) |
 | A translator bound to one locale | `TranslateKey` (`@/i18n/translator`) |
 | The language every catalog provides | `SOURCE_LOCALE` (`@/i18n/locale`) |
 | Cutting text to a Discord limit | `truncateText` (`@/discord/ui/truncate-text`) |
@@ -76,7 +76,7 @@ Already defined once, reuse them:
 | A `Logger` double in tests | `createFakeLogger` (`tests/support/fake-logger.ts`, spies over the `createInMemoryLogger` twin, `@/in-memory-logger`) |
 | Whether a module is enabled on a guild (routers, scheduled jobs) | `ModuleGate`, `createModuleGate` (`@/settings/system/module-gate`) |
 | A router's "skip this handler?" check | `isModuleDisabled` (`@/discord/settings/is-module-disabled`) |
-| The "disabled on this server" reply | `moduleDisabledEmbed` (`@/discord/settings/module-disabled-embed`) |
+| The "disabled on this server" reply | `moduleDisabledView` (`@/discord/settings/module-disabled-view`) |
 | The guild a gateway event concerns | `eventGuildId` (`@/discord/events/event-guild-id`) |
 | The kernel's own settings (module toggles, guild language) | `registry.kernel`, built by `kernelSettings` (`@/settings/system/kernel-settings`) |
 | Cached settings reads | `service.get` (cached via `@/settings/cache`); never read the store directly |

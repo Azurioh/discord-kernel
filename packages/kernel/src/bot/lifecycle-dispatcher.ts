@@ -1,6 +1,6 @@
 import type { Interaction } from "discord.js";
 import type { BotLifecycle } from "@/bot/lifecycle";
-import { sendEmbed } from "@/discord/command/send-embed";
+import { sendView } from "@/discord/command/send-view";
 import { CORE_MESSAGES } from "@/discord/i18n";
 import type { InteractionDispatcher } from "@/discord/interaction/interaction-router";
 import { type ReplyLocaleDeps, replyLocale } from "@/discord/interaction/reply-locale";
@@ -40,10 +40,10 @@ export class LifecycleDispatcher implements InteractionDispatcher {
 		) {
 			const locale = await replyLocale(interaction, this.deps);
 			const message = this.deps.translator.translate(locale, CORE_MESSAGES.botRestarting);
-			await sendEmbed(
+			await sendView(
 				interaction,
 				this.deps.presenter.denial(message, locale),
-				true,
+				{ ephemeral: true },
 				this.deps.logger,
 			);
 			return true;

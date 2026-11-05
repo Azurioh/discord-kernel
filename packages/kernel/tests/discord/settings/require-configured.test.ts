@@ -68,11 +68,11 @@ function setup() {
 		logger,
 	});
 	const presenter = {
-		denial: vi.fn((message: string) => new EmbedBuilder().setDescription(message)),
-		error: vi.fn(() => new EmbedBuilder()),
-		warning: vi.fn(() => new EmbedBuilder()),
-		confirmation: vi.fn(() => new EmbedBuilder()),
-		systemError: vi.fn(() => new EmbedBuilder()),
+		denial: vi.fn((message: string) => ({ embeds: [new EmbedBuilder().setDescription(message)] })),
+		error: vi.fn(() => ({ embeds: [new EmbedBuilder()] })),
+		warning: vi.fn(() => ({ embeds: [new EmbedBuilder()] })),
+		confirmation: vi.fn(() => ({ embeds: [new EmbedBuilder()] })),
+		systemError: vi.fn(() => ({ embeds: [new EmbedBuilder()] })),
 	};
 	const runtime = {
 		presenter: presenter as unknown as Presenter,
@@ -204,7 +204,7 @@ describe("requireConfigured (FR-041, S18)", () => {
 			"fr",
 		);
 		expect(blocked.reply).toHaveBeenCalledWith(
-			expect.objectContaining({ flags: MessageFlags.Ephemeral }),
+			expect.objectContaining({ flags: [MessageFlags.Ephemeral] }),
 		);
 
 		await configure();
@@ -233,7 +233,7 @@ describe("requireConfigured (FR-041, S18)", () => {
 			"fr",
 		);
 		expect(blocked.reply).toHaveBeenCalledWith(
-			expect.objectContaining({ flags: MessageFlags.Ephemeral }),
+			expect.objectContaining({ flags: [MessageFlags.Ephemeral] }),
 		);
 
 		await configure();

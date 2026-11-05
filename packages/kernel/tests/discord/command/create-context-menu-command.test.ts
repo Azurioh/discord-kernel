@@ -8,14 +8,14 @@ import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
 import { createFakeLocaleResolver } from "../../support/fake-locale-resolver";
 
-/** Embeds are opaque here: the tests assert which presenter path was taken. */
+/** Views are opaque here: the tests assert which presenter path was taken. */
 function stubRuntime(): CommandRuntime & { presenter: Record<string, ReturnType<typeof vi.fn>> } {
 	const presenter = {
-		confirmation: vi.fn(() => ({ kind: "confirmation" })),
-		error: vi.fn(() => ({ kind: "error" })),
-		warning: vi.fn(() => ({ kind: "warning" })),
-		denial: vi.fn(() => ({ kind: "denial" })),
-		systemError: vi.fn(() => ({ kind: "systemError" })),
+		confirmation: vi.fn(() => ({ content: "confirmation" })),
+		error: vi.fn(() => ({ content: "error" })),
+		warning: vi.fn(() => ({ content: "warning" })),
+		denial: vi.fn(() => ({ content: "denial" })),
+		systemError: vi.fn(() => ({ content: "systemError" })),
 	};
 	const logger = {
 		trace: vi.fn(),

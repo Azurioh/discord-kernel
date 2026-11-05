@@ -1,13 +1,12 @@
-import {
-	type AnySelectMenuInteraction,
-	type ButtonInteraction,
-	type Interaction,
-	MessageFlags,
-	type ModalSubmitInteraction,
+import type {
+	AnySelectMenuInteraction,
+	ButtonInteraction,
+	Interaction,
+	ModalSubmitInteraction,
 } from "discord.js";
 import type { Guard } from "@/discord/command/guard";
 import { passesGuard } from "@/discord/command/passes-guard";
-import { sendEmbed } from "@/discord/command/send-embed";
+import { sendView } from "@/discord/command/send-view";
 import { CORE_MESSAGES } from "@/discord/i18n";
 import type { InteractionDispatcher } from "@/discord/interaction/interaction-router";
 import type { LocaleResolver } from "@/discord/interaction/locale-resolver";
@@ -16,8 +15,8 @@ import type { ModuleAvailability } from "@/discord/module-availability";
 import { formatPermissions, missingPermissions, type PermissionBit } from "@/discord/permissions";
 import type { Presenter } from "@/discord/presenter";
 import { isModuleDisabled } from "@/discord/settings/is-module-disabled";
-import { moduleDisabledEmbed } from "@/discord/settings/module-disabled-embed";
-import { moduleUnavailableEmbed } from "@/discord/settings/module-unavailable-embed";
+import { moduleDisabledView } from "@/discord/settings/module-disabled-view";
+import { moduleUnavailableView } from "@/discord/settings/module-unavailable-view";
 import { errorMessage } from "@/errors/error-message";
 import type { Translator } from "@/i18n/translator";
 import type { Logger } from "@/logger";
@@ -214,10 +213,10 @@ export class ComponentRouter implements InteractionDispatcher {
 	): Promise<boolean> {
 		const owner = this.modules.get(handler);
 		if (owner !== undefined && this.deps.availability?.isAvailable(owner) === false) {
-			await sendEmbed(
+			await sendView(
 				interaction,
-				await moduleUnavailableEmbed(interaction, this.deps),
-				true,
+				await moduleUnavailableView(interaction, this.deps),
+				{ ephemeral: true },
 				this.deps.logger,
 			);
 			return false;
@@ -228,10 +227,12 @@ export class ComponentRouter implements InteractionDispatcher {
 			guildId: interaction.guildId,
 		});
 		if (disabled) {
-			await interaction.reply({
-				embeds: [await moduleDisabledEmbed(interaction, this.deps)],
-				flags: MessageFlags.Ephemeral,
-			});
+			await sendView(
+				interaction,
+				await moduleDisabledView(interaction, this.deps),
+				{ ephemeral: true },
+				this.deps.logger,
+			);
 		}
 		return !disabled;
 	}
@@ -261,10 +262,12 @@ export class ComponentRouter implements InteractionDispatcher {
 		const message = this.deps.translator.translate(locale, CORE_MESSAGES.guardPermissionDenied, {
 			missing: formatPermissions(missing),
 		});
-		await interaction.reply({
-			embeds: [this.deps.presenter.denial(message, locale)],
-			flags: MessageFlags.Ephemeral,
-		});
+		await sendView(
+			interaction,
+			this.deps.presenter.denial(message, locale),
+			{ ephemeral: true },
+			this.deps.logger,
+		);
 		return false;
 	}
 }

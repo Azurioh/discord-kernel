@@ -1,5 +1,5 @@
 import type { CommandInteraction } from "discord.js";
-import { sendEmbed } from "@/discord/command/send-embed";
+import { sendView } from "@/discord/command/send-view";
 import type { CommandRuntime } from "@/discord/command/types";
 import { CORE_MESSAGES } from "@/discord/i18n";
 import { replyLocale } from "@/discord/interaction/reply-locale";
@@ -38,11 +38,11 @@ export async function renderCommandFailure(
 	const locale = await replyLocale(interaction, runtime);
 	if (error instanceof BusinessError) {
 		const text = resolveBusinessMessage(error, translator, locale);
-		const embed =
+		const view =
 			error.severity === "warning"
 				? presenter.warning(text, locale)
 				: presenter.error(text, locale);
-		await sendEmbed(interaction, embed, ephemeral, logger);
+		await sendView(interaction, view, { ephemeral }, logger);
 		return;
 	}
 
@@ -58,14 +58,14 @@ export async function renderCommandFailure(
 		},
 		failure.logMessage,
 	);
-	await sendEmbed(
+	await sendView(
 		interaction,
 		presenter.systemError(
 			translator.resolve(locale, failure.fallbackError ?? { key: CORE_MESSAGES.genericError }),
 			ref,
 			locale,
 		),
-		ephemeral,
+		{ ephemeral },
 		logger,
 	);
 }

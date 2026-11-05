@@ -183,9 +183,9 @@
 			"types": "./dist/discord/command/router.d.ts",
 			"default": "./dist/discord/command/router.js"
 		},
-		"./discord/command/send-embed": {
-			"types": "./dist/discord/command/send-embed.d.ts",
-			"default": "./dist/discord/command/send-embed.js"
+		"./discord/command/send-view": {
+			"types": "./dist/discord/command/send-view.d.ts",
+			"default": "./dist/discord/command/send-view.js"
 		},
 		"./discord/command/types": {
 			"types": "./dist/discord/command/types.d.ts",
@@ -579,9 +579,13 @@
 			"types": "./dist/discord/in-memory-module-availability.d.ts",
 			"default": "./dist/discord/in-memory-module-availability.js"
 		},
-		"./discord/settings/module-unavailable-embed": {
-			"types": "./dist/discord/settings/module-unavailable-embed.d.ts",
-			"default": "./dist/discord/settings/module-unavailable-embed.js"
+		"./discord/settings/module-unavailable-view": {
+			"types": "./dist/discord/settings/module-unavailable-view.d.ts",
+			"default": "./dist/discord/settings/module-unavailable-view.js"
+		},
+		"./discord/settings/module-disabled-view": {
+			"types": "./dist/discord/settings/module-disabled-view.d.ts",
+			"default": "./dist/discord/settings/module-disabled-view.js"
 		}
 	},
 	"files": [
