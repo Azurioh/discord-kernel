@@ -58,7 +58,7 @@ export const MAX_MESSAGE_EMBEDS = 10;
 
 ```ts
 export class ViewLimitError extends Error { readonly limit: string; readonly actual: number; readonly max: number }
-export class MissingAttachmentError extends Error { readonly name: string }
+export class MissingAttachmentError extends Error { readonly fileName: string }
 export class EmptyViewError extends Error { readonly layout: "v1" | "v2" }
 export class ViewLayoutSwitchError extends Error {}
 ```

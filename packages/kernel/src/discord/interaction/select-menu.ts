@@ -25,6 +25,23 @@ export type AnySelectMenuBuilder =
 	| UserSelectMenuBuilder;
 
 /**
+ * What a compiled select menu must offer for a view to render it — `apply`
+ * only, never `onSelect`.
+ *
+ * `SelectMenu<B, I>` (the DSL's own compiled shape) is contravariant in `I`,
+ * so a `SelectMenu<StringSelectMenuBuilder, StringSelectMenuInteraction>` —
+ * what `createStringSelect` hands back — is not assignable to a version
+ * fixed at the union `AnySelectMenuInteraction`. A view never reads
+ * `onSelect` (that is wired separately, through the module's
+ * `ComponentRouter`), so this asks for nothing beyond what it actually
+ * calls, and every flavour of compiled select menu satisfies it as-is.
+ */
+export interface AnySelectMenu {
+	readonly id: string;
+	apply(forceDisabled?: boolean): AnySelectMenuBuilder;
+}
+
+/**
  * Context handed to `onSelect`, mirroring
  * {@link import("@/discord/interaction/button").ComponentContext}: the
  * triggering interaction plus the picked values, already unwrapped so a handler

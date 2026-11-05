@@ -103,7 +103,7 @@ Node → Discord component:
 | Class | Fields | Thrown when |
 |---|---|---|
 | `ViewLimitError` | `limit` (constant name), `actual`, `max` | any limit above |
-| `MissingAttachmentError` | `name` | a `file` names an absent attachment |
+| `MissingAttachmentError` | `fileName` | a `file` names an absent attachment |
 | `EmptyViewError` | `layout` | nothing to send |
 | `ViewLayoutSwitchError` | — | an owned message would go from V2 to V1 |
 
